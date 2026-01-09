@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-09)
 
 **Core value:** Numeric validation accuracy — if the system can't reliably catch math errors and inconsistencies in financial tables, nothing else matters.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Document Ingestion
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation)
-Plan: 01-03 Complete
-Status: Phase 1 Complete
-Last activity: 2026-01-09 — Database schema and GCS setup complete
+Phase: 2 of 7 (Document Ingestion)
+Plan: 02-01 In Progress
+Status: Planning Complete
+Last activity: 2026-01-10 — Phase 2 plans created
 
 Progress: ██░░░░░░░░ 21%
 
