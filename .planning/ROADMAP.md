@@ -31,8 +31,8 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Backend scaffolding (FastAPI, SQLAlchemy, project structure)
-- [ ] 01-02: Frontend scaffolding (Next.js, Shadcn/UI, TanStack Query)
+- [x] 01-01: Backend scaffolding (FastAPI, SQLAlchemy, project structure)
+- [x] 01-02: Frontend scaffolding (Next.js, Shadcn/UI, TanStack Query)
 - [ ] 01-03: Database schema and GCS setup
 
 ### Phase 2: Document Ingestion
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 2/3 | In Progress | - |
 | 2. Document Ingestion | 0/2 | Not started | - |
 | 3. Numeric Validation | 0/3 | Not started | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
