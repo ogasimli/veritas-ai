@@ -116,6 +116,3 @@ yarn-error.log*
 
 # Google Cloud
 .gcloudignore
-
-# Agent
-.agent/workflows/
