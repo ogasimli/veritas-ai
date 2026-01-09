@@ -14,7 +14,7 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Foundation** - Project setup, backend/frontend scaffolding, database schema
+- [x] **Phase 1: Foundation** - Project setup, backend/frontend scaffolding, database schema
 - [ ] **Phase 2: Document Ingestion** - Upload API, .docx parsing, structured extraction
 - [ ] **Phase 3: Numeric Validation** - Planner + Validator + Manager agents with code_executor
 - [ ] **Phase 4: Logic Consistency** - Reasoning agent for semantic inconsistencies
@@ -33,7 +33,7 @@ None
 Plans:
 - [x] 01-01: Backend scaffolding (FastAPI, SQLAlchemy, project structure)
 - [x] 01-02: Frontend scaffolding (Next.js, Shadcn/UI, TanStack Query)
-- [ ] 01-03: Database schema and GCS setup
+- [x] 01-03: Database schema and GCS setup
 
 ### Phase 2: Document Ingestion
 **Goal**: Upload .docx files, parse with python-docx, extract structured content (tables as markdown)
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In Progress | - |
+| 1. Foundation | 3/3 | Completed | 2026-01-09 |
 | 2. Document Ingestion | 0/2 | Not started | - |
 | 3. Numeric Validation | 0/3 | Not started | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
