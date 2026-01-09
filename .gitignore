@@ -27,7 +27,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+# lib/ (generic) - note: allows frontend/lib via exception
 lib/
+!frontend/lib/
+
 lib64/
 parts/
 sdist/
