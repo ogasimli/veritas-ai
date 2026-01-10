@@ -43,7 +43,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Upload API endpoint with GCS storage
+- [x] 02-01: Upload API endpoint with GCS storage
 - [ ] 02-02: Extractor agent (.docx → structured markdown)
 
 ### Phase 3: Numeric Validation
@@ -107,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Completed | 2026-01-09 |
-| 2. Document Ingestion | 0/2 | Planned | - |
+| 2. Document Ingestion | 1/2 | In progress | - |
 | 3. Numeric Validation | 0/3 | Not started | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
 | 5. Disclosure Compliance | 0/2 | Not started | - |
