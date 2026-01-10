@@ -67,7 +67,7 @@ Given the code_executor limitation, the pipeline will be:
 
 ## Implementation Notes
 
-1. Use `gemini-2.0-flash` model (requirement for code_executor)
+1. Use `gemini-3-pro` model (Gemini 3 Pro as specified in PROJECT.md)
 2. Store findings in database via Finding model (already exists)
 3. Update Job status throughout pipeline execution
 4. FSLI = Financial Statement Line Item (e.g., "Revenue", "Total Assets")
