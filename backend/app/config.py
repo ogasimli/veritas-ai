@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     # Google Cloud Storage
     gcs_bucket: str = ""
 
-    # Gemini API
-    gemini_api_key: str = ""
+    # Google API
+    google_api_key: str | None = None
 
     # Application
     debug: bool = False
