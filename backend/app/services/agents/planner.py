@@ -1,4 +1,6 @@
 from google.adk.agents import LlmAgent
+from google.adk.planners import BuiltInPlanner
+from google.genai import types
 from app.schemas.agent_outputs import PlannerOutput
 
 PLANNER_INSTRUCTION = """
@@ -23,11 +25,8 @@ def create_planner_agent() -> LlmAgent:
         model="gemini-3-pro",
         instruction=PLANNER_INSTRUCTION,
         output_key="fslis",
-        response_schema=PlannerOutput,
-        config={
-            "thinking_config": {
-                "include_thoughts": True,
-                "thinking_level": "high"
-            }
-        }
+        output_schema=PlannerOutput,
+        planner=BuiltInPlanner(
+            thinking_config=types.ThinkingConfig(thinking_level="high")
+        ),
     )
