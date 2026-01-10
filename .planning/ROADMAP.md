@@ -15,7 +15,7 @@ None
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Project setup, backend/frontend scaffolding, database schema
-- [ ] **Phase 2: Document Ingestion** - Upload API, .docx parsing, structured extraction
+- [x] **Phase 2: Document Ingestion** - Upload API, .docx parsing, structured extraction
 - [ ] **Phase 3: Numeric Validation** - Planner + Validator + Manager agents with code_executor
 - [ ] **Phase 4: Logic Consistency** - Reasoning agent for semantic inconsistencies
 - [ ] **Phase 5: Disclosure Compliance** - Scanner, YAML checklists, parallel validator agents
@@ -44,7 +44,7 @@ Plans:
 
 Plans:
 - [x] 02-01: Upload API endpoint with GCS storage
-- [ ] 02-02: Extractor agent (.docx → structured markdown)
+- [x] 02-02: Extractor agent (.docx → structured markdown)
 
 ### Phase 3: Numeric Validation
 **Goal**: Core validation pipeline — Planner identifies FSLIs, Validators check math via code_executor, Manager aggregates
@@ -107,7 +107,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Completed | 2026-01-09 |
-| 2. Document Ingestion | 1/2 | In progress | - |
+| 2. Document Ingestion | 2/2 | Completed | 2026-01-10 |
 | 3. Numeric Validation | 0/3 | Not started | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
 | 5. Disclosure Compliance | 0/2 | Not started | - |
