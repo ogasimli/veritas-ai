@@ -11,5 +11,5 @@ class FSLI(BaseModel):
     values: List[FSLIValue] = Field(description="List of numeric values associated with this line item across different periods.")
     source_ref: str = Field(description="Reference to the source in the document (e.g., 'Table 4, Row 12').")
 
-class PlannerOutput(BaseModel):
+class PlannerAgentAgentOutput(BaseModel):
     fslis: List[FSLI] = Field(description="List of identified Financial Statement Line Items.")
