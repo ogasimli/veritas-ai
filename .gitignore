@@ -116,3 +116,7 @@ yarn-error.log*
 
 # Google Cloud
 .gcloudignore
+
+# ADK (Agent Development Kit)
+.adk/
+**/ .adk/
