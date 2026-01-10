@@ -6,20 +6,46 @@
 
 ## Open Issues
 
-### UAT-002: InMemoryRunner API needs further research
-
-**Discovered:** 2026-01-10
-**Phase/Plan:** 03-01
-**Severity:** Major
-**Feature:** Agent execution via runner
-**Description:** The InMemoryRunner.run() API requires session management that isn't yet clear from documentation. Session handling and proper event iteration patterns need research.
-**Expected:** Agent should execute and return FSLIs from test document
-**Actual:** Multiple API signature mismatches - session_id required, event iteration unclear
-**Repro:** Run `python3 scripts/test_planner.py`
-
-**Status:** Agent creation works (UAT-001 fixed). Agent execution blocked pending ADK runner API research.
+None - all issues resolved!
 
 ## Resolved Issues
+
+### UAT-002: Gemini 3 models require billing enabled (quota limit 0 on free tier)
+
+**Discovered:** 2026-01-10
+**Resolved:** 2026-01-11
+**Phase/Plan:** 03-01
+**Severity:** Major (was blocking)
+**Feature:** Agent execution via runner
+**Description:** The `gemini-3-pro-preview` model requires billing to be enabled. The free tier quota for Gemini 3 models is set to 0, resulting in RESOURCE_EXHAUSTED errors.
+**Expected:** Agent should execute and return FSLIs from test document
+**Actual:** Agent now successfully extracts FSLIs with correct structure
+
+**Resolution:**
+- ✅ User enabled billing on Google Cloud project
+- ✅ Switched back to `gemini-3-pro-preview` model
+- ✅ Test passes: Agent successfully extracts FSLIs (Revenue, Cost of sales, Gross profit, Trade receivables)
+- ✅ Removed temporary workaround code
+- ✅ All agent infrastructure working correctly
+
+**Test Results (2026-01-11):**
+```json
+{
+  "fslis": [
+    {"name": "Revenue", "values": [{"label": "2023", "amount": 1500000, "unit": "USD"}, ...]},
+    {"name": "Cost of sales", "values": [...]},
+    {"name": "Gross profit", "values": [...]},
+    {"name": "Trade receivables", "values": [...]}
+  ]
+}
+```
+
+**Final Status:**
+- ✅ Agent creation works
+- ✅ InMemoryRunner API works (`run_debug()` method)
+- ✅ Using `gemini-3-pro-preview` as intended
+- ✅ Billing enabled and working
+- ✅ FSLI extraction working correctly
 
 ### UAT-001: LlmAgent created with invalid parameters
 

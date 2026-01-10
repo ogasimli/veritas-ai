@@ -22,7 +22,7 @@ def create_planner_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="PlannerAgent",
-        model="gemini-3-pro",
+        model="gemini-3-pro-preview",
         instruction=PLANNER_INSTRUCTION,
         output_key="fslis",
         output_schema=PlannerOutput,
