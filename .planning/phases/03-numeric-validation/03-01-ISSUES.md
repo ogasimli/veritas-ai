@@ -6,7 +6,18 @@
 
 ## Open Issues
 
-[None]
+### UAT-002: InMemoryRunner API needs further research
+
+**Discovered:** 2026-01-10
+**Phase/Plan:** 03-01
+**Severity:** Major
+**Feature:** Agent execution via runner
+**Description:** The InMemoryRunner.run() API requires session management that isn't yet clear from documentation. Session handling and proper event iteration patterns need research.
+**Expected:** Agent should execute and return FSLIs from test document
+**Actual:** Multiple API signature mismatches - session_id required, event iteration unclear
+**Repro:** Run `python3 scripts/test_planner.py`
+
+**Status:** Agent creation works (UAT-001 fixed). Agent execution blocked pending ADK runner API research.
 
 ## Resolved Issues
 
