@@ -36,7 +36,7 @@ def create_planner_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="PlannerAgent",
-        model="gemini-2.0-flash",
+        model="gemini-3-pro",
         instruction=PLANNER_INSTRUCTION,
         output_key="fslis"
     )

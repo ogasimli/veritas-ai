@@ -27,7 +27,7 @@ Successfully established the agentic infrastructure using Google ADK and impleme
 
 ## Decisions Made
 
-- **Model Choice**: Used `gemini-2.0-flash` for the Planner Agent instead of the placeholder `gemini-3-pro` mentioned in some parts of the plan, as it is the current recommended model for high-performance extraction tasks.
+- **Model Choice**: Standardized on `gemini-3-pro` for all agents as requested, ensuring consistent high-reasoning capabilities across the pipeline.
 - **Client Library**: Used `google-genai` Client as requested to avoid VertexAI dependencies.
 
 ## Issues Encountered
