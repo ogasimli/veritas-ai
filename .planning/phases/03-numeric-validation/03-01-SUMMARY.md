@@ -15,7 +15,9 @@ Successfully established the agentic infrastructure using Google ADK and impleme
 
 - Initialized Google ADK infrastructure with `InMemoryRunner` and `google-genai` client.
 - Updated application configuration to support `GOOGLE_API_KEY`.
-- Created `PlannerAgent` with specialized instructions for FSLI extraction and structured JSON output.
+- Created `backend/app/schemas/agent_outputs.py` with Pydantic models for structured output.
+- Refactored `PlannerAgent` to use `response_schema` (Pydantic) instead of prompt-based JSON instructions.
+- Configured `PlannerAgent` with `thinking_level: high` in `thinking_config`.
 - Verified agent instantiation and infrastructure imports.
 
 ## Files Created/Modified
