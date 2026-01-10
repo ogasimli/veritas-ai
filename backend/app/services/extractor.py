@@ -1,6 +1,7 @@
 import io
 from typing import List, Union
-from docx import Document
+from docx import Document as DocumentFactory
+from docx.document import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 from docx.oxml.text.paragraph import CT_P
@@ -12,7 +13,7 @@ class ExtractorService:
 
     def extract_markdown(self, doc_bytes: bytes) -> str:
         """Converts docx bytes to Markdown string preserving document order."""
-        doc = Document(io.BytesIO(doc_bytes))
+        doc = DocumentFactory(io.BytesIO(doc_bytes))
         markdown_parts = []
 
         for block in self._iter_block_items(doc):
