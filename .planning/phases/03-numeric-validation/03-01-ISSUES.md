@@ -6,7 +6,154 @@
 
 ## Open Issues
 
-None - all issues resolved!
+### REFACTOR-001: Rename Planner agent to Extractor and simplify output
+
+**Discovered:** 2026-01-12
+**Phase/Plan:** 03-01
+**Severity:** Required (architecture alignment)
+**Feature:** Agent naming and output schema
+
+**Description:** Based on architecture review, the "Planner" agent needs to be renamed to "Extractor" to better reflect its purpose (extracting/identifying FSLIs). Additionally, the output schema needs to be simplified to return only FSLI names instead of full FSLI objects with values.
+
+**Current State:**
+- Agent name: `PlannerAgent`
+- Folder: `backend/agents/numeric_validation/sub_agents/planner/`
+- Output key: `planner_agent_output`
+- Schema: Complex nested structure with `FSLI` containing `FSLIValue` objects
+
+**Required Changes:**
+
+#### 1. Folder Rename
+```
+backend/agents/numeric_validation/sub_agents/planner/
+    ↓
+backend/agents/numeric_validation/sub_agents/extractor/
+```
+
+#### 2. Agent Definition (`agent.py`)
+```python
+# Before
+planner_agent = LlmAgent(
+    name="PlannerAgent",
+    output_key="planner_agent_output",
+    output_schema=PlannerAgentAgentOutput,
+    ...
+)
+
+# After
+extractor_agent = LlmAgent(
+    name="ExtractorAgent",
+    output_key="extractor_output",
+    output_schema=ExtractorAgentOutput,
+    ...
+)
+```
+
+#### 3. Schema Simplification (`schema.py`)
+```python
+# Before (complex)
+class FSLIValue(BaseModel):
+    label: str
+    amount: float
+    unit: str
+
+class FSLI(BaseModel):
+    name: str
+    values: List[FSLIValue]
+    source_ref: str
+
+class PlannerAgentAgentOutput(BaseModel):
+    fslis: List[FSLI]
+
+# After (simplified)
+class ExtractorAgentOutput(BaseModel):
+    fsli_names: List[str]  # ["Revenue", "Cost of Sales", "Net Income", ...]
+```
+
+#### 4. Prompt Update (`prompt.py`)
+```python
+# Before - asks for names + values + source refs
+INSTRUCTION = """
+...extract all FSLIs...
+For each identified FSLI, extract:
+1. The name of the line item.
+2. The associated numeric values...
+3. A source reference...
+"""
+
+# After - asks only for names
+INSTRUCTION = """
+You are a financial document analyst specialized in identifying Financial Statement Line Items (FSLIs).
+
+Given extracted document text, identify ALL Financial Statement Line Items (FSLIs) present in the document.
+
+An FSLI is a named row or category in financial tables representing a balance or transaction type.
+Examples: "Revenue", "Cost of Sales", "Net Income", "Total Assets", "Trade Receivables", "Goodwill".
+
+Your task:
+1. Scan ALL tables in the document (income statement, balance sheet, cash flow, notes)
+2. Identify every unique FSLI name
+3. Return ONLY the names - do NOT extract values or amounts
+
+Output a list of FSLI names found in the document.
+"""
+```
+
+#### 5. Root Agent Import Update (`agent.py`)
+```python
+# Before
+from .sub_agents.planner import planner_agent
+root_agent = SequentialAgent(
+    ...
+    sub_agents=[planner_agent],
+)
+
+# After
+from .sub_agents.extractor import extractor_agent
+root_agent = SequentialAgent(
+    ...
+    sub_agents=[extractor_agent],
+)
+```
+
+#### 6. Sub-agents `__init__.py` Updates
+```python
+# Before (sub_agents/planner/__init__.py)
+from .agent import planner_agent
+
+# After (sub_agents/extractor/__init__.py)
+from .agent import extractor_agent
+```
+
+#### 7. Test Updates (`tests/test_agent.py`)
+```python
+# Before
+assert root_agent.sub_agents[0].name == "PlannerAgent"
+
+# After
+assert root_agent.sub_agents[0].name == "ExtractorAgent"
+```
+
+**Rationale:**
+- "Extractor" better describes the agent's purpose (extracting/identifying FSLIs)
+- Simplified output (names only) improves extraction accuracy
+- The Verifier agent will analyze each FSLI in context of the full document
+- Aligns with new architecture: Extractor → FanOutVerifier → Reviewer
+
+**Impact on Future Phases:**
+- 03-02 (FanOutVerifierAgent) will read `extractor_output.fsli_names` from session state
+- 03-03 (ReviewerAgent) unchanged - reads from Verifier outputs
+
+**Files to Modify:**
+1. `backend/agents/numeric_validation/sub_agents/planner/` → rename to `extractor/`
+2. `backend/agents/numeric_validation/sub_agents/extractor/agent.py` - rename agent
+3. `backend/agents/numeric_validation/sub_agents/extractor/schema.py` - simplify schema
+4. `backend/agents/numeric_validation/sub_agents/extractor/prompt.py` - update instruction
+5. `backend/agents/numeric_validation/sub_agents/extractor/__init__.py` - update export
+6. `backend/agents/numeric_validation/agent.py` - update import
+7. `backend/agents/numeric_validation/tests/test_agent.py` - update assertions
+
+---
 
 ## Resolved Issues
 
@@ -39,6 +186,8 @@ None - all issues resolved!
   ]
 }
 ```
+
+> **Note:** Output format will change after REFACTOR-001 to simplified `fsli_names` list.
 
 **Final Status:**
 - ✅ Agent creation works
@@ -74,4 +223,4 @@ None - all issues resolved!
 
 *Phase: 03-numeric-validation*
 *Plan: 01*
-*Tested: 2026-01-10*
+*Last Updated: 2026-01-12*
