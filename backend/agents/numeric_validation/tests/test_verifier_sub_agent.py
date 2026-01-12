@@ -9,6 +9,7 @@ from agents.numeric_validation.sub_agents.verifier import (
     create_verifier_agent,
     VerificationCheck,
     VerifierAgentOutput,
+    CheckType,
 )
 
 pytest_plugins = ("pytest_asyncio",)
@@ -37,7 +38,7 @@ def test_verification_check_schema():
     """Verify VerificationCheck schema."""
     check = VerificationCheck(
         fsli_name="Revenue",
-        check_type="in_table_sum",
+        check_type=CheckType.IN_TABLE_SUM,
         description="Product + Service = Total Revenue",
         expected_value=1500000.0,
         actual_value=1500000.0,

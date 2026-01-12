@@ -1,9 +1,14 @@
 from typing import List
+from enum import Enum
 from pydantic import BaseModel, Field
+
+class CheckType(str, Enum):
+    IN_TABLE_SUM = "in_table_sum"
+    CROSS_TABLE_CONSISTENCY = "cross_table_consistency"
 
 class VerificationCheck(BaseModel):
     fsli_name: str = Field(description="Name of the Financial Statement Line Item being verified")
-    check_type: str = Field(description="Type of mathematical check performed, e.g., 'in_table_sum' or 'cross_table_consistency'")
+    check_type: CheckType = Field(description="Type of mathematical check performed")
     description: str = Field(description="Human-readable description of what specifically was checked")
     expected_value: float = Field(description="The value expected based on calculations or other table references")
     actual_value: float = Field(description="The actual value found in the document for this FSLI")
@@ -12,4 +17,4 @@ class VerificationCheck(BaseModel):
     code_executed: str = Field(description="The Python code that was executed to perform the verification")
 
 class VerifierAgentOutput(BaseModel):
-    checks: List[VerificationCheck]
+    checks: List[VerificationCheck] = Field(description="List of mathematical verification checks performed for this FSLI")
