@@ -8,7 +8,7 @@ class VerificationCheck(BaseModel):
     expected_value: float = Field(description="The value expected based on calculations or other table references")
     actual_value: float = Field(description="The actual value found in the document for this FSLI")
     check_passed: bool = Field(description="Whether the mathematical check passed (True) or failed (False)")
-    source_refs: List[str] = Field(description="References to the locations in the document used for this check")
+    source_refs: List[str] = Field(description="References to the locations in the document used for this check, e.g., ['Table 4, Row 12', 'Note 5']")
     code_executed: str = Field(description="The Python code that was executed to perform the verification")
 
 class VerifierAgentOutput(BaseModel):
