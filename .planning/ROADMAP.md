@@ -55,7 +55,7 @@ Plans:
 
 Plans:
 - [x] 03-01: Planner agent (identify FSLIs from document)
-- [ ] 03-02: Validator agent with code_executor integration
+- [x] 03-02: Validator agent with code_executor integration
 - [ ] 03-03: Manager agent (aggregate, QC, deduplicate)
 
 ### Phase 4: Logic Consistency
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Completed | 2026-01-09 |
 | 2. Document Ingestion | 2/2 | Completed | 2026-01-10 |
-| 3. Numeric Validation | 1/3 | In Progress | - |
+| 3. Numeric Validation | 2/3 | In Progress | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
 | 5. Disclosure Compliance | 0/2 | Not started | - |
 | 6. External Signal | 0/1 | Not started | - |
