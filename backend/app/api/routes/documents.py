@@ -7,6 +7,7 @@ from app.db import get_db, async_session
 from app.config import get_settings
 from app.services.storage import StorageService, get_storage_service
 from app.services.extractor import ExtractorService, get_extractor_service
+from app.services.processor import DocumentProcessor
 from app.models.job import Job
 from app.models.document import Document
 from app.schemas.job import JobRead
@@ -31,19 +32,17 @@ async def process_document_task(
             # 2. Extract markdown
             markdown = extractor.extract_markdown(content)
             
-            # 3. Update DB
+            # 3. Update Document record
             stmt = select(Document).where(Document.id == doc_id)
             result = await db.execute(stmt)
             doc = result.scalar_one()
             doc.extracted_text = markdown
-            
-            # Update Job status
-            job_stmt = select(Job).where(Job.id == job_id)
-            job_result = await db.execute(job_stmt)
-            job = job_result.scalar_one()
-            job.status = "completed"
-            
             await db.commit()
+            
+            # 4. Run Agent Pipeline via DocumentProcessor
+            processor = DocumentProcessor(db)
+            await processor.process_document(job_id=job_id, extracted_text=markdown)
+
         except Exception as e:
             # Update Job status to failed
             job_stmt = select(Job).where(Job.id == job_id)
