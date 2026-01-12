@@ -3,7 +3,7 @@ import pytest
 import dotenv
 from google.adk.runners import InMemoryRunner
 
-from agents.numeric_validation.sub_agents.fan_out_verifier import (
+from agents.numeric_validation.sub_agents.verifier import (
     fan_out_verifier_agent,
     FanOutVerifierAgent,
     create_verifier_agent,
@@ -30,7 +30,7 @@ def test_create_verifier_agent():
         output_key="checks:Revenue"
     )
     assert agent.name == "test_verifier"
-    assert agent.model == "gemini-1.5-pro"
+    assert agent.model == "gemini-3-pro-preview"
     assert agent.code_executor is not None
 
 def test_verification_check_schema():

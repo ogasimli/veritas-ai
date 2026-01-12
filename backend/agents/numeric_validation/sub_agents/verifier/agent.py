@@ -1,11 +1,13 @@
 """FanOutVerifierAgent - CustomAgent for dynamic parallel verification."""
 from typing import AsyncGenerator
-from google.adk.agents import BaseAgent, ParallelAgent
+from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
+from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.events import Event
 from google.adk.agents.invocation_context import InvocationContext
 from google.genai import types
 
-from .verifier import create_verifier_agent
+from .schema import VerifierAgentOutput
+from .prompt import get_verifier_instruction
 
 
 class FanOutVerifierAgent(BaseAgent):
@@ -24,7 +26,7 @@ class FanOutVerifierAgent(BaseAgent):
         ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         # 1. Read FSLI names from session state (set by ExtractorAgent)
-        extractor_output = ctx.session.get("extractor_output", {}) # Plan says session.state but ADK ctx usually has ctx.session
+        extractor_output = ctx.session.get("extractor_output", {})
         fsli_names = extractor_output.get("fsli_names", [])
 
         if not fsli_names:
@@ -56,6 +58,25 @@ class FanOutVerifierAgent(BaseAgent):
         # 4. Yield all events (preserves ADK observability)
         async for event in parallel.run_async(ctx):
             yield event
+
+
+def create_verifier_agent(
+    name: str,
+    fsli_name: str,
+    output_key: str
+) -> LlmAgent:
+    """
+    Factory to create a fresh VerifierAgent for a specific FSLI.
+    Must create new instances each time (ADK single-parent rule).
+    """
+    return LlmAgent(
+        name=name,
+        model="gemini-3-pro-preview",
+        instruction=get_verifier_instruction(fsli_name),
+        output_key=output_key,
+        output_schema=VerifierAgentOutput,
+        code_executor=BuiltInCodeExecutor(),
+    )
 
 
 # Singleton instance for import
