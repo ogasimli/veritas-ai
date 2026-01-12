@@ -26,7 +26,7 @@ class FanOutVerifierAgent(BaseAgent):
         ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         # 1. Read FSLI names from session state (set by ExtractorAgent)
-        extractor_output = ctx.session.get("extractor_output", {})
+        extractor_output = ctx.session.state.get("extractor_output", {})
         fsli_names = extractor_output.get("fsli_names", [])
 
         if not fsli_names:
