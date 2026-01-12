@@ -4,7 +4,7 @@ import dotenv
 from google.adk.runners import InMemoryRunner
 
 from agents.numeric_validation.sub_agents.verifier import (
-    fan_out_verifier_agent,
+    verifier_agent,
     FanOutVerifierAgent,
     create_verifier_agent,
     VerificationCheck,
@@ -19,8 +19,8 @@ def load_env():
 
 def test_fan_out_verifier_agent_structure():
     """Verify FanOutVerifierAgent is a CustomAgent."""
-    assert fan_out_verifier_agent.name == "FanOutVerifierAgent"
-    assert isinstance(fan_out_verifier_agent, FanOutVerifierAgent)
+    assert verifier_agent.name == "FanOutVerifierAgent"
+    assert isinstance(verifier_agent, FanOutVerifierAgent)
 
 def test_create_verifier_agent():
     """Verify verifier factory creates valid agents."""

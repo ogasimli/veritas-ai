@@ -20,12 +20,13 @@ duration: 10m
 
 - `backend/agents/numeric_validation/sub_agents/verifier/schema.py` - Verification schemas
 - `backend/agents/numeric_validation/sub_agents/verifier/prompt.py` - Verifier instruction generator
-- `backend/agents/numeric_validation/sub_agents/verifier/agent.py` - FanOutVerifierAgent + factory function
+- `backend/agents/numeric_validation/sub_agents/verifier/agent.py` - FanOutVerifierAgent + factory function (instance: `verifier_agent`)
 - `backend/agents/numeric_validation/sub_agents/verifier/__init__.py` - Sub-agent exports
 - `backend/agents/numeric_validation/agent.py` - Updated root agent to include the verifier
 - `backend/agents/numeric_validation/sub_agents/__init__.py` - Exported new sub-agent
-- `backend/agents/numeric_validation/tests/test_fan_out_verifier.py` - New unit tests
-- `backend/agents/numeric_validation/tests/test_agent.py` - Updated existing tests
+- `backend/agents/numeric_validation/tests/test_verifier_sub_agent.py` - Verifier unit tests
+- `backend/agents/numeric_validation/tests/test_extractor_sub_agent.py` - Extractor unit tests
+- `backend/agents/numeric_validation/tests/test_root_agent.py` - Root agent integration tests
 
 ## Decisions Made
 

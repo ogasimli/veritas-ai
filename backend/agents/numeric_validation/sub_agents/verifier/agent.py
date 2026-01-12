@@ -80,4 +80,4 @@ def create_verifier_agent(
 
 
 # Singleton instance for import
-fan_out_verifier_agent = FanOutVerifierAgent()
+verifier_agent = FanOutVerifierAgent()
