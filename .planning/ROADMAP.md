@@ -17,6 +17,7 @@ None
 - [x] **Phase 1: Foundation** - Project setup, backend/frontend scaffolding, database schema
 - [x] **Phase 2: Document Ingestion** - Upload API, .docx parsing, structured extraction
 - [x] **Phase 3: Numeric Validation** (Completed) - Planner + Validator + Manager agents with code_executor
+- [ ] **Phase 3.1: Root Orchestrator Agent** (INSERTED) - Coordinate all validation agents in parallel
 - [ ] **Phase 4: Logic Consistency** - Reasoning agent for semantic inconsistencies
 - [ ] **Phase 5: Disclosure Compliance** - Scanner, YAML checklists, parallel validator agents
 - [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
@@ -57,6 +58,15 @@ Plans:
 - [x] 03-01: Planner agent (identify FSLIs from document)
 - [x] 03-02: Validator agent with code_executor integration
 - [x] 03-03: Manager agent (aggregate, QC, deduplicate)
+
+### Phase 3.1: Root Orchestrator Agent (INSERTED)
+**Goal**: Root orchestrator agent to coordinate all validation agents (Numeric, Logic, Disclosure, External) in parallel
+**Depends on**: Phase 3
+**Research**: Unlikely (reuses ADK ParallelAgent patterns)
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 3.1 to break down)
 
 ### Phase 4: Logic Consistency
 **Goal**: Agent that detects semantically unreasonable claims even if numerically correct
@@ -109,6 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 3/3 | Completed | 2026-01-09 |
 | 2. Document Ingestion | 2/2 | Completed | 2026-01-10 |
 | 3. Numeric Validation | 3/3 | Completed | 2026-01-13 |
+| 3.1. Root Orchestrator Agent | 0/0 | Not started | - |
 | 4. Logic Consistency | 0/1 | Not started | - |
 | 5. Disclosure Compliance | 0/2 | Not started | - |
 | 6. External Signal | 0/1 | Not started | - |
