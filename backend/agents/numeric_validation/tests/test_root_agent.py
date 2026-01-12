@@ -11,9 +11,10 @@ def load_env():
 def test_agent_structure():
     """Verify the agent structure and sub-agents."""
     assert root_agent.name == "numeric_validation"
-    assert len(root_agent.sub_agents) == 2
+    assert len(root_agent.sub_agents) == 3
     assert root_agent.sub_agents[0].name == "ExtractorAgent"
     assert root_agent.sub_agents[1].name == "FanOutVerifierAgent"
+    assert root_agent.sub_agents[2].name == "ReviewerAgent"
 
 @pytest.mark.asyncio
 async def test_extractor_basic_run():
