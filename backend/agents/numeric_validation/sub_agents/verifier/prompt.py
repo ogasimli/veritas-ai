@@ -19,7 +19,7 @@ Your task is to find and verify all numeric relationships for this FSLI in the d
 1. Search the document for all occurrences of "{fsli_name}"
 2. For each occurrence, identify what can be verified mathematically
 3. Use Python code execution to perform ALL calculations
-4. Report each check with pass/fail result
+4. Report each check with check_passed (True/False) result
 
 ## Code Execution Requirements
 

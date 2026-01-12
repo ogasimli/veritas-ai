@@ -41,11 +41,11 @@ def test_verification_check_schema():
         description="Product + Service = Total Revenue",
         expected_value=1500000.0,
         actual_value=1500000.0,
-        result="pass",
+        check_passed=True,
         source_refs=["Table 4, Row 12"],
         code_executed="1000000 + 500000 == 1500000"
     )
-    assert check.result == "pass"
+    assert check.check_passed is True
 
 def test_verifier_agent_output_schema():
     """Verify VerifierAgentOutput schema."""
