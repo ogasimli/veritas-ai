@@ -6,9 +6,16 @@
 
 ## Open Issues
 
+(None)
+
+---
+
+## Resolved Issues
+
 ### REFACTOR-001: Rename Planner agent to Extractor and simplify output
 
 **Discovered:** 2026-01-12
+**Resolved:** 2026-01-12
 **Phase/Plan:** 03-01
 **Severity:** Required (architecture alignment)
 **Feature:** Agent naming and output schema
@@ -153,9 +160,21 @@ assert root_agent.sub_agents[0].name == "ExtractorAgent"
 6. `backend/agents/numeric_validation/agent.py` - update import
 7. `backend/agents/numeric_validation/tests/test_agent.py` - update assertions
 
----
+**Resolution:**
+- ✅ Renamed `sub_agents/planner/` to `sub_agents/extractor/`
+- ✅ Simplified `ExtractorAgentOutput` schema to `fsli_names: List[str]`
+- ✅ Updated `extractor/prompt.py` to focus only on FSLI names
+- ✅ Renamed `PlannerAgent` to `ExtractorAgent` in `extractor/agent.py`
+- ✅ Updated `extractor/agent.py` output key to `extractor_output`
+- ✅ Updated all imports in `numeric_validation/agent.py` and `numeric_validation/sub_agents/__init__.py`
+- ✅ Updated test assertions in `numeric_validation/tests/test_agent.py`
+- ✅ All tests pass
 
-## Resolved Issues
+**Final State:**
+- Agent name: `ExtractorAgent`
+- Folder: `backend/agents/numeric_validation/sub_agents/extractor/`
+- Output key: `extractor_output`
+- Schema: Simplified list of strings
 
 ### UAT-002: Gemini 3 models require billing enabled (quota limit 0 on free tier)
 

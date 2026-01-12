@@ -12,10 +12,10 @@ def test_agent_structure():
     """Verify the agent structure and sub-agents."""
     assert root_agent.name == "numeric_validation"
     assert len(root_agent.sub_agents) == 1
-    assert root_agent.sub_agents[0].name == "PlannerAgent"
+    assert root_agent.sub_agents[0].name == "ExtractorAgent"
 
 @pytest.mark.asyncio
-async def test_planner_basic_run():
+async def test_extractor_basic_run():
     """Verify the agent can be initialized in a runner."""
     runner = InMemoryRunner(agent=root_agent)
     assert runner.agent.name == "numeric_validation"
