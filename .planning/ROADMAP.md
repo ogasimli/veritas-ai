@@ -17,8 +17,8 @@ None
 - [x] **Phase 1: Foundation** - Project setup, backend/frontend scaffolding, database schema
 - [x] **Phase 2: Document Ingestion** - Upload API, .docx parsing, structured extraction
 - [x] **Phase 3: Numeric Validation** (Completed) - Planner + Validator + Manager agents with code_executor
-- [ ] **Phase 3.1: Root Orchestrator Agent** (INSERTED) - Coordinate all validation agents in parallel
-- [ ] **Phase 4: Logic Consistency** - Reasoning agent for semantic inconsistencies
+- [x] **Phase 3.1: Root Orchestrator Agent** (Completed) - Coordinate all validation agents in parallel
+- [x] **Phase 4: Logic Consistency** (Completed) - Reasoning agent for semantic inconsistencies
 - [ ] **Phase 5: Disclosure Compliance** - Scanner, YAML checklists, parallel validator agents
 - [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
@@ -63,19 +63,19 @@ Plans:
 **Goal**: Root orchestrator agent to coordinate all validation agents (Numeric, Logic, Disclosure, External) in parallel
 **Depends on**: Phase 3
 **Research**: Unlikely (reuses ADK ParallelAgent patterns)
-**Plans**: TBD
+**Plans**: 1/1 complete
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 3.1 to break down)
+- [x] 3.1-01: Create root orchestrator agent with ParallelAgent pattern
 
 ### Phase 4: Logic Consistency
 **Goal**: Agent that detects semantically unreasonable claims even if numerically correct
 **Depends on**: Phase 3 (reuses ADK patterns)
 **Research**: Unlikely (reuses ADK patterns, prompt engineering)
-**Plans**: TBD
+**Plans**: 1/1 complete
 
 Plans:
-- [ ] 04-01: Logic consistency agent with reasoning chains
+- [x] 04-01: Logic consistency agent with reasoning chains
 
 ### Phase 5: Disclosure Compliance
 **Goal**: Dynamic IFRS checklist validation — Scanner identifies applicable standards, parallel Validators check each
@@ -119,8 +119,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation | 3/3 | Completed | 2026-01-09 |
 | 2. Document Ingestion | 2/2 | Completed | 2026-01-10 |
 | 3. Numeric Validation | 3/3 | Completed | 2026-01-13 |
-| 3.1. Root Orchestrator Agent | 0/0 | Not started | - |
-| 4. Logic Consistency | 0/1 | Not started | - |
+| 3.1. Root Orchestrator Agent | 1/1 | Completed | 2026-01-18 |
+| 4. Logic Consistency | 1/1 | Completed | 2026-01-18 |
 | 5. Disclosure Compliance | 0/2 | Not started | - |
 | 6. External Signal | 0/1 | Not started | - |
 | 7. Frontend Dashboard | 0/3 | Not started | - |
