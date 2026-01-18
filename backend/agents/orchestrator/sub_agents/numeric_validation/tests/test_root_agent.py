@@ -2,7 +2,7 @@
 import pytest
 import dotenv
 from google.adk.runners import InMemoryRunner
-from agents.numeric_validation.agent import root_agent
+from agents.orchestrator.sub_agents.numeric_validation.agent import root_agent
 
 @pytest.fixture(scope="session", autouse=True)
 def load_env():

@@ -2,7 +2,7 @@
 import pytest
 import dotenv
 
-from agents.numeric_validation.sub_agents.reviewer import (
+from agents.orchestrator.sub_agents.numeric_validation.sub_agents.reviewer import (
     reviewer_agent,
     Finding,
     ReviewerAgentOutput,

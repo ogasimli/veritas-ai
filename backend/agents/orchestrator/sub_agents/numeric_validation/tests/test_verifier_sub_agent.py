@@ -3,7 +3,7 @@ import pytest
 import dotenv
 from google.adk.runners import InMemoryRunner
 
-from agents.numeric_validation.sub_agents.verifier import (
+from agents.orchestrator.sub_agents.numeric_validation.sub_agents.verifier import (
     verifier_agent,
     FanOutVerifierAgent,
     create_verifier_agent,

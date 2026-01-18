@@ -2,8 +2,8 @@
 import pytest
 import dotenv
 from google.adk.runners import InMemoryRunner
-from agents.numeric_validation.sub_agents.extractor import extractor_agent
-from agents.numeric_validation.sub_agents.extractor.schema import ExtractorAgentOutput
+from agents.orchestrator.sub_agents.numeric_validation.sub_agents.extractor import extractor_agent
+from agents.orchestrator.sub_agents.numeric_validation.sub_agents.extractor.schema import ExtractorAgentOutput
 
 @pytest.fixture(scope="session", autouse=True)
 def load_env():

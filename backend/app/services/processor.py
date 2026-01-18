@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 
-from agents.numeric_validation.agent import root_agent
+from agents.orchestrator.agent import orchestrator_agent
 from app.models.finding import Finding as FindingModel
 from app.models.job import Job
 
@@ -26,8 +26,12 @@ class DocumentProcessor:
         await self.db.commit()
 
         try:
-            # 2. Run pipeline
-            runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
+            # 2. Run orchestrator pipeline
+            # Currently runs numeric_validation only, future agents will be added:
+            # - logic_consistency (Phase 4)
+            # - disclosure_compliance (Phase 5)
+            # - external_signal (Phase 6)
+            runner = InMemoryRunner(agent=orchestrator_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
                 user_id=str(job_id)
@@ -46,8 +50,11 @@ class DocumentProcessor:
                 if hasattr(event, 'session') and event.session:
                     final_state = event.session.state
 
-            # 3. Extract findings from reviewer output
-            reviewer_output = final_state.get("reviewer_output", {})
+            # 3. Extract findings from orchestrator output
+            # Orchestrator runs sub-agents in parallel and aggregates their session states
+            # Access numeric_validation sub-agent output
+            numeric_validation_state = final_state.get("numeric_validation", {})
+            reviewer_output = numeric_validation_state.get("reviewer_output", {})
             findings = reviewer_output.get("findings", [])
 
             # 4. Save findings to database
