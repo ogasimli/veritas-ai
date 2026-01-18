@@ -10,13 +10,13 @@ from app.models.job import Job
 
 
 class DocumentProcessor:
-    """Processes documents through the numeric validation pipeline."""
+    """Processes documents through validation agent pipelines."""
 
     def __init__(self, db: AsyncSession):
         self.db = db
 
     async def process_document(self, job_id: UUID, extracted_text: str) -> None:
-        """Run numeric validation pipeline and save findings."""
+        """Run orchestrator with validation agents and save findings."""
         # 1. Update job status
         job = await self.db.get(Job, job_id)
         if not job:
@@ -27,10 +27,10 @@ class DocumentProcessor:
 
         try:
             # 2. Run orchestrator pipeline
-            # Currently runs numeric_validation only, future agents will be added:
+            # Runs agents in parallel:
+            # - numeric_validation (Phase 3)
             # - logic_consistency (Phase 4)
-            # - disclosure_compliance (Phase 5)
-            # - external_signal (Phase 6)
+            # Future agents: disclosure_compliance (Phase 5), external_signal (Phase 6)
             runner = InMemoryRunner(agent=orchestrator_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
@@ -52,13 +52,20 @@ class DocumentProcessor:
 
             # 3. Extract findings from orchestrator output
             # Orchestrator runs sub-agents in parallel and aggregates their session states
-            # Access numeric_validation sub-agent output
+
+            # 3a. Extract numeric validation findings
             numeric_validation_state = final_state.get("numeric_validation", {})
             reviewer_output = numeric_validation_state.get("reviewer_output", {})
-            findings = reviewer_output.get("findings", [])
+            numeric_findings = reviewer_output.get("findings", [])
+
+            # 3b. Extract logic consistency findings
+            logic_state = final_state.get("logic_consistency", {})
+            logic_output = logic_state.get("logic_consistency_output", {})
+            logic_findings = logic_output.get("findings", [])
 
             # 4. Save findings to database
-            for finding_data in findings:
+            # 4a. Save numeric validation findings
+            for finding_data in numeric_findings:
                 finding = FindingModel(
                     job_id=job_id,
                     category="numeric",
@@ -69,6 +76,19 @@ class DocumentProcessor:
                              f"Actual: {finding_data.get('actual_value')}, "
                              f"Discrepancy: {finding_data.get('discrepancy')}",
                     agent_id="numeric_validation",
+                )
+                self.db.add(finding)
+
+            # 4b. Save logic consistency findings
+            for finding_data in logic_findings:
+                finding = FindingModel(
+                    job_id=job_id,
+                    category="logic",
+                    severity=finding_data.get("severity", "medium"),
+                    description=finding_data.get("claim", ""),
+                    source_refs=finding_data.get("source_refs", []),
+                    reasoning=finding_data.get("reasoning", ""),
+                    agent_id="logic_consistency",
                 )
                 self.db.add(finding)
 
