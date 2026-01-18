@@ -41,6 +41,6 @@ expected = 1500000
 actual = 1600000
 discrepancy = abs(expected - actual)
 percentage = (discrepancy / expected) * 100
-print(f"Discrepancy: {discrepancy}, Percentage: {percentage:.2f}%")
+print("Discrepancy: " + str(discrepancy))
 ```
 """

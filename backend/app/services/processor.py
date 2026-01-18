@@ -4,34 +4,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 
-from agents.orchestrator.agent import orchestrator_agent
+from agents.orchestrator.agent import root_agent
 from app.models.finding import Finding as FindingModel
 from app.models.job import Job
-
-
+ 
+ 
 class DocumentProcessor:
     """Processes documents through validation agent pipelines."""
-
+ 
     def __init__(self, db: AsyncSession):
         self.db = db
-
+ 
     async def process_document(self, job_id: UUID, extracted_text: str) -> None:
         """Run orchestrator with validation agents and save findings."""
         # 1. Update job status
         job = await self.db.get(Job, job_id)
         if not job:
             raise ValueError(f"Job {job_id} not found")
-
+ 
         job.status = "processing"
         await self.db.commit()
-
+ 
         try:
             # 2. Run orchestrator pipeline
             # Runs agents in parallel:
             # - numeric_validation (Phase 3)
             # - logic_consistency (Phase 4)
             # Future agents: disclosure_compliance (Phase 5), external_signal (Phase 6)
-            runner = InMemoryRunner(agent=orchestrator_agent, app_name="veritas-ai")
+            runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
                 user_id=str(job_id)
