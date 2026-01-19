@@ -22,7 +22,7 @@ None
 - [x] **Phase 4.1: Logic Reviewer** (Completed) - False-positive filtering + business-impact severity for logic findings
 - [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
 - [x] **Phase 5.1: Disclosure Reviewer** (Completed) - False-positive filtering for semantic mismatches, combined disclosures, cross-references
-- [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
+- [x] **Phase 6: External Signal** (Completed) - News/litigation search via google_search tool
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
 
 ## Phase Details
@@ -109,12 +109,11 @@ Plans:
 ### Phase 6: External Signal
 **Goal**: Agent that searches news/litigation for risk signals using Gemini's google_search tool
 **Depends on**: Phase 3 (reuses ADK patterns)
-**Research**: Likely (Gemini tool integration)
-**Research topics**: Gemini google_search tool API, search grounding patterns
-**Plans**: TBD
+**Research**: Completed (google_search tool API, grounding patterns)
+**Plans**: 1/1 complete
 
 Plans:
-- [ ] 06-01: External signal agent with google_search
+- [x] 06-01: External signal agent with google_search
 
 ### Phase 7: Frontend Dashboard
 **Goal**: Findings UI with severity filtering, WebSocket status updates, and drill-down views
@@ -142,5 +141,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4.1. Logic Reviewer | 1/1 | Completed | 2026-01-19 |
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 5.1. Disclosure Reviewer | 1/1 | Completed | 2026-01-19 |
-| 6. External Signal | 0/1 | Not started | - |
+| 6. External Signal | 1/1 | Completed | 2026-01-19 |
 | 7. Frontend Dashboard | 0/3 | Not started | - |
