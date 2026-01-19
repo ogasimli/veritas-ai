@@ -2,11 +2,9 @@
 from google.adk.agents import SequentialAgent
 
 from .sub_agents import detector_agent, reviewer_agent
-from .schema import LogicConsistencyOutput
 
 logic_consistency_agent = SequentialAgent(
     name="logic_consistency",
+    description="Detects and refines semantic contradictions in financial statements",
     sub_agents=[detector_agent, reviewer_agent],
-    output_key="logic_consistency_output",
-    output_schema=LogicConsistencyOutput,
 )
