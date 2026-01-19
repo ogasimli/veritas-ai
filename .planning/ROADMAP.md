@@ -21,6 +21,7 @@ None
 - [x] **Phase 4: Logic Consistency** (Completed) - Reasoning agent for semantic inconsistencies
 - [x] **Phase 4.1: Logic Reviewer** (Completed) - False-positive filtering + business-impact severity for logic findings
 - [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
+- [x] **Phase 5.1: Disclosure Reviewer** (Completed) - False-positive filtering for semantic mismatches, combined disclosures, cross-references
 - [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
 
@@ -96,6 +97,15 @@ Plans:
 Plans:
 - [x] 05-01: Scanner agent + YAML checklist structure + FanOutVerifier integration
 
+### Phase 5.1: Disclosure Reviewer (INSERTED)
+**Goal**: Refactor disclosure_compliance to 3-stage SequentialAgent (Scanner→FanOutVerifier→Reviewer) for false-positive filtering
+**Depends on**: Phase 5 (existing disclosure agent), Phase 3 (Reviewer patterns from numeric_validation)
+**Research**: Unlikely (reuses Reviewer pattern)
+**Plans**: 1/1 complete
+
+Plans:
+- [x] 5.1-01: Create Reviewer sub-agent with false-positive filtering for semantic equivalence, combined disclosures, cross-references
+
 ### Phase 6: External Signal
 **Goal**: Agent that searches news/litigation for risk signals using Gemini's google_search tool
 **Depends on**: Phase 3 (reuses ADK patterns)
@@ -131,5 +141,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Logic Consistency | 1/1 | Completed | 2026-01-18 |
 | 4.1. Logic Reviewer | 1/1 | Completed | 2026-01-19 |
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
+| 5.1. Disclosure Reviewer | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 0/1 | Not started | - |
 | 7. Frontend Dashboard | 0/3 | Not started | - |
