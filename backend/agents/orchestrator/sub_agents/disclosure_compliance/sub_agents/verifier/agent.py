@@ -1,4 +1,5 @@
 """FanOutDisclosureVerifier - Custom agent for parallel disclosure verification."""
+import re
 from typing import AsyncGenerator
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
 from google.adk.events import Event
@@ -47,8 +48,9 @@ class FanOutDisclosureVerifier(BaseAgent):
                 checklist = load_standard_checklist(standard_code)
 
                 # Create verifier agent for this standard
+                sanitized_code = re.sub(r'[^a-zA-Z0-9_]', '_', standard_code)
                 agent = create_disclosure_verifier_agent(
-                    name=f"verify_{standard_code.replace(' ', '_')}",
+                    name=f"verify_{sanitized_code}",
                     standard_code=standard_code,
                     checklist=checklist,
                     output_key=f"disclosure_findings:{standard_code}"

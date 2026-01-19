@@ -1,4 +1,5 @@
 """FanOutVerifierAgent - CustomAgent for dynamic parallel verification."""
+import re
 from typing import AsyncGenerator
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
 from google.adk.code_executors import BuiltInCodeExecutor
@@ -42,7 +43,7 @@ class FanOutVerifierAgent(BaseAgent):
         # 2. Create fresh VerifierAgent instances (single-parent rule)
         verifier_agents = [
             create_verifier_agent(
-                name=f"verify_{fsli_name.replace(' ', '_').replace('/', '_')}",
+                name=f"verify_{re.sub(r'[^a-zA-Z0-9_]', '_', fsli_name)}",
                 fsli_name=fsli_name,
                 output_key=f"checks:{fsli_name}"
             )
