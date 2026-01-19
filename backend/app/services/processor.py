@@ -31,7 +31,7 @@ class DocumentProcessor:
             # - numeric_validation (Phase 3)
             # - logic_consistency (Phase 4)
             # - disclosure_compliance (Phase 5)
-            # Future agents: external_signal (Phase 6)
+            # - external_signal (Phase 6)
             runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
@@ -73,6 +73,11 @@ class DocumentProcessor:
                     # Each value is a VerifierAgentOutput with a "findings" list
                     disclosure_findings.extend(value.get("findings", []))
 
+            # 3d. Extract external signal findings
+            external_state = final_state.get("external_signal", {})
+            external_output = external_state.get("external_signal_output", {})
+            external_findings = external_output.get("findings", [])
+
             # 4. Save findings to database
             # 4a. Save numeric validation findings
             for finding_data in numeric_findings:
@@ -113,6 +118,21 @@ class DocumentProcessor:
                     reasoning=f"{finding_data.get('standard')} {finding_data.get('disclosure_id')}: "
                              f"{finding_data.get('description', '')}",
                     agent_id="disclosure_compliance",
+                )
+                self.db.add(finding)
+
+            # 4d. Save external signal findings
+            for finding_data in external_findings:
+                finding = FindingModel(
+                    job_id=job_id,
+                    category="external",
+                    severity="medium",  # External signals are always medium (for auditor review)
+                    description=finding_data.get("summary", ""),
+                    source_refs=[finding_data.get("source_url", "")],
+                    reasoning=f"Signal type: {finding_data.get('signal_type')}, "
+                             f"Publication: {finding_data.get('publication_date', 'unknown')}, "
+                             f"Potential contradiction: {finding_data.get('potential_contradiction', 'none')}",
+                    agent_id="external_signal",
                 )
                 self.db.add(finding)
 
