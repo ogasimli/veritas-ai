@@ -7,12 +7,12 @@ from .schema import ExternalSignalOutput
 
 external_signal_agent = LlmAgent(
     name="external_signal",
-    model="gemini-2.5-flash",  # Compatible with google_search (Gemini 2+ required)
+    model="gemini-3-pro-preview",
     instruction=prompt.INSTRUCTION,
-    tools=[google_search],  # CRITICAL: ONLY google_search, cannot add other tools
+    tools=[google_search],
     output_key="external_signal_output",
     output_schema=ExternalSignalOutput,
     generate_content_config=GenerateContentConfig(
-        temperature=1.0,  # Recommended for grounding per RESEARCH.md
+        temperature=1.0,
     ),
 )
