@@ -19,7 +19,7 @@ None
 - [x] **Phase 3: Numeric Validation** (Completed) - Planner + Validator + Manager agents with code_executor
 - [x] **Phase 3.1: Root Orchestrator Agent** (Completed) - Coordinate all validation agents in parallel
 - [x] **Phase 4: Logic Consistency** (Completed) - Reasoning agent for semantic inconsistencies
-- [ ] **Phase 5: Disclosure Compliance** - Scanner, YAML checklists, parallel validator agents
+- [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
 - [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
 
@@ -80,13 +80,11 @@ Plans:
 ### Phase 5: Disclosure Compliance
 **Goal**: Dynamic IFRS checklist validation — Scanner identifies applicable standards, parallel Validators check each
 **Depends on**: Phase 3 (reuses ADK patterns)
-**Research**: Likely (domain knowledge)
-**Research topics**: IFRS disclosure requirements for IAS 1, 7, 24, IFRS 7, 15, 16
-**Plans**: TBD
+**Research**: Completed (IFRS checklist extracted from Excel)
+**Plans**: 1/1 complete
 
 Plans:
-- [ ] 05-01: Scanner agent + YAML checklist structure
-- [ ] 05-02: Compliance validator agents (parallel per standard)
+- [x] 05-01: Scanner agent + YAML checklist structure + FanOutVerifier integration
 
 ### Phase 6: External Signal
 **Goal**: Agent that searches news/litigation for risk signals using Gemini's google_search tool
@@ -121,6 +119,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Numeric Validation | 3/3 | Completed | 2026-01-13 |
 | 3.1. Root Orchestrator Agent | 1/1 | Completed | 2026-01-18 |
 | 4. Logic Consistency | 1/1 | Completed | 2026-01-18 |
-| 5. Disclosure Compliance | 0/2 | Not started | - |
+| 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 0/1 | Not started | - |
 | 7. Frontend Dashboard | 0/3 | Not started | - |
