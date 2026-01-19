@@ -30,7 +30,8 @@ class DocumentProcessor:
             # Runs agents in parallel:
             # - numeric_validation (Phase 3)
             # - logic_consistency (Phase 4)
-            # Future agents: disclosure_compliance (Phase 5), external_signal (Phase 6)
+            # - disclosure_compliance (Phase 5)
+            # Future agents: external_signal (Phase 6)
             runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
@@ -63,6 +64,15 @@ class DocumentProcessor:
             logic_output = logic_state.get("logic_consistency_output", {})
             logic_findings = logic_output.get("findings", [])
 
+            # 3c. Extract disclosure compliance findings
+            # Disclosure findings are stored per standard with keys like "disclosure_findings:IAS 1"
+            disclosure_state = final_state.get("disclosure_compliance", {})
+            disclosure_findings = []
+            for key, value in disclosure_state.items():
+                if key.startswith("disclosure_findings:") and isinstance(value, dict):
+                    # Each value is a VerifierAgentOutput with a "findings" list
+                    disclosure_findings.extend(value.get("findings", []))
+
             # 4. Save findings to database
             # 4a. Save numeric validation findings
             for finding_data in numeric_findings:
@@ -89,6 +99,20 @@ class DocumentProcessor:
                     source_refs=finding_data.get("source_refs", []),
                     reasoning=finding_data.get("reasoning", ""),
                     agent_id="logic_consistency",
+                )
+                self.db.add(finding)
+
+            # 4c. Save disclosure compliance findings
+            for finding_data in disclosure_findings:
+                finding = FindingModel(
+                    job_id=job_id,
+                    category="disclosure",
+                    severity=finding_data.get("severity", "medium"),
+                    description=finding_data.get("requirement", ""),
+                    source_refs=[],  # Disclosure findings don't have specific source refs
+                    reasoning=f"{finding_data.get('standard')} {finding_data.get('disclosure_id')}: "
+                             f"{finding_data.get('description', '')}",
+                    agent_id="disclosure_compliance",
                 )
                 self.db.add(finding)
 
