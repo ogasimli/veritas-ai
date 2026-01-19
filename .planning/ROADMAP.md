@@ -19,6 +19,7 @@ None
 - [x] **Phase 3: Numeric Validation** (Completed) - Planner + Validator + Manager agents with code_executor
 - [x] **Phase 3.1: Root Orchestrator Agent** (Completed) - Coordinate all validation agents in parallel
 - [x] **Phase 4: Logic Consistency** (Completed) - Reasoning agent for semantic inconsistencies
+- [x] **Phase 4.1: Logic Reviewer** (Completed) - False-positive filtering + business-impact severity for logic findings
 - [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
 - [ ] **Phase 6: External Signal** - News/litigation search via google_search tool
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
@@ -77,6 +78,15 @@ Plans:
 Plans:
 - [x] 04-01: Logic consistency agent with reasoning chains
 
+### Phase 4.1: Logic Reviewer (INSERTED)
+**Goal**: Refactor logic_consistency to 2-stage SequentialAgent (Detector→Reviewer) for false-positive filtering and business-impact severity
+**Depends on**: Phase 4 (existing logic agent), Phase 3 (SequentialAgent patterns)
+**Research**: Unlikely (reuses ADK patterns)
+**Plans**: 1/1 complete
+
+Plans:
+- [x] 4.1-01: Refactor to Detector + Reviewer sub-agents with filtering + severity logic
+
 ### Phase 5: Disclosure Compliance
 **Goal**: Dynamic IFRS checklist validation — Scanner identifies applicable standards, parallel Validators check each
 **Depends on**: Phase 3 (reuses ADK patterns)
@@ -119,6 +129,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Numeric Validation | 3/3 | Completed | 2026-01-13 |
 | 3.1. Root Orchestrator Agent | 1/1 | Completed | 2026-01-18 |
 | 4. Logic Consistency | 1/1 | Completed | 2026-01-18 |
+| 4.1. Logic Reviewer | 1/1 | Completed | 2026-01-19 |
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 0/1 | Not started | - |
 | 7. Frontend Dashboard | 0/3 | Not started | - |
