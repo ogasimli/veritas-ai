@@ -120,3 +120,6 @@ yarn-error.log*
 # ADK (Agent Development Kit)
 .adk/
 **/ .adk/
+
+# Project secrets/keys/account info
+.secrets
