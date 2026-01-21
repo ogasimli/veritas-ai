@@ -119,11 +119,11 @@ Plans:
 **Goal**: Real-time dashboard with WebSocket integration, file upload, and findings display
 **Depends on**: Phase 1 (frontend), Phases 3-6 (agent outputs)
 **Research**: Unlikely (standard Next.js + Shadcn patterns)
-**Plans**: 1/4 complete
+**Plans**: 2/4 complete
 
 Plans:
 - [x] 07-01: Dark mode + Layout shell + Audit list
-- [ ] 07-02: File upload with validation
+- [x] 07-02: File upload with validation
 - [ ] 07-03: WebSocket integration + Live agent cards
 - [ ] 07-04: Export functionality + Final polish
 
@@ -143,4 +143,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 5.1. Disclosure Reviewer | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 1/1 | Completed | 2026-01-19 |
-| 7. Frontend Dashboard | 1/4 | In progress | - |
+| 7. Frontend Dashboard | 2/4 | In progress | - |
