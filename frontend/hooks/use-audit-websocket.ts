@@ -12,6 +12,7 @@ type WebSocketMessage =
 
 export function useAuditWebSocket(auditId: string | null) {
   const ws = useRef<WebSocket | null>(null)
+  const reconnectAttempted = useRef(false)
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('disconnected')
   const [findings, setFindings] = useState<Finding[]>([])
@@ -75,6 +76,15 @@ export function useAuditWebSocket(auditId: string | null) {
       websocket.onclose = () => {
         console.log('WebSocket disconnected')
         setConnectionStatus('disconnected')
+
+        // Auto-reconnect once after 2s delay if not already attempted
+        if (!reconnectAttempted.current) {
+          reconnectAttempted.current = true
+          console.log('Attempting auto-reconnect in 2s...')
+          setTimeout(() => {
+            connect()
+          }, 2000)
+        }
       }
 
       ws.current = websocket
@@ -88,6 +98,7 @@ export function useAuditWebSocket(auditId: string | null) {
     if (ws.current) {
       ws.current.close()
     }
+    reconnectAttempted.current = false
     connect()
   }, [connect])
 

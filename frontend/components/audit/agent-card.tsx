@@ -70,7 +70,7 @@ export function AgentCard({ agent, status, findings }: AgentCardProps) {
 
   return (
     <div
-      className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden`}
+      className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md`}
     >
       {/* Header */}
       <div className={`border-b ${colors.border} p-4`}>
@@ -117,10 +117,13 @@ export function AgentCard({ agent, status, findings }: AgentCardProps) {
 
         {status === 'complete' && findings.length > 0 && (
           <div className="space-y-3">
-            {findings.map((finding) => (
+            {findings.map((finding, index) => (
               <div
                 key={finding.id}
-                className={`border-l-4 ${SEVERITY_COLORS[finding.severity]} rounded-r bg-white p-3 dark:bg-slate-800`}
+                className={`border-l-4 ${SEVERITY_COLORS[finding.severity]} rounded-r bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md dark:bg-slate-800`}
+                style={{
+                  animation: `fadeIn 0.3s ease-in-out ${index * 0.1}s both`,
+                }}
               >
                 <h4 className="text-sm font-medium text-slate-900 dark:text-white">
                   {finding.title}

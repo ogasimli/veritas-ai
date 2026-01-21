@@ -65,15 +65,15 @@ export function FileUploadZone({ label, onUpload }: FileUploadZoneProps) {
         {...getRootProps()}
         className={`
           relative flex min-h-[160px] cursor-pointer flex-col items-center justify-center
-          rounded-lg border-2 border-dashed p-6 transition-colors
+          rounded-lg border-2 border-dashed p-6 transition-all duration-200
           ${
             isDragActive
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              ? 'border-blue-500 bg-blue-50 animate-pulse dark:bg-blue-900/20'
               : error
               ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
               : file
               ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-              : 'border-slate-300 bg-slate-50 hover:border-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-blue-500'
+              : 'border-slate-300 bg-slate-50 hover:border-blue-500 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-slate-700'
           }
         `}
       >
