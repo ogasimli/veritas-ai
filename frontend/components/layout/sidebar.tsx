@@ -2,9 +2,18 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AuditList } from './audit-list'
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   return (
-    <aside className="w-80 flex-shrink-0 border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 w-80 flex-shrink-0 transform border-r border-slate-200 bg-white transition-transform dark:border-slate-700 dark:bg-slate-900 lg:static lg:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
       <div className="flex h-full flex-col">
         {/* Logo Section */}
         <div className="border-b border-slate-200 p-6 dark:border-slate-700">
@@ -31,6 +40,7 @@ export function Sidebar() {
         <div className="p-4">
           <Link
             href="/audit/new"
+            onClick={onClose}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-600"
           >
             <svg

@@ -77,7 +77,7 @@ export default function NewAuditPage() {
         <div className="mx-auto max-w-7xl">
           {!processingStarted ? (
             <>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <FileUploadZone
                   label="Current Year (Required)"
                   onUpload={(file) => setCurrentYearFile(file)}
@@ -97,7 +97,7 @@ export default function NewAuditPage() {
                 <div className="mt-8 flex justify-center">
                   <button
                     onClick={handleStartReview}
-                    className="rounded-lg bg-blue-500 px-8 py-3 font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+                    className="w-full rounded-lg bg-blue-500 px-8 py-3 font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-50 sm:w-auto"
                     disabled={!currentYearFile}
                   >
                     Start Review
@@ -236,7 +236,7 @@ export default function NewAuditPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
                 <AgentCard
                   agent="numeric"
                   status={agentStatuses.numeric}
