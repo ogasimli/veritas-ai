@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { FileUploadZone } from '@/components/audit/file-upload-zone'
 import { AgentCard } from '@/components/audit/agent-card'
+import { ExportButton } from '@/components/audit/export-button'
 import { useAuditWebSocket } from '@/hooks/use-audit-websocket'
 import { createAudit, startProcessing } from '@/lib/api'
 
@@ -183,26 +184,31 @@ export default function NewAuditPage() {
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Live Findings Monitor
               </h2>
-              {processingStarted && (
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`h-2 w-2 rounded-full ${
-                      connectionStatus === 'connected'
-                        ? 'bg-green-500'
-                        : connectionStatus === 'connecting'
-                        ? 'bg-amber-500 animate-pulse'
-                        : 'bg-red-500'
-                    }`}
-                  />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {connectionStatus === 'connected'
-                      ? 'Connected'
-                      : connectionStatus === 'connecting'
-                      ? 'Connecting...'
-                      : 'Disconnected'}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-4">
+                {processingStarted && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          connectionStatus === 'connected'
+                            ? 'bg-green-500'
+                            : connectionStatus === 'connecting'
+                            ? 'bg-amber-500 animate-pulse'
+                            : 'bg-red-500'
+                        }`}
+                      />
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {connectionStatus === 'connected'
+                          ? 'Connected'
+                          : connectionStatus === 'connecting'
+                          ? 'Connecting...'
+                          : 'Disconnected'}
+                      </span>
+                    </div>
+                    <ExportButton findings={findings} disabled={findings.length === 0} />
+                  </>
+                )}
+              </div>
             </div>
 
             {!processingStarted ? (
