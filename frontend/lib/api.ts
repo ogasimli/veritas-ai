@@ -16,3 +16,26 @@ export async function fetchAudits(): Promise<Audit[]> {
     },
   ]
 }
+
+export async function createAudit(name: string): Promise<{ id: string }> {
+  // TODO: Replace with actual API call to POST /api/audits
+  // For now, return mock ID
+  return {
+    id: Math.random().toString(36).substring(7),
+  }
+}
+
+export async function uploadFile(
+  auditId: string,
+  file: File,
+  type: 'current' | 'prior' | 'memos'
+): Promise<void> {
+  // TODO: Replace with actual API call to POST /api/documents
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('auditId', auditId)
+  formData.append('type', type)
+
+  // Mock upload for now
+  console.log(`Uploading ${type} file:`, file.name)
+}
