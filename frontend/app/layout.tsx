@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Veritas AI",
   description: "Multi-agent AI co-auditor",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
