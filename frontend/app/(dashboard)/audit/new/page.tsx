@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { FileUploadZone } from '@/components/audit/file-upload-zone'
 import { AgentCard } from '@/components/audit/agent-card'
 import { useAuditWebSocket } from '@/hooks/use-audit-websocket'
-import { createAudit } from '@/lib/api'
+import { createAudit, startProcessing } from '@/lib/api'
 
 export default function NewAuditPage() {
   const [currentYearFile, setCurrentYearFile] = useState<File | null>(null)
@@ -35,9 +35,13 @@ export default function NewAuditPage() {
         memos: memosFile?.name,
       })
 
-      // TODO: Upload files and start processing
+      // Start processing
+      await startProcessing(result.id)
+
+      // TODO: Upload files to backend
       // await uploadFile(result.id, currentYearFile, 'current')
-      // await startProcessing(result.id)
+      // if (priorYearFile) await uploadFile(result.id, priorYearFile, 'prior')
+      // if (memosFile) await uploadFile(result.id, memosFile, 'memos')
     } catch (error) {
       console.error('Error starting review:', error)
       alert('Failed to start review. Please try again.')
@@ -67,34 +71,109 @@ export default function NewAuditPage() {
         </div>
       </div>
 
-      {/* Upload Zones */}
+      {/* Upload Zones or Data Sources */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <FileUploadZone
-              label="Current Year (Required)"
-              onUpload={(file) => setCurrentYearFile(file)}
-            />
-            <FileUploadZone
-              label="Prior Year (Optional)"
-              onUpload={(file) => setPriorYearFile(file)}
-            />
-            <FileUploadZone
-              label="Internal Memos (Optional)"
-              onUpload={(file) => setMemosFile(file)}
-            />
-          </div>
+          {!processingStarted ? (
+            <>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <FileUploadZone
+                  label="Current Year (Required)"
+                  onUpload={(file) => setCurrentYearFile(file)}
+                />
+                <FileUploadZone
+                  label="Prior Year (Optional)"
+                  onUpload={(file) => setPriorYearFile(file)}
+                />
+                <FileUploadZone
+                  label="Internal Memos (Optional)"
+                  onUpload={(file) => setMemosFile(file)}
+                />
+              </div>
 
-          {/* Start Review Button */}
-          {hasAnyFile && (
-            <div className="mt-8 flex justify-center">
-              <button
-                onClick={handleStartReview}
-                className="rounded-lg bg-blue-500 px-8 py-3 font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
-                disabled={!currentYearFile}
-              >
-                Start Review
-              </button>
+              {/* Start Review Button */}
+              {hasAnyFile && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={handleStartReview}
+                    className="rounded-lg bg-blue-500 px-8 py-3 font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+                    disabled={!currentYearFile}
+                  >
+                    Start Review
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mb-6">
+              <h3 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                Data Sources
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {currentYearFile && (
+                  <div className="flex items-center gap-2 rounded-full border border-green-500 bg-green-50 px-3 py-1 dark:bg-green-900/20">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="h-4 w-4 text-green-600 dark:text-green-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                      {currentYearFile.name}
+                    </span>
+                  </div>
+                )}
+                {priorYearFile && (
+                  <div className="flex items-center gap-2 rounded-full border border-green-500 bg-green-50 px-3 py-1 dark:bg-green-900/20">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="h-4 w-4 text-green-600 dark:text-green-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                      {priorYearFile.name}
+                    </span>
+                  </div>
+                )}
+                {memosFile && (
+                  <div className="flex items-center gap-2 rounded-full border border-green-500 bg-green-50 px-3 py-1 dark:bg-green-900/20">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="h-4 w-4 text-green-600 dark:text-green-400"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                      {memosFile.name}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

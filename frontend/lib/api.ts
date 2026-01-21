@@ -39,3 +39,11 @@ export async function uploadFile(
   // Mock upload for now
   console.log(`Uploading ${type} file:`, file.name)
 }
+
+export async function startProcessing(auditId: string): Promise<void> {
+  // TODO: Replace with actual API call to POST /api/audits/{id}/process
+  console.log(`Starting processing for audit ${auditId}`)
+
+  // Mock: Backend will send WebSocket updates as processing happens
+  // For now, just log
+}
