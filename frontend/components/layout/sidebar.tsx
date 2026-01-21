@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { AuditList } from './audit-list'
 
 export function Sidebar() {
   return (
@@ -52,7 +53,7 @@ export function Sidebar() {
 
         {/* Audit List Section */}
         <div className="flex-1 overflow-y-auto px-4">
-          {/* Placeholder for AuditList component - will be added in Task 3 */}
+          <AuditList />
         </div>
 
         {/* User Placeholder */}
