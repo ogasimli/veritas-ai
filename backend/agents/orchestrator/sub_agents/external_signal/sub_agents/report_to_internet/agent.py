@@ -1,6 +1,6 @@
 """Report-to-internet verification agent with Deep Research."""
 from google.adk.agents import LlmAgent
-from google.adk.tools import Tool
+from google.adk.tools import FunctionTool
 from google.genai.types import GenerateContentConfig
 from ...deep_research_client import DeepResearchClient
 from . import prompt
@@ -10,7 +10,7 @@ from .schema import ReportToInternetOutput
 deep_research_client = DeepResearchClient()
 
 
-def verify_claims_tool(claims_json: str) -> str:
+async def verify_claims_tool(claims_json: str) -> str:
     """
     Verify financial statement claims using Deep Research.
 
@@ -59,7 +59,7 @@ For each claim, provide:
 Structure output as JSON-like format matching the ClaimVerification schema.
 """
 
-    result = deep_research_client.run_research(
+    result = await deep_research_client.run_research(
         query=verification_prompt,
         timeout_minutes=20
     )
@@ -75,7 +75,7 @@ report_to_internet_agent = LlmAgent(
     name="report_to_internet",
     model="gemini-3-flash-preview",  # Lightweight coordinator
     instruction=prompt.INSTRUCTION,
-    tools=[Tool(verify_claims_tool)],
+    tools=[FunctionTool(verify_claims_tool)],
     output_key="report_to_internet_findings",
     output_schema=ReportToInternetOutput,
 )

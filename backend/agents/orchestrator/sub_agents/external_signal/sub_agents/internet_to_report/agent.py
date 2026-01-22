@@ -1,6 +1,6 @@
 """Internet-to-report verification agent with Deep Research."""
 from google.adk.agents import LlmAgent
-from google.adk.tools import Tool
+from google.adk.tools import FunctionTool
 from google.genai.types import GenerateContentConfig
 from ...deep_research_client import DeepResearchClient
 from . import prompt
@@ -10,7 +10,7 @@ from .schema import InternetToReportOutput
 deep_research_client = DeepResearchClient()
 
 
-def search_external_signals_tool(company_name: str, fiscal_year: str) -> str:
+async def search_external_signals_tool(company_name: str, fiscal_year: str) -> str:
     """
     Tool that uses Deep Research to find external signals about company.
 
@@ -47,7 +47,7 @@ For each signal found, provide:
 If no significant signals are found, explicitly state that.
 """
 
-    result = deep_research_client.run_research(
+    result = await deep_research_client.run_research(
         query=research_query,
         timeout_minutes=20
     )
@@ -63,7 +63,7 @@ internet_to_report_agent = LlmAgent(
     name="internet_to_report",
     model="gemini-3-flash-preview",  # Lightweight coordinator
     instruction=prompt.INSTRUCTION,
-    tools=[Tool(search_external_signals_tool)],
+    tools=[FunctionTool(search_external_signals_tool)],
     output_key="internet_to_report_findings",
     output_schema=InternetToReportOutput,
 )

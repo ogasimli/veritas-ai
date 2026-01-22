@@ -1,4 +1,5 @@
 """Deep Research async client wrapper for Gemini Interactions API."""
+import asyncio
 import time
 from typing import TypedDict
 from google import genai
@@ -24,7 +25,7 @@ class DeepResearchClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10)
     )
-    def run_research(
+    async def run_research(
         self,
         query: str,
         timeout_minutes: int = 20,
@@ -45,8 +46,8 @@ class DeepResearchClient:
         timeout_seconds = timeout_minutes * 60
 
         try:
-            # Create Deep Research interaction via Interactions API
-            interaction = self.client.interactions.create(
+            # Create Deep Research interaction via Interactions API (Async)
+            interaction = await self.client.aio.interactions.create(
                 input=query,
                 agent='deep-research-pro-preview-12-2025',
                 background=True,
@@ -71,8 +72,8 @@ class DeepResearchClient:
                         error=f"Research exceeded {timeout_minutes} minute timeout"
                     )
 
-                # Get current status
-                interaction = self.client.interactions.get(interaction.id)
+                # Get current status (Async)
+                interaction = await self.client.aio.interactions.get(interaction.id)
 
                 if interaction.status == "completed":
                     return DeepResearchResult(
@@ -90,8 +91,8 @@ class DeepResearchClient:
                         error=str(interaction.error)
                     )
 
-                # Still in progress, wait before next poll
-                time.sleep(poll_interval)
+                # Still in progress, yield to event loop
+                await asyncio.sleep(poll_interval)
 
         except Exception as e:
             return DeepResearchResult(
