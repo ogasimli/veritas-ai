@@ -23,7 +23,7 @@ None
 - [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
 - [x] **Phase 5.1: Disclosure Reviewer** (Completed) - False-positive filtering for semantic mismatches, combined disclosures, cross-references
 - [x] **Phase 6: External Signal** (Completed) - News/litigation search via google_search tool
-- [ ] **Phase 6.1: Bidirectional Verification + Deep Research** (INSERTED) - ParallelAgent with 2 sub-agents for report→internet + internet→report verification using Deep Research
+- [x] **Phase 6.1: Bidirectional Verification + Deep Research** (INSERTED, Completed) - ParallelAgent with 2 sub-agents for report→internet + internet→report verification using Deep Research
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
 
 ## Phase Details
@@ -119,12 +119,13 @@ Plans:
 ### Phase 6.1: Bidirectional Verification + Deep Research (INSERTED)
 **Goal**: Enhance external signal agent with bidirectional verification (internet→report AND report→internet) using ParallelAgent with 2 sub-agents and Deep Research integration
 **Depends on**: Phase 6 (existing external signal agent)
-**Research**: Required (Deep Research API patterns, long-running task handling)
+**Research**: Completed (Deep Research API patterns, long-running task handling)
 **Research topics**: Gemini Deep Research Agent API, async task management, ParallelAgent with Deep Research sub-agents
-**Plans**: 0 plans
+**Plans**: 2/2 complete
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 6.1 to break down)
+- [x] 6.1-01: Deep Research infrastructure (DeepResearchClient + bidirectional sub-agents)
+- [x] 6.1-02: Integration and backend updates (ParallelAgent orchestrator + processor + root agent)
 
 **Details:**
 Current limitation: Phase 6 only checks internet→report (external info contradicting report statements).
@@ -167,5 +168,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 5.1. Disclosure Reviewer | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 1/1 | Completed | 2026-01-19 |
-| 6.1. Bidirectional Verification + Deep Research | 1/2 | In progress | - |
+| 6.1. Bidirectional Verification + Deep Research | 2/2 | Completed | 2026-01-21 |
 | 7. Frontend Dashboard | 4/4 | Completed | 2026-01-21 |
