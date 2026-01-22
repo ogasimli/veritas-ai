@@ -23,6 +23,7 @@ None
 - [x] **Phase 5: Disclosure Compliance** (Completed) - Scanner, YAML checklists, parallel validator agents
 - [x] **Phase 5.1: Disclosure Reviewer** (Completed) - False-positive filtering for semantic mismatches, combined disclosures, cross-references
 - [x] **Phase 6: External Signal** (Completed) - News/litigation search via google_search tool
+- [ ] **Phase 6.1: Bidirectional Verification + Deep Research** (INSERTED) - ParallelAgent with 2 sub-agents for report→internet + internet→report verification using Deep Research
 - [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
 
 ## Phase Details
@@ -115,6 +116,29 @@ Plans:
 Plans:
 - [x] 06-01: External signal agent with google_search
 
+### Phase 6.1: Bidirectional Verification + Deep Research (INSERTED)
+**Goal**: Enhance external signal agent with bidirectional verification (internet→report AND report→internet) using ParallelAgent with 2 sub-agents and Deep Research integration
+**Depends on**: Phase 6 (existing external signal agent)
+**Research**: Required (Deep Research API patterns, long-running task handling)
+**Research topics**: Gemini Deep Research Agent API, async task management, ParallelAgent with Deep Research sub-agents
+**Plans**: 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 6.1 to break down)
+
+**Details:**
+Current limitation: Phase 6 only checks internet→report (external info contradicting report statements).
+
+Enhancement needed:
+1. **Report→Internet verification**: Extract publicly verifiable claims from report (dates, locations, partnerships, regulatory filings, awards, certifications) and verify via internet search
+2. **Bidirectional architecture**: ParallelAgent with 2 sub-agents:
+   - Sub-agent 1: Internet→Report (existing pattern)
+   - Sub-agent 2: Report→Internet (new pattern)
+3. **Deep Research integration**: Replace gemini-2.0-flash-exp with Deep Research for both sub-agents to handle complex verification queries
+4. **Long-running task handling**: Implement async task management per Deep Research documentation
+
+Reference: https://ai.google.dev/gemini-api/docs/deep-research#long-running-tasks
+
 ### Phase 7: Frontend Dashboard
 **Goal**: Real-time dashboard with WebSocket integration, file upload, and findings display
 **Depends on**: Phase 1 (frontend), Phases 3-6 (agent outputs)
@@ -143,4 +167,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Disclosure Compliance | 1/1 | Completed | 2026-01-19 |
 | 5.1. Disclosure Reviewer | 1/1 | Completed | 2026-01-19 |
 | 6. External Signal | 1/1 | Completed | 2026-01-19 |
+| 6.1. Bidirectional Verification + Deep Research | 1/2 | In progress | - |
 | 7. Frontend Dashboard | 4/4 | Completed | 2026-01-21 |
