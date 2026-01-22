@@ -78,7 +78,4 @@ report_to_internet_agent = LlmAgent(
     tools=[Tool(verify_claims_tool)],
     output_key="report_to_internet_findings",
     output_schema=ReportToInternetOutput,
-    generate_content_config=GenerateContentConfig(
-        temperature=0.7,
-    ),
 )

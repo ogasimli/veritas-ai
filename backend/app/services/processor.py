@@ -28,10 +28,10 @@ class DocumentProcessor:
         try:
             # 2. Run orchestrator pipeline
             # Runs agents in parallel:
-            # - numeric_validation (Phase 3)
-            # - logic_consistency (Phase 4)
-            # - disclosure_compliance (Phase 5)
-            # - external_signal_v2 (Phase 6.1 - bidirectional verification with Deep Research)
+            # - numeric_validation
+            # - logic_consistency
+            # - disclosure_compliance
+            # - external_signal (bidirectional verification with Deep Research)
             runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
@@ -74,7 +74,7 @@ class DocumentProcessor:
                     disclosure_findings.extend(value.get("findings", []))
 
             # 3d. Extract external signal findings (Phase 6.1: bidirectional verification)
-            external_state = final_state.get("external_signal_v2", {})
+            external_state = final_state.get("external_signal", {})
 
             # 3d.1. Internet→Report findings (signals contradicting report)
             internet_to_report_output = external_state.get("internet_to_report_findings", {})
@@ -139,7 +139,7 @@ class DocumentProcessor:
                     reasoning=f"Signal type: {finding_data.get('signal_type')}, "
                              f"Publication: {finding_data.get('publication_date', 'unknown')}, "
                              f"Potential contradiction: {finding_data.get('potential_contradiction', 'none')}",
-                    agent_id="external_signal_v2:internet_to_report",
+                    agent_id="external_signal:internet_to_report",
                 )
                 self.db.add(finding)
 
@@ -156,7 +156,7 @@ class DocumentProcessor:
                         source_refs=source_urls,
                         reasoning=f"Evidence: {verification_data.get('evidence_summary', '')}, "
                                  f"Discrepancy: {verification_data.get('discrepancy', 'none')}",
-                        agent_id="external_signal_v2:report_to_internet",
+                        agent_id="external_signal:report_to_internet",
                     )
                     self.db.add(finding)
 

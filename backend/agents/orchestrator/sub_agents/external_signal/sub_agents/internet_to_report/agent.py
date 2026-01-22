@@ -66,7 +66,4 @@ internet_to_report_agent = LlmAgent(
     tools=[Tool(search_external_signals_tool)],
     output_key="internet_to_report_findings",
     output_schema=InternetToReportOutput,
-    generate_content_config=GenerateContentConfig(
-        temperature=0.7,
-    ),
 )

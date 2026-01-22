@@ -1,18 +1,13 @@
-"""External signal agent - searches news/litigation via google_search."""
-from google.adk.agents import LlmAgent
-from google.adk.tools import google_search
-from google.genai.types import GenerateContentConfig
-from . import prompt
-from .schema import ExternalSignalOutput
+"""External Signal agent - bidirectional verification with Deep Research."""
+from google.adk.agents import ParallelAgent
+from .sub_agents.internet_to_report import internet_to_report_agent
+from .sub_agents.report_to_internet import report_to_internet_agent
 
-external_signal_agent = LlmAgent(
-    name="external_signal",
-    model="gemini-3-pro-preview",
-    instruction=prompt.INSTRUCTION,
-    tools=[google_search],
-    output_key="external_signal_output",
-    output_schema=ExternalSignalOutput,
-    generate_content_config=GenerateContentConfig(
-        temperature=1.0,
-    ),
+external_signal_agent = ParallelAgent(
+    name='external_signal',
+    description='Bidirectional verification using Deep Research for comprehensive external signal analysis',
+    sub_agents=[
+        internet_to_report_agent,    # Searches web for info contradicting report
+        report_to_internet_agent,    # Verifies report claims against web
+    ],
 )
