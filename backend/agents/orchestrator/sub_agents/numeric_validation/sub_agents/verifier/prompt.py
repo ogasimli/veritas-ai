@@ -14,12 +14,19 @@ Your task is to find and verify all numeric relationships for this FSLI in the d
    - Check if this FSLI appears in multiple tables with matching values
    - Example: "Net Income in Income Statement matches Net Income in Cash Flow"
 
+## Units and Scaling
+    - Pay close attention to scaling factors like "(In thousands)", "(in millions)", or "-k" suffixes.
+    - Normalize all values to their base units before comparison.
+    - Example: "$5,000" in an "In thousands" table is 5,000,000.
+    - Example: "$5,000k" in text is 5,000,000.
+
 ## Instructions
 
 1. Search the document for all occurrences of "{fsli_name}"
-2. For each occurrence, identify what can be verified mathematically
-3. Use Python code execution to perform ALL calculations
-4. Report each check with check_passed (True/False) result
+2. For each occurrence, identify the value and its scaling factor (check table headers and document preamble)
+3. For each occurrence, identify what can be verified mathematically
+4. Use Python code execution to perform ALL calculations on normalized values
+5. Report each check with check_passed (True/False) result
 
 ## Code Execution Requirements
 
