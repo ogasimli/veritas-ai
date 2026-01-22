@@ -73,17 +73,6 @@ Analyze the financial statement text and identify which IFRS/IAS standards are a
 
 4. **Look in all sections** - Check statement headers, line items, notes, and disclosures
 
-## Output Format
-
-Return your findings as a structured list of standard codes.
-
-Example output:
-```json
-{
-  "applicable_standards": ["IAS 1", "IFRS 15", "IFRS 16", "IAS 7", "IAS 12"]
-}
-```
-
 ## Important Notes
 
 - Use standard format: "IAS X" or "IFRS X" (with space)
@@ -91,3 +80,4 @@ Example output:
 - Typically expect 5-15 standards for a complete financial statement
 - If you find evidence of a topic but aren't certain, include it (better to check too many than miss required disclosures)
 """
+

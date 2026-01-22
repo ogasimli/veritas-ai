@@ -41,24 +41,5 @@ Your task is to check if required disclosures for this standard are present in t
 - Only report clear absences after thorough document search
 - If you're unsure whether something is present, search more carefully before reporting as missing
 - Remember: The goal is to identify genuine gaps, not to be overly pedantic
-
-## Output Format
-
-Return a structured list of DisclosureFinding objects for ALL missing disclosures.
-If all required disclosures are present, return an empty findings list.
-
-Example:
-```json
-{{
-  "findings": [
-    {{
-      "standard": "{standard_code}",
-      "disclosure_id": "{standard_code.replace(' ', '')}1-D3",
-      "requirement": "Statement of cash flows",
-      "severity": "high",
-      "description": "Present a statement of cash flows showing cash flows from operating, investing, and financing activities for the period."
-    }}
-  ]
-}}
-```
+- If all required disclosures are present, return an empty findings list
 """
