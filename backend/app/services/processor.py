@@ -31,7 +31,7 @@ class DocumentProcessor:
             # - numeric_validation (Phase 3)
             # - logic_consistency (Phase 4)
             # - disclosure_compliance (Phase 5)
-            # - external_signal (Phase 6)
+            # - external_signal_v2 (Phase 6.1 - bidirectional verification with Deep Research)
             runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
             session = await runner.session_service.create_session(
                 app_name=runner.app_name,
@@ -73,10 +73,16 @@ class DocumentProcessor:
                     # Each value is a VerifierAgentOutput with a "findings" list
                     disclosure_findings.extend(value.get("findings", []))
 
-            # 3d. Extract external signal findings
-            external_state = final_state.get("external_signal", {})
-            external_output = external_state.get("external_signal_output", {})
-            external_findings = external_output.get("findings", [])
+            # 3d. Extract external signal findings (Phase 6.1: bidirectional verification)
+            external_state = final_state.get("external_signal_v2", {})
+
+            # 3d.1. Internet→Report findings (signals contradicting report)
+            internet_to_report_output = external_state.get("internet_to_report_findings", {})
+            internet_to_report_findings = internet_to_report_output.get("findings", [])
+
+            # 3d.2. Report→Internet findings (report claims that are contradicted)
+            report_to_internet_output = external_state.get("report_to_internet_findings", {})
+            report_to_internet_verifications = report_to_internet_output.get("verifications", [])
 
             # 4. Save findings to database
             # 4a. Save numeric validation findings
@@ -121,20 +127,38 @@ class DocumentProcessor:
                 )
                 self.db.add(finding)
 
-            # 4d. Save external signal findings
-            for finding_data in external_findings:
+            # 4d. Save external signal findings (Phase 6.1: bidirectional)
+            # 4d.1. Save Internet→Report findings (signals contradicting report)
+            for finding_data in internet_to_report_findings:
                 finding = FindingModel(
                     job_id=job_id,
                     category="external",
-                    severity="medium",  # External signals are always medium (for auditor review)
+                    severity="medium",
                     description=finding_data.get("summary", ""),
                     source_refs=[finding_data.get("source_url", "")],
                     reasoning=f"Signal type: {finding_data.get('signal_type')}, "
                              f"Publication: {finding_data.get('publication_date', 'unknown')}, "
                              f"Potential contradiction: {finding_data.get('potential_contradiction', 'none')}",
-                    agent_id="external_signal",
+                    agent_id="external_signal_v2:internet_to_report",
                 )
                 self.db.add(finding)
+
+            # 4d.2. Save Report→Internet findings (report claims that are contradicted)
+            for verification_data in report_to_internet_verifications:
+                # Only save findings for claims that are CONTRADICTED
+                if verification_data.get("status") == "CONTRADICTED":
+                    source_urls = verification_data.get("source_urls", [])
+                    finding = FindingModel(
+                        job_id=job_id,
+                        category="external",
+                        severity="high",  # Contradicted claims are high severity
+                        description=f"Report claim contradicted: {verification_data.get('claim', '')}",
+                        source_refs=source_urls,
+                        reasoning=f"Evidence: {verification_data.get('evidence_summary', '')}, "
+                                 f"Discrepancy: {verification_data.get('discrepancy', 'none')}",
+                        agent_id="external_signal_v2:report_to_internet",
+                    )
+                    self.db.add(finding)
 
             # 5. Update job status
             job.status = "completed"
