@@ -4,6 +4,7 @@ from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from .schema import ScannerAgentOutput
 from . import prompt
+from agents.common.error_handler import default_model_error_handler
 
 scanner_agent = LlmAgent(
     name="ScannerAgent",
@@ -14,4 +15,5 @@ scanner_agent = LlmAgent(
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(thinking_level="high")
     ),
+    on_model_error_callback=default_model_error_handler,
 )

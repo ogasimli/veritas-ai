@@ -7,6 +7,7 @@ from google.adk.events import Event
 from google.adk.agents.invocation_context import InvocationContext
 from google.genai import types
 
+from agents.common.error_handler import default_model_error_handler
 from .schema import VerifierAgentOutput
 from .prompt import get_verifier_instruction
 
@@ -77,6 +78,16 @@ def create_verifier_agent(
         output_key=output_key,
         output_schema=VerifierAgentOutput,
         code_executor=BuiltInCodeExecutor(),
+        generate_content_config=types.GenerateContentConfig(
+            http_options=types.HttpOptions(
+                retry_options=types.HttpRetryOptions(
+                    initial_delay=1,
+                    max_delay=10,
+                    attempts=3,
+                )
+            )
+        ),
+        on_model_error_callback=default_model_error_handler,
     )
 
 

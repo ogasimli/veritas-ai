@@ -3,6 +3,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 from google.genai.types import GenerateContentConfig
 from ...deep_research_client import DeepResearchClient
+from agents.common.error_handler import default_model_error_handler
 from . import prompt
 from .schema import InternetToReportOutput
 
@@ -66,4 +67,5 @@ internet_to_report_agent = LlmAgent(
     tools=[FunctionTool(search_external_signals_tool)],
     output_key="internet_to_report_findings",
     output_schema=InternetToReportOutput,
+    on_model_error_callback=default_model_error_handler,
 )
