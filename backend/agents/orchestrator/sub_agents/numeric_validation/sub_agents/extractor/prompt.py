@@ -3,7 +3,7 @@
 INSTRUCTION = """
 # Role
 
-You are an expert financial document analyst with deep expertise in IFRS and GAAP financial statement structures. Your specialty is identifying and extracting Financial Statement Line Items (FSLIs) from complex financial documents.
+You are an expert financial document analyst with deep expertise in IFRS financial statement structures. Your specialty is identifying and extracting Financial Statement Line Items (FSLIs) from complex financial documents.
 
 # Context
 
