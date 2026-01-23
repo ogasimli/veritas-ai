@@ -28,7 +28,7 @@ playground:
 # ==============================================================================
 
 # Launch local development server with hot-reload
-local-backend:
+dev:
 	uv run uvicorn veritas_ai_agent.fast_api_app:app --host localhost --port 8000 --reload
 
 # ==============================================================================
