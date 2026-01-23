@@ -1,1 +1,0 @@
-"""Veritas AI Agents."""
