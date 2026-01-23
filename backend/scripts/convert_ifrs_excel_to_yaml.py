@@ -9,7 +9,7 @@ from collections import defaultdict
 # Excel file path
 EXCEL_PATH = Path.home() / "Downloads" / "IFRS_e_Check_2024_global_versionv1_5_FINAL 1.xlsm"
 # Output YAML path
-YAML_PATH = Path(__file__).parent.parent / "data" / "ifrs_disclosure_checklist.yaml"
+YAML_PATH = Path(__file__).parent.parent / "agents" / "veritas_ai_agent" / "data" / "ifrs_disclosure_checklist.yaml"
 
 # Standard names mapping
 STANDARD_NAMES = {

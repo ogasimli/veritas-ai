@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Add backend to path and import the actual ExtractorService
-backend_path = Path(__file__).parent / "backend"
+backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
 # Import directly from the extractor module to avoid triggering __init__.py issues

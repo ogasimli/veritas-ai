@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 
-from agents.orchestrator.agent import root_agent
+from veritas_ai_agent.agent import root_agent
 from app.models.finding import Finding as FindingModel
 from app.models.job import Job
  
