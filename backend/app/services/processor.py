@@ -61,17 +61,13 @@ class DocumentProcessor:
 
             # 3b. Extract logic consistency findings
             logic_state = final_state.get("logic_consistency", {})
-            logic_output = logic_state.get("logic_consistency_output", {})
+            logic_output = logic_state.get("reviewer_output", {})  # Changed from logic_consistency_output
             logic_findings = logic_output.get("findings", [])
 
-            # 3c. Extract disclosure compliance findings
-            # Disclosure findings are stored per standard with keys like "disclosure_findings:IAS 1"
+            # 3c. Extract disclosure compliance findings (Consolidated by Reviewer)
             disclosure_state = final_state.get("disclosure_compliance", {})
-            disclosure_findings = []
-            for key, value in disclosure_state.items():
-                if key.startswith("disclosure_findings:") and isinstance(value, dict):
-                    # Each value is a VerifierAgentOutput with a "findings" list
-                    disclosure_findings.extend(value.get("findings", []))
+            disclosure_output = disclosure_state.get("reviewer_output", {})
+            disclosure_findings = disclosure_output.get("findings", [])
 
             # 3d. Extract external signal findings (Phase 6.1: bidirectional verification)
             external_state = final_state.get("external_signal", {})
@@ -100,15 +96,15 @@ class DocumentProcessor:
                 )
                 self.db.add(finding)
 
-            # 4b. Save logic consistency findings
             for finding_data in logic_findings:
                 finding = FindingModel(
                     job_id=job_id,
                     category="logic",
                     severity=finding_data.get("severity", "medium"),
-                    description=finding_data.get("claim", ""),
+                    description=finding_data.get("contradiction", ""),
                     source_refs=finding_data.get("source_refs", []),
-                    reasoning=finding_data.get("reasoning", ""),
+                    reasoning=f"Claim: {finding_data.get('claim', '')}\n\n"
+                              f"Reasoning: {finding_data.get('reasoning', '')}",
                     agent_id="logic_consistency",
                 )
                 self.db.add(finding)
@@ -121,8 +117,9 @@ class DocumentProcessor:
                     severity=finding_data.get("severity", "medium"),
                     description=finding_data.get("requirement", ""),
                     source_refs=[],  # Disclosure findings don't have specific source refs
-                    reasoning=f"{finding_data.get('standard')} {finding_data.get('disclosure_id')}: "
-                             f"{finding_data.get('description', '')}",
+                    reasoning=f"Standard: {finding_data.get('standard')}\n"
+                              f"ID: {finding_data.get('disclosure_id')}\n\n"
+                              f"Requirement Detail: {finding_data.get('description', '')}",
                     agent_id="disclosure_compliance",
                 )
                 self.db.add(finding)
