@@ -51,15 +51,36 @@ class FanOutVerifierAgent(BaseAgent):
             for fsli_name in fsli_names
         ]
 
-        # 3. Wrap in ParallelAgent for concurrent execution
-        parallel = ParallelAgent(
-            name="verifier_parallel_block",
-            sub_agents=verifier_agents
-        )
+        # 3. Adaptive batch processing to avoid rate limits (429 RESOURCE_EXHAUSTED)
+        batch_id = 1
+        current_index = 0
+        total_agents = len(verifier_agents)
 
-        # 4. Yield all events (preserves ADK observability)
-        async for event in parallel.run_async(ctx):
-            yield event
+        while current_index < total_agents:
+            # Check if other heavy agents are running
+            active_heavy_agents = ctx.session.state.get("active_heavy_agents", 0)
+
+            # Dynamic batch sizing
+            if active_heavy_agents > 0:
+                # Aggressive throttling when others are running
+                current_batch_size = 1
+            else:
+                # Speed up when running alone
+                current_batch_size = 10 
+
+            batch = verifier_agents[current_index : current_index + current_batch_size]
+
+            parallel = ParallelAgent(
+                name=f"verifier_parallel_batch_{batch_id}",
+                sub_agents=batch
+            )
+
+            # 4. Yield all events (preserves ADK observability)
+            async for event in parallel.run_async(ctx):
+                yield event
+            
+            current_index += current_batch_size
+            batch_id += 1
 
 
 def create_verifier_agent(

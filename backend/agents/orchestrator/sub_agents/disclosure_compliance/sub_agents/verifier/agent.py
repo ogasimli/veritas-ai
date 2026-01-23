@@ -79,15 +79,20 @@ class FanOutDisclosureVerifier(BaseAgent):
             )
             return
 
-        # 3. Wrap in ParallelAgent for concurrent execution
-        parallel = ParallelAgent(
-            name="disclosure_verifier_parallel_block",
-            sub_agents=verifier_agents
-        )
+        # 3. Batch processing to avoid rate limits (429 RESOURCE_EXHAUSTED)
+        BATCH_SIZE = 4
+        for i in range(0, len(verifier_agents), BATCH_SIZE):
+            batch = verifier_agents[i : i + BATCH_SIZE]
+            
+            # Wrap in ParallelAgent for concurrent execution of this batch
+            parallel = ParallelAgent(
+                name=f"disclosure_verifier_parallel_batch_{i // BATCH_SIZE + 1}",
+                sub_agents=batch
+            )
 
-        # 4. Yield all events (preserves ADK observability)
-        async for event in parallel.run_async(ctx):
-            yield event
+            # 4. Yield all events (preserves ADK observability)
+            async for event in parallel.run_async(ctx):
+                yield event
 
 
 def create_disclosure_verifier_agent(
