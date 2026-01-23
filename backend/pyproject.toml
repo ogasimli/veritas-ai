@@ -1,0 +1,62 @@
+[project]
+name = "veritas-ai-backend"
+version = "0.1.0"
+description = "FastAPI backend for Veritas AI co-auditor"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg>=0.29.0",
+    "pydantic-settings>=2.0.0",
+    "google-cloud-storage>=2.14.0",
+    "python-docx>=1.1.0",
+    "google-adk>=0.1.0",
+    "google-genai>=0.1.0",
+    "alembic>=1.13.0",
+    "openpyxl>=3.1.0",
+    "PyYAML>=6.0.1",
+    "tenacity>=8.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8.0",
+    "codespell>=2.2.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = [
+    ".venv",
+    "venv",
+    "agents_backup",
+    "alembic",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "RUF", # ruff specific rules
+]
+ignore = ["E501", "C901", "B006"]
+
+[tool.codespell]
+ignore-words-list = "rouge"
+skip = "./.venv,./venv,./agents_backup,./alembic,./frontend,**/*.ipynb"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
