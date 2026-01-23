@@ -22,6 +22,10 @@ class StateAwareWrapperAgent(BaseAgent):
         self._inner_agent = inner_agent
         self._counter_key = counter_key
 
+        # Manually expose sub_agents to allow introspection without triggering parent validation
+        if hasattr(inner_agent, "sub_agents"):
+            object.__setattr__(self, "sub_agents", inner_agent.sub_agents)
+
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
