@@ -5,7 +5,7 @@ import { FileUploadZone } from '@/components/audit/file-upload-zone'
 import { AgentCard } from '@/components/audit/agent-card'
 import { ExportButton } from '@/components/audit/export-button'
 import { useAuditWebSocket } from '@/hooks/use-audit-websocket'
-import { createAudit, startProcessing } from '@/lib/api'
+import { uploadFile } from '@/lib/api'
 
 export default function NewAuditPage() {
   const [currentYearFile, setCurrentYearFile] = useState<File | null>(null)
@@ -24,28 +24,24 @@ export default function NewAuditPage() {
     }
 
     try {
-      // Create audit and get ID
-      const result = await createAudit('New Audit')
-      setAuditId(result.id)
-      setProcessingStarted(true)
+      // Upload file to backend - this creates the job and starts processing automatically
+      const jobId = await uploadFile(currentYearFile)
 
-      console.log('Creating audit with:', {
-        auditId: result.id,
-        currentYear: currentYearFile?.name,
-        priorYear: priorYearFile?.name,
-        memos: memosFile?.name,
+      console.log('File uploaded, job created:', {
+        jobId,
+        fileName: currentYearFile.name,
       })
 
-      // Start processing
-      await startProcessing(result.id)
+      // Set audit ID to job ID for WebSocket connection
+      setAuditId(jobId)
+      setProcessingStarted(true)
 
-      // TODO: Upload files to backend
-      // await uploadFile(result.id, currentYearFile, 'current')
-      // if (priorYearFile) await uploadFile(result.id, priorYearFile, 'prior')
-      // if (memosFile) await uploadFile(result.id, memosFile, 'memos')
+      // Backend automatically starts processing in background task
+      // WebSocket will receive agent_started, agent_completed, audit_complete messages
     } catch (error) {
       console.error('Error starting review:', error)
-      alert('Failed to start review. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Failed to start review: ${errorMessage}. Please try again.`)
     }
   }
 
