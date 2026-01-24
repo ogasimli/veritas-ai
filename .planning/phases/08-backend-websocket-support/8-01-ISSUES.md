@@ -10,6 +10,35 @@
 
 ## Resolved Issues
 
+### UAT-002: API endpoint URL mismatch between frontend and backend
+
+**Discovered:** 2026-01-24
+**Phase/Plan:** 08-01-FIX
+**Severity:** Blocker
+**Feature:** File upload API integration
+**Description:** Frontend calls `/documents/upload` but backend has the endpoint registered at `/api/v1/documents/upload`. This causes 404 Not Found errors when trying to upload files. The 8-01-FIX implementation used the wrong URL path.
+**Expected:** Frontend should call the correct backend endpoint path
+**Actual:** Frontend calls `/documents/upload`, backend responds with 404 because the actual endpoint is `/api/v1/documents/upload`
+**Repro:**
+1. Start backend and frontend (`make dev`)
+2. Navigate to http://localhost:3000/audit/new
+3. Upload a .docx file
+4. Click "Start Review"
+5. Observe: Alert shows "Failed to start review: Upload failed: 404 {"detail":"Not Found"}"
+6. Check backend logs: `INFO: 127.0.0.1:49162 - "POST /documents/upload HTTP/1.1" 404 Not Found`
+
+**Code locations:**
+- `frontend/lib/api.ts:32` - Calls `${API_URL}/documents/upload` (incorrect)
+- `backend/app/main.py:43` - Router registered with prefix `/api/v1/documents`
+- `backend/app/api/routes/documents.py:57` - Endpoint defined as `@router.post("/upload")`
+- Actual backend URL: `http://localhost:8000/api/v1/documents/upload`
+
+**Root cause:** During 8-01-FIX implementation, the frontend code was written based on assumption that endpoint was at `/documents/upload`, but the actual backend endpoint is at `/api/v1/documents/upload` (with `/api/v1/documents` prefix from main.py router registration).
+
+**Resolved:** 2026-01-24 - Fixed in 8-01-FIX2.md
+**Commit:** e856087
+**Summary:** Changed frontend API URL from `/documents/upload` to `/api/v1/documents/upload` to match backend router prefix. One-line fix resolves 404 errors.
+
 ### UAT-001: Frontend API integration not implemented
 
 **Discovered:** 2026-01-24
