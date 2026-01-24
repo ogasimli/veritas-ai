@@ -17,33 +17,39 @@ export async function fetchAudits(): Promise<Audit[]> {
   ]
 }
 
-export async function createAudit(name: string): Promise<{ id: string }> {
-  // TODO: Replace with actual API call to POST /api/audits
-  // For now, return mock ID
-  return {
-    id: Math.random().toString(36).substring(7),
-  }
-}
+/**
+ * Upload a document file to the backend for processing
+ * @param file The .docx file to upload
+ * @returns The job ID (UUID as string) for tracking processing status
+ */
+export async function uploadFile(file: File): Promise<string> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export async function uploadFile(
-  auditId: string,
-  file: File,
-  type: 'current' | 'prior' | 'memos'
-): Promise<void> {
-  // TODO: Replace with actual API call to POST /api/documents
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('auditId', auditId)
-  formData.append('type', type)
 
-  // Mock upload for now
-  console.log(`Uploading ${type} file:`, file.name)
-}
+  try {
+    const response = await fetch(`${API_URL}/documents/upload`, {
+      method: 'POST',
+      body: formData,
+    })
 
-export async function startProcessing(auditId: string): Promise<void> {
-  // TODO: Replace with actual API call to POST /api/audits/{id}/process
-  console.log(`Starting processing for audit ${auditId}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Upload failed: ${response.status} ${errorText}`)
+    }
 
-  // Mock: Backend will send WebSocket updates as processing happens
-  // For now, just log
+    const data = await response.json()
+
+    // Backend returns JobRead schema with id (UUID)
+    if (!data.id) {
+      throw new Error('Invalid response from server: missing job ID')
+    }
+
+    // Return job ID as string
+    return data.id.toString()
+  } catch (error) {
+    console.error('File upload error:', error)
+    throw error
+  }
 }
