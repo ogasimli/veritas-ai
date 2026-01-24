@@ -38,3 +38,8 @@ lint:
 deploy:
 	@echo "Deploying backend..."
 	$(MAKE) -C backend deploy
+
+# Extract markdown from a .docx file
+# Usage: make extract-docx file="/absolute/path/to/document.docx"
+extract-docx:
+	$(MAKE) -C backend extract-docx file="$(file)"

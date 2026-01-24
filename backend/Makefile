@@ -15,6 +15,14 @@ install:
 dev:
 	uv run uvicorn app.main:app --host localhost --port 8000 --reload
 
+# Extract markdown from a .docx file
+# Usage: make extract-docx file=/absolute/path/to/document.docx
+extract-docx:
+ifndef file
+	$(error file is required. Usage: make extract-docx file=/absolute/path/to/document.docx)
+endif
+	uv run python scripts/docx_extraction.py "$(file)"
+
 # ==============================================================================
 # Testing & Code Quality
 # ==============================================================================
