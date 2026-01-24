@@ -53,7 +53,7 @@ ENV_VARS = $(shell grep -v '^\#' .env | xargs | sed 's/ /,/g')
 
 # Helper macro for deploying agents to Cloud Run
 define deploy_agent
-	adk deploy cloud_run \
+	uv run adk deploy cloud_run \
 		--project=$(PROJECT_ID) \
 		--region=$(REGION) \
 		--service_name="$(1)" \
