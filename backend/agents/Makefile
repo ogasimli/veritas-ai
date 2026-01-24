@@ -35,18 +35,53 @@ dev:
 # Backend Deployment Targets
 # ==============================================================================
 
-# Deploy the agent remotely
-deploy:
-	PROJECT_ID=$$(gcloud config get-value project) && \
-	ENV_VARS=$$(grep -v '^#' .env | xargs | sed 's/ /,/g') && \
+# Deploy all agents (root + sub-agents) to Cloud Run
+deploy-all: deploy-root-agent deploy-numeric-agent deploy-logic-agent deploy-disclosure-agent deploy-external-agent
+	@echo "✅ All agents deployed successfully!"
+	@echo ""
+	@echo "Deployed services:"
+	@echo "  - veritas-ai-agent (root orchestrator)"
+	@echo "  - veritas-numeric-validation"
+	@echo "  - veritas-logic-consistency"
+	@echo "  - veritas-disclosure-compliance"
+	@echo "  - veritas-external-signal"
+
+# Common deployment variables
+PROJECT_ID = $(shell gcloud config get-value project)
+REGION = us-central1
+ENV_VARS = $(shell grep -v '^\#' .env | xargs | sed 's/ /,/g')
+
+# Helper macro for deploying agents to Cloud Run
+define deploy_agent
 	adk deploy cloud_run \
-		--project=$$PROJECT_ID \
-		--region="us-central1" \
-		--service_name="veritas-ai-agent" \
+		--project=$(PROJECT_ID) \
+		--region=$(REGION) \
+		--service_name="$(1)" \
 		--with_ui \
 		"./veritas_ai_agent" \
 		-- --allow-unauthenticated \
-		--set-env-vars $$ENV_VARS
+		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2)
+endef
+
+# Deploy root orchestrator agent
+deploy-root-agent:
+	$(call deploy_agent,veritas-orchestrator-agent,orchestrator)
+
+# Deploy numeric validation sub-agent
+deploy-numeric-agent:
+	$(call deploy_agent,veritas-numeric-validation,numeric_validation)
+
+# Deploy logic consistency sub-agent
+deploy-logic-agent:
+	$(call deploy_agent,veritas-logic-consistency,logic_consistency)
+
+# Deploy disclosure compliance sub-agent
+deploy-disclosure-agent:
+	$(call deploy_agent,veritas-disclosure-compliance,disclosure_compliance)
+
+# Deploy external signal sub-agent
+deploy-external-agent:
+	$(call deploy_agent,veritas-external-signal,external_signal)
 
 # Alias for 'make deploy' for backward compatibility
 backend: deploy

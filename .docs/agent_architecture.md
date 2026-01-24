@@ -4,6 +4,16 @@
 
 ![][image1]
 
+## Live Demo Endpoints
+
+| Agent | Cloud Run URL (Web UI) |
+| :--- | :--- |
+| **Root Orchestrator** | [Launch UI](https://veritas-orchestrator-agent-492296019210.us-central1.run.app/dev-ui/?app=veritas_ai_agent) |
+| **Numeric Validation** | [Launch UI](https://veritas-numeric-validation-492296019210.us-central1.run.app/dev-ui/?app=veritas_ai_agent) |
+| **Logic Consistency** | [Launch UI](https://veritas-logic-consistency-492296019210.us-central1.run.app/dev-ui/?app=veritas_ai_agent) |
+| **Disclosure Compliance** | [Launch UI](https://veritas-disclosure-compliance-492296019210.us-central1.run.app/dev-ui/?app=veritas_ai_agent) |
+| **External Signal** | [Launch UI](https://veritas-external-signal-492296019210.us-central1.run.app/dev-ui/?app=veritas_ai_agent) |
+
 ## How Each Agent Operates
 
 ### audit\_orchestrator (ParallelAgent)
