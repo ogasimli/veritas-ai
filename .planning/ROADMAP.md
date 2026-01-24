@@ -24,7 +24,8 @@ None
 - [x] **Phase 5.1: Disclosure Reviewer** (Completed) - False-positive filtering for semantic mismatches, combined disclosures, cross-references
 - [x] **Phase 6: External Signal** (Completed) - News/litigation search via google_search tool
 - [x] **Phase 6.1: Bidirectional Verification + Deep Research** (INSERTED, Completed) - ParallelAgent with 2 sub-agents for report→internet + internet→report verification using Deep Research
-- [ ] **Phase 7: Frontend Dashboard** - Findings UI, WebSocket status, drill-down views
+- [x] **Phase 7: Frontend Dashboard** (Completed) - Findings UI, WebSocket status, drill-down views
+- [x] **Phase 8: Backend WebSocket Support** (Completed) - Implement missing WebSocket endpoint for real-time audit updates
 
 ## Phase Details
 
@@ -152,10 +153,29 @@ Plans:
 - [x] 07-03: WebSocket integration + Live agent cards
 - [x] 07-04: Export functionality + Final polish
 
+### Phase 8: Backend WebSocket Support
+**Goal**: Implement FastAPI WebSocket endpoint at /ws/audit/{audit_id} for real-time audit status updates
+**Depends on**: Phase 7 (Frontend Dashboard expects WebSocket connection)
+**Research**: Completed (FastAPI WebSocket patterns, ConnectionManager, asyncio integration)
+**Plans**: 1/1 complete
+
+Plans:
+- [x] 08-01: WebSocket endpoint + ConnectionManager + message schemas + processor integration
+
+**Details:**
+Current issue: Frontend built in Phase 7 expects WebSocket endpoint at /ws/audit/${auditId} but backend only has REST API endpoints. The 403 Forbidden error occurs because FastAPI/Starlette rejects WebSocket connection attempts since no WebSocket handler is defined.
+
+Implementation needed:
+1. **WebSocket endpoint**: Create /ws/audit/{audit_id} endpoint in FastAPI
+2. **Connection management**: Handle WebSocket lifecycle (connect, disconnect, heartbeat)
+3. **Real-time updates**: Stream audit progress updates from agent execution to connected clients
+4. **Status broadcasting**: Emit events when agents start, complete, or encounter errors
+5. **Integration**: Connect WebSocket events to existing agent execution flow
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -170,3 +190,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 6. External Signal | 1/1 | Completed | 2026-01-19 |
 | 6.1. Bidirectional Verification + Deep Research | 2/2 | Completed | 2026-01-21 |
 | 7. Frontend Dashboard | 4/4 | Completed | 2026-01-21 |
+| 8. Backend WebSocket Support | 1/1 | Completed | 2026-01-24 |
