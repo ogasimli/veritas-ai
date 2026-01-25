@@ -35,9 +35,19 @@ lint:
 	cd frontend && npm run lint --if-present
 
 # Deploy the entire backend (including agents)
-deploy:
+deploy-backend:
 	@echo "Deploying backend..."
 	$(MAKE) -C backend deploy
+
+# Deploy frontend to Cloud Run
+deploy-frontend:
+	@echo "Deploying frontend..."
+	./frontend/scripts/deploy.sh
+
+# Deploy the entire project
+deploy:
+	$(MAKE) deploy-backend
+	$(MAKE) deploy-frontend
 
 # Extract markdown from a .docx file
 # Usage: make extract-docx file="/absolute/path/to/document.docx"
