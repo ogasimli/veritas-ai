@@ -5,10 +5,40 @@ import type { Finding, AgentStatus } from '@/lib/types'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
+// Map backend agent_id to frontend agent keys
+function mapAgentId(agentId: string): string {
+  const mapping: Record<string, string> = {
+    numeric_validation: 'numeric',
+    logic_consistency: 'logic',
+    disclosure_compliance: 'disclosure',
+    external_signal: 'external',
+  }
+  return mapping[agentId] || agentId
+}
+
+
 type WebSocketMessage =
-  | { type: 'finding'; finding: Finding }
-  | { type: 'agent_status'; agent: string; status: AgentStatus['status'] }
-  | { type: 'complete' }
+  | {
+    type: 'agent_started'
+    agent_id: string
+    timestamp: string
+  }
+  | {
+    type: 'agent_completed'
+    agent_id: string
+    findings: Finding[]
+    timestamp: string
+  }
+  | {
+    type: 'audit_complete'
+    timestamp: string
+  }
+  | {
+    type: 'agent_error'
+    agent_id: string
+    error: string
+    timestamp: string
+  }
 
 export function useAuditWebSocket(auditId: string | null) {
   const ws = useRef<WebSocket | null>(null)
@@ -45,19 +75,40 @@ export function useAuditWebSocket(auditId: string | null) {
           const data: WebSocketMessage = JSON.parse(event.data)
 
           switch (data.type) {
-            case 'finding':
-              setFindings((prev) => [...prev, data.finding])
-              break
-
-            case 'agent_status':
+            case 'agent_started':
+              // Map agent_id to frontend agent key format
+              const startedAgentKey = mapAgentId(data.agent_id)
               setAgentStatuses((prev) => ({
                 ...prev,
-                [data.agent]: data.status,
+                [startedAgentKey]: 'running',
               }))
+              console.log(`Agent ${data.agent_id} started`)
               break
 
-            case 'complete':
+            case 'agent_completed':
+              // Map agent_id and add all findings from this agent
+              const completedAgentKey = mapAgentId(data.agent_id)
+              setAgentStatuses((prev) => ({
+                ...prev,
+                [completedAgentKey]: 'complete',
+              }))
+              setFindings((prev) => [...prev, ...data.findings])
+              console.log(
+                `Agent ${data.agent_id} completed with ${data.findings.length} findings`
+              )
+              break
+
+            case 'audit_complete':
               console.log('Audit processing complete')
+              break
+
+            case 'agent_error':
+              console.error(`Agent ${data.agent_id} error:`, data.error)
+              const errorAgentKey = mapAgentId(data.agent_id)
+              setAgentStatuses((prev) => ({
+                ...prev,
+                [errorAgentKey]: 'error',
+              }))
               break
 
             default:

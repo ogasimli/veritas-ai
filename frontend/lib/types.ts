@@ -8,7 +8,7 @@ export type Finding = {
 
 export type AgentStatus = {
   agent: string
-  status: 'idle' | 'processing' | 'complete' | 'error'
+  status: 'idle' | 'running' | 'processing' | 'complete' | 'error'
 }
 
 export type Audit = {
