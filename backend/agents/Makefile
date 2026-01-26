@@ -60,6 +60,7 @@ define deploy_agent
 		--with_ui \
 		"./veritas_ai_agent" \
 		-- --allow-unauthenticated \
+		--timeout=3600 \
 		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2)
 endef
 

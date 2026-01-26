@@ -59,7 +59,8 @@ gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_URL" \
     --region "$REGION" \
     --platform managed \
-    --allow-unauthenticated
+    --allow-unauthenticated \
+    --timeout=3600
 
 echo "✅ Frontend Deployment Complete!"
 echo "Service URL: $(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')"

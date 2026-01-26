@@ -129,6 +129,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --region "$REGION" \
     --platform managed \
     --allow-unauthenticated \
+    --timeout=3600 \
     --add-cloudsql-instances="$INSTANCE_CONNECTION_NAME" \
     --set-secrets="DATABASE_URL=VERITAS_DB_URL:latest" \
     --set-env-vars="GCS_BUCKET=${BUCKET_NAME},DEBUG=true"
