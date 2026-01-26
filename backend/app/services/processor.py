@@ -9,11 +9,11 @@ from uuid import UUID
 from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 from sqlalchemy.ext.asyncio import AsyncSession
-from veritas_ai_agent.agent import root_agent
 
 from app.models.finding import Finding as FindingModel
 from app.models.job import Job
 from app.services.websocket_manager import manager
+from veritas_ai_agent import app
 
 
 @dataclass
@@ -340,8 +340,8 @@ class DocumentProcessor:
 
         try:
             # Initialize ADK runner and session
-            print("\n🚀 Initializing ADK runner with root_agent...", flush=True)
-            runner = InMemoryRunner(agent=root_agent, app_name="veritas-ai")
+            print("\n🚀 Initializing ADK runner with app...", flush=True)
+            runner = InMemoryRunner(app=app)
             print("✅ Runner initialized successfully", flush=True)
 
             print(f"📦 Creating session for job {job_id}...", flush=True)

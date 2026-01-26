@@ -24,14 +24,6 @@ playground:
 	uv run adk web . --port 8501 --reload_agents
 
 # ==============================================================================
-# Local Development Commands
-# ==============================================================================
-
-# Launch local development server with hot-reload
-dev:
-	uv run uvicorn veritas_ai_agent.fast_api_app:app --host localhost --port 8000 --reload
-
-# ==============================================================================
 # Backend Deployment Targets
 # ==============================================================================
 
