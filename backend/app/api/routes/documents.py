@@ -20,6 +20,13 @@ async def process_document_task(
     gcs_path: str,
 ):
     """Background task to extract text from docx and update the database."""
+    print(f"\n{'='*80}")
+    print(f"🚀 BACKGROUND TASK STARTED")
+    print(f"   Job ID: {job_id}")
+    print(f"   Document ID: {doc_id}")
+    print(f"   Storage Path: {gcs_path}")
+    print(f"{'='*80}\n")
+    
     async with async_session() as db:
         try:
             settings = get_settings()
@@ -27,23 +34,41 @@ async def process_document_task(
             extractor = ExtractorService()
 
             # 1. Download content
+            print(f"📥 Step 1: Downloading document from storage...")
             content = await storage.download_file(gcs_path)
+            print(f"✅ Downloaded {len(content)} bytes")
             
             # 2. Extract markdown
+            print(f"📝 Step 2: Extracting markdown from .docx...")
             markdown = extractor.extract_markdown(content)
+            print(f"✅ Extracted {len(markdown)} characters of markdown")
+            print(f"   Preview (first 200 chars): {markdown[:200]}...")
             
             # 3. Update Document record
+            print(f"💾 Step 3: Updating document record in database...")
             stmt = select(Document).where(Document.id == doc_id)
             result = await db.execute(stmt)
             doc = result.scalar_one()
             doc.extracted_text = markdown
             await db.commit()
+            print(f"✅ Document record updated")
             
             # 4. Run Agent Pipeline via DocumentProcessor
+            print(f"\n{'='*80}")
+            print(f"🤖 Step 4: INVOKING AGENT PIPELINE")
+            print(f"{'='*80}\n")
             processor = DocumentProcessor(db)
             await processor.process_document(job_id=job_id, extracted_text=markdown)
+            print(f"\n✅ Agent pipeline completed successfully")
 
         except Exception as e:
+            print(f"\n{'='*80}")
+            print(f"❌ ERROR IN BACKGROUND TASK")
+            print(f"   Job ID: {job_id}")
+            print(f"   Error Type: {type(e).__name__}")
+            print(f"   Error Message: {str(e)}")
+            print(f"{'='*80}\n")
+            
             # Update Job status to failed
             job_stmt = select(Job).where(Job.id == job_id)
             job_result = await db.execute(job_stmt)
@@ -52,7 +77,7 @@ async def process_document_task(
                 job.status = "failed"
                 job.error_message = str(e)
                 await db.commit()
-            print(f"Error processing document {doc_id}: {e}")
+            raise
 
 @router.post("/upload", response_model=JobRead)
 async def upload_document(
