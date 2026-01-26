@@ -17,4 +17,7 @@ class VerificationCheck(BaseModel):
     code_executed: str = Field(description="The Python code that was executed to perform the verification")
 
 class VerifierAgentOutput(BaseModel):
-    checks: List[VerificationCheck] = Field(description="List of mathematical verification checks performed for this FSLI")
+    checks: List[VerificationCheck] = Field(
+        default_factory=list,
+        description="List of mathematical verification checks performed for this FSLI"
+    )
