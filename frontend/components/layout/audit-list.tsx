@@ -25,8 +25,9 @@ export function AuditList() {
   const updateMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       updateAudit(id, { name }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['audits'] })
+      queryClient.invalidateQueries({ queryKey: ['audit', variables.id] })
       setEditingId(null)
     },
   })
