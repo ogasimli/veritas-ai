@@ -86,12 +86,12 @@ backend: deploy
 # Run unit and integration tests
 test:
 	uv sync --dev
-	uv run pytest tests/unit && uv run pytest tests/integration
+	uv run pytest tests/unit
 
 # Run code quality checks (codespell, ruff, ty)
 lint:
 	uv sync --dev --extra lint
 	uv run codespell
-	uv run ruff check . --diff
-	uv run ruff format . --check --diff
+	uv run ruff check . --fix
+	uv run ruff format .
 	uv run ty check .

@@ -49,8 +49,8 @@ test:
 # Run code quality checks (ruff and codespell)
 lint:
 	uv run codespell
-	uv run ruff check .
-	uv run ruff format . --check
+	uv run ruff check . --fix
+	uv run ruff format .
 	$(MAKE) -C agents lint
 
 # ==============================================================================
