@@ -106,24 +106,6 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                         >
                             <Trash2 className="h-5 w-5" />
                         </button>
-                        <div className="flex items-center gap-2">
-                            <div
-                                className={`h-2 w-2 rounded-full ${connectionStatus === 'connected'
-                                    ? 'bg-green-500'
-                                    : connectionStatus === 'connecting'
-                                        ? 'bg-amber-500 animate-pulse'
-                                        : 'bg-red-500'
-                                    }`}
-                            />
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                {connectionStatus === 'connected'
-                                    ? 'Connected'
-                                    : connectionStatus === 'connecting'
-                                        ? 'Connecting...'
-                                        : 'Disconnected'}
-                            </span>
-                        </div>
-                        <ExportButton findings={findings} disabled={findings.length === 0} />
                     </div>
                 </div>
             </div>
@@ -131,7 +113,62 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
             {/* Findings Monitor */}
             <div className="flex-1 overflow-y-auto p-6">
                 <div className="mx-auto max-w-7xl">
+                    {/* Data Sources */}
+                    <div className="mb-6">
+                        <h3 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Data Sources
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            <div className="flex items-center gap-2 rounded-full border border-green-500 bg-green-50 px-3 py-1 dark:bg-green-900/20">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="h-4 w-4 text-green-600 dark:text-green-400"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                                <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                                    {audit.name || 'Financial Report'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Findings Feed */}
                     <div className="mt-6">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                Findings Feed
+                            </h2>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className={`h-2 w-2 rounded-full ${connectionStatus === 'connected'
+                                            ? 'bg-green-500'
+                                            : connectionStatus === 'connecting'
+                                                ? 'bg-amber-500 animate-pulse'
+                                                : 'bg-red-500'
+                                            }`}
+                                    />
+                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                        {connectionStatus === 'connected'
+                                            ? 'Connected'
+                                            : connectionStatus === 'connecting'
+                                                ? 'Connecting...'
+                                                : 'Disconnected'}
+                                    </span>
+                                </div>
+                                <ExportButton findings={findings} disabled={findings.length === 0} />
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
                             <AgentCard
                                 agent="numeric"
