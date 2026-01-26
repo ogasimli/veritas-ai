@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Finding, AgentStatus, AgentError } from '@/lib/types'
-import { fetchAuditFindings } from '@/lib/api'
+import { fetchAuditFindings, fetchAudit } from '@/lib/api'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -145,8 +145,12 @@ export function useAuditWebSocket(auditId: string | null) {
     setConnectionStatus('connecting')
 
     try {
+      // derive WS URL from HTTP API URL
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const wsUrl = apiUrl.replace(/^http/, 'ws')
+
       const websocket = new WebSocket(
-        `ws://localhost:8000/ws/audit/${auditId}`
+        `${wsUrl}/ws/audit/${auditId}`
       )
 
       websocket.onopen = () => {
@@ -164,7 +168,7 @@ export function useAuditWebSocket(auditId: string | null) {
               const startedAgentKey = mapAgentId(data.agent_id)
               setAgentStatuses((prev) => ({
                 ...prev,
-                [startedAgentKey]: 'running',
+                [startedAgentKey]: 'processing',
               }))
               console.log(`Agent ${data.agent_id} started`)
               break
@@ -276,19 +280,59 @@ export function useAuditWebSocket(auditId: string | null) {
     }
   }, [auditId, connect])
 
-  // Load initial findings
+  // Load initial findings and sync agent statuses
   useEffect(() => {
     if (!auditId) return
 
     const loadFindings = async () => {
       try {
-        const initialFindings = await fetchAuditFindings(auditId)
+        // Parallel fetch for findings and audit status
+        const [initialFindings, audit] = await Promise.all([
+          fetchAuditFindings(auditId),
+          fetchAudit(auditId).catch(() => null)
+        ])
+
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
         const properlyTransformed = initialFindings.map((f: any, i: number) =>
           transformFinding(f, f.agent_id || 'unknown', i)
         )
 
         setFindings(properlyTransformed)
+
+        // Initialize statuses based on findings and audit status
+        const newStatuses: Record<string, AgentStatus['status']> = {
+          numeric: 'idle',
+          logic: 'idle',
+          disclosure: 'idle',
+          external: 'idle',
+        }
+
+        // 1. Any agent with findings is "complete"
+        const completedAgents = new Set(properlyTransformed.map((f: Finding) => f.agent))
+        completedAgents.forEach(agentKey => {
+          if (newStatuses[agentKey as string]) {
+            newStatuses[agentKey as string] = 'complete'
+          }
+        })
+
+        // 2. If the whole audit is "completed", remaining idle agents are also "complete" (no findings)
+        if (audit?.status === 'completed') {
+          Object.keys(newStatuses).forEach(key => {
+            if (newStatuses[key as string] === 'idle') {
+              newStatuses[key as string] = 'complete'
+            }
+          })
+        } else if (audit?.status === 'processing') {
+          // If still processing, non-completed agents should be "running" or "idle"
+          // For now, let's treat anything not completed as "running" if the audit is processing
+          Object.keys(newStatuses).forEach(key => {
+            if (newStatuses[key as string] === 'idle') {
+              newStatuses[key as string] = 'processing'
+            }
+          })
+        }
+
+        setAgentStatuses(newStatuses)
       } catch (error) {
         console.error('Failed to load initial findings:', error)
       }
