@@ -24,7 +24,9 @@ class RefinedFinding(BaseModel):
     )
 
 
-class ReviewerAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class ReviewerAgentOutput(BaseAgentOutput):
     """Output from logic reviewer agent - confirmed findings that passed false-positive filter."""
     findings: List[RefinedFinding] = Field(
         default_factory=list,

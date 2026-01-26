@@ -1,7 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import List
 
-class ScannerAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class ScannerAgentOutput(BaseAgentOutput):
     """Output schema for Scanner agent."""
     applicable_standards: List[str] = Field(
         default_factory=list,

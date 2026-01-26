@@ -19,6 +19,7 @@ class AgentConfig:
     agent_id: str
     start_keys: List[str]  # Keys that indicate agent has started
     completion_check: Callable[[Dict[str, Any]], Optional[List[Dict]]]  # Function to extract findings
+    error_check: Callable[[Dict[str, Any]], Optional[Dict]] # Function to check for errors
     category: str  # Database category
     db_transformer: Callable[[Dict], Dict]  # Transform finding data for DB
 
@@ -38,6 +39,7 @@ class DocumentProcessor:
                 start_keys=["reviewer_output"],
                 completion_check=lambda state: state.get("reviewer_output", {}).get("findings")
                     if isinstance(state.get("reviewer_output"), dict) else None,
+                error_check=lambda state: self._check_standard_error(state, ["extractor_output", "reviewer_output"]),
                 category="numeric",
                 db_transformer=lambda f: {
                     "description": f.get("summary", ""),
@@ -53,6 +55,7 @@ class DocumentProcessor:
                 start_keys=["detector_output"],
                 completion_check=lambda state: state.get("detector_output", {}).get("findings")
                     if isinstance(state.get("detector_output"), dict) else None,
+                error_check=lambda state: self._check_standard_error(state, ["detector_output", "reviewer_output"]),
                 category="logic",
                 db_transformer=lambda f: {
                     "description": f.get("contradiction", ""),
@@ -65,6 +68,7 @@ class DocumentProcessor:
                 agent_id="disclosure_compliance",
                 start_keys=["scanner_output"],
                 completion_check=lambda state: self._aggregate_disclosure_findings(state),
+                error_check=lambda state: self._check_standard_error(state, ["scanner_output", "reviewer_output"]),
                 category="disclosure",
                 db_transformer=lambda f: {
                     "description": f.get("requirement", ""),
@@ -79,10 +83,24 @@ class DocumentProcessor:
                 agent_id="external_signal",
                 start_keys=["internet_to_report_findings", "report_to_internet_findings"],
                 completion_check=lambda state: self._aggregate_external_findings(state),
+                error_check=lambda state: self._check_standard_error(state, ["internet_to_report_findings", "report_to_internet_findings"]),
                 category="external",
                 db_transformer=lambda f: self._transform_external_finding(f)
             ),
         ]
+
+    def _check_standard_error(self, state: Dict[str, Any], keys: List[str]) -> Optional[Dict]:
+        """Check for AgentError in standard output keys."""
+        for key in keys:
+            data = state.get(key)
+            if isinstance(data, dict):
+                # Check for direct error field (from AgentError schema)
+                if data.get("error") and isinstance(data["error"], dict):
+                    return data["error"]
+                # Check directly if the output itself is an error (fallback)
+                if data.get("is_error"):
+                    return data
+        return None
 
     def _aggregate_disclosure_findings(self, state: Dict[str, Any]) -> Optional[List[Dict]]:
         """Aggregate disclosure findings from all standards."""
@@ -138,18 +156,27 @@ class DocumentProcessor:
                            f"Potential contradiction: {finding.get('potential_contradiction', 'none')}"
             }
 
-    async def _send_websocket_message(self, job_id: UUID, message_type: str, agent_id: str, findings: Optional[List] = None):
+    async def _send_websocket_message(self, job_id: UUID, message_type: str, agent_id: str, payload: Optional[Any] = None):
         """Send WebSocket message for agent state change."""
         message = {
             "type": message_type,
             "agent_id": agent_id,
             "timestamp": datetime.utcnow().isoformat()
         }
-        if findings is not None:
-            message["findings"] = findings
+        if payload is not None:
+             if message_type == "agent_error":
+                 message["error"] = payload
+             else:
+                message["findings"] = payload
 
-        log_prefix = "🎯" if message_type == "agent_started" else "✅"
-        print(f"   {log_prefix} Agent '{agent_id}' {'STARTED' if message_type == 'agent_started' else f'COMPLETED with {len(findings)} findings'}", flush=True)
+        log_prefix = "🎯" if message_type == "agent_started" else ("❌" if message_type == "agent_error" else "✅")
+        status_msg = "STARTED"
+        if message_type == "agent_completed":
+            status_msg = f"COMPLETED with {len(payload) if isinstance(payload, list) else 0} findings"
+        elif message_type == "agent_error":
+            status_msg = f"FAILED: {payload.get('error_message')}"
+            
+        print(f"   {log_prefix} Agent '{agent_id}' {status_msg}", flush=True)
         print(f"      📤 Sending WebSocket message", flush=True)
 
         await manager.send_to_audit(str(job_id), message)
@@ -168,8 +195,16 @@ class DocumentProcessor:
                         await self._send_websocket_message(job_id, "agent_started", agent_id)
                         break
 
-            # Check if agent has completed (completion check returns findings)
+            # Check if agent has completed (completion check returns findings OR error)
             if agent_id not in agents_completed:
+                # 1. Check for errors first
+                error = config.error_check(state)
+                if error:
+                    agents_completed.add(agent_id)
+                    await self._send_websocket_message(job_id, "agent_error", agent_id, error)
+                    continue
+
+                # 2. Check for successful completion
                 findings = config.completion_check(state)
                 if findings and isinstance(findings, list):
                     agents_completed.add(agent_id)

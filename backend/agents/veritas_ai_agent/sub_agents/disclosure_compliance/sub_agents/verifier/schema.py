@@ -11,7 +11,9 @@ class DisclosureFinding(BaseModel):
     description: str = Field(description="Full description of the missing disclosure requirement")
 
 
-class VerifierAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class VerifierAgentOutput(BaseAgentOutput):
     """Output schema for disclosure VerifierAgent."""
     findings: List[DisclosureFinding] = Field(
         default_factory=list,

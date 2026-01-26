@@ -27,7 +27,9 @@ class Finding(BaseModel):
     )
 
 
-class ReviewerAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class ReviewerAgentOutput(BaseAgentOutput):
     """Output from numeric reviewer agent - confirmed discrepancies that failed re-verification."""
     findings: List[Finding] = Field(
         default_factory=list,

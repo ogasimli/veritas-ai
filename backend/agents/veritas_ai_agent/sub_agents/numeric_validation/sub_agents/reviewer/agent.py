@@ -2,6 +2,8 @@
 from google.adk.agents import LlmAgent
 from google.adk.code_executors import BuiltInCodeExecutor
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
+from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
+from google.genai import types
 
 from . import prompt
 from .schema import ReviewerAgentOutput
@@ -14,4 +16,7 @@ reviewer_agent = LlmAgent(
     output_schema=ReviewerAgentOutput,
     code_executor=BuiltInCodeExecutor(),  # For re-verification
     on_model_error_callback=default_model_error_handler,
+    generate_content_config=types.GenerateContentConfig(
+        http_options=types.HttpOptions(retry_options=get_default_retry_config())
+    ),
 )

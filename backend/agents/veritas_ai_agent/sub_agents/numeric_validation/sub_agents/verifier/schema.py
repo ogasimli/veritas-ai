@@ -16,7 +16,9 @@ class VerificationCheck(BaseModel):
     source_refs: List[str] = Field(description="References to the locations in the document used for this check, e.g., ['Table 4, Row 12', 'Note 5']")
     code_executed: str = Field(description="The Python code that was executed to perform the verification")
 
-class VerifierAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class VerifierAgentOutput(BaseAgentOutput):
     checks: List[VerificationCheck] = Field(
         default_factory=list,
         description="List of mathematical verification checks performed for this FSLI"

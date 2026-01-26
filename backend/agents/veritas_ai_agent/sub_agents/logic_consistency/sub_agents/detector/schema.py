@@ -24,7 +24,9 @@ class LogicFinding(BaseModel):
     )
 
 
-class DetectorAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class DetectorAgentOutput(BaseAgentOutput):
     """Output from logic detector agent - list of potential logic inconsistencies found."""
     findings: List[LogicFinding] = Field(
         default_factory=list,

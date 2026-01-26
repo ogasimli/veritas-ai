@@ -10,6 +10,8 @@ from google.adk.agents.llm_agent import LlmAgent
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
 from google.genai import types
+import json
+from veritas_ai_agent.schemas import AgentError
 
 # Configure logger
 logger = logging.getLogger("veritas_ai_agent.error_handler")
@@ -44,14 +46,25 @@ async def default_model_error_handler(
 
     if is_survivable:
         logger.warning(
-            f"Suppressing error for agent '{agent_name}'. Returning empty schema response."
+            f"Suppressing error for agent '{agent_name}'. Returning structured error response."
         )
         # Attempt to synthesize an empty JSON response based on what we know
         # about common schemas in our system.
         # We return an empty JSON object. Most Pydantic models with default factories
         # (like List fields) will handle "{}" gracefully.
+        
+        error_type = "rate_limit" if status_code == 429 else "server_error"
+        error_msg = f"Agent '{agent_name}' encountered a temporary error ({error_type}). Please retry."
+        
+        agent_error = AgentError(
+            is_error=True,
+            agent_name=agent_name,
+            error_type=error_type,
+            error_message=error_msg
+        )
+        
         return LlmResponse(
-            content=types.Content(role="model", parts=[types.Part(text="{}")])
+            content=types.Content(role="model", parts=[types.Part(text=agent_error.model_dump_json())])
         )
 
     # If it's a logic error or something we don't know, let it crash or

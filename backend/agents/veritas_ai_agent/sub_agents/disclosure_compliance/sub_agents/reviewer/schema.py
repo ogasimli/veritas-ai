@@ -11,7 +11,9 @@ class ConfirmedFinding(BaseModel):
     description: str = Field(description="Full description of the missing disclosure requirement")
 
 
-class ReviewerAgentOutput(BaseModel):
+from veritas_ai_agent.schemas import BaseAgentOutput
+
+class ReviewerAgentOutput(BaseAgentOutput):
     """Output from disclosure Reviewer - findings that passed false-positive filter."""
     findings: List[ConfirmedFinding] = Field(
         default_factory=list,
