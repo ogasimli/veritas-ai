@@ -1,20 +1,37 @@
-export type Audit = {
-  id: string
-  name: string
-  status: string
-  createdAt: string
-}
+import type { Audit, Finding } from './types'
+
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function fetchAudits(): Promise<Audit[]> {
-  // Mock data for now - will be replaced with actual API call
-  return [
-    {
-      id: '1',
-      name: 'Audit #001',
-      status: 'complete',
-      createdAt: new Date().toISOString(),
+  const response = await fetch(`${API_URL}/api/v1/jobs/`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch audits')
+  }
+  return response.json()
+}
+
+export async function deleteAudit(id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${id}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    throw new Error('Failed to delete audit')
+  }
+}
+
+export async function updateAudit(id: string, updates: Partial<Audit>): Promise<Audit> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  ]
+    body: JSON.stringify(updates),
+  })
+  if (!response.ok) {
+    throw new Error('Failed to update audit')
+  }
+  return response.json()
 }
 
 /**
@@ -52,4 +69,20 @@ export async function uploadFile(file: File): Promise<string> {
     console.error('File upload error:', error)
     throw error
   }
+}
+
+export async function fetchAuditFindings(jobId: string): Promise<Finding[]> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${jobId}/findings`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch findings')
+  }
+  return response.json()
+}
+
+export async function fetchAudit(id: string): Promise<Audit> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${id}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch audit')
+  }
+  return response.json()
 }
