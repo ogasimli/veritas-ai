@@ -1,4 +1,5 @@
 """Logic Consistency Agent - detects and refines semantic contradictions in financial statements."""
+
 from google.adk.agents import SequentialAgent
 
 from .sub_agents import detector_agent, reviewer_agent

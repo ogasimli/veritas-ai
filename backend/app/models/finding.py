@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -23,14 +23,16 @@ class Finding(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
     )
-    
-    category: Mapped[str] = mapped_column(String, nullable=False)  # numeric, logic, disclosure, external
+
+    category: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # numeric, logic, disclosure, external
     severity: Mapped[str] = mapped_column(String, nullable=False)  # high, medium, low
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    source_refs: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, default=list)
+    source_refs: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
     agent_id: Mapped[str] = mapped_column(String, nullable=False)
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

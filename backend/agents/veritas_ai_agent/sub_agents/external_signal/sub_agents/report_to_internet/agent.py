@@ -1,10 +1,13 @@
 """Report-to-internet verification agent with Deep Research."""
+
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 from google.genai import types
-from ...deep_research_client import DeepResearchClient
+
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
+
+from ...deep_research_client import DeepResearchClient
 from . import prompt
 from .schema import ReportToInternetOutput
 
@@ -62,8 +65,7 @@ Structure output as JSON-like format matching the ClaimVerification schema.
 """
 
     result = await deep_research_client.run_research(
-        query=verification_prompt,
-        timeout_minutes=20
+        query=verification_prompt, timeout_minutes=20
     )
 
     if result["status"] != "completed":

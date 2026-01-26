@@ -23,12 +23,12 @@ class Document(Base):
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
     )
-    
+
     filename: Mapped[str] = mapped_column(String, nullable=False)
     gcs_path: Mapped[str] = mapped_column(String, nullable=False)
     content_type: Mapped[str] = mapped_column(String, nullable=False)
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

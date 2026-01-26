@@ -1,6 +1,7 @@
 """WebSocket routes for real-time audit updates."""
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from app.services.websocket_manager import manager
 
 router = APIRouter()

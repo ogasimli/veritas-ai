@@ -1,3 +1,4 @@
 """Verifier sub-agent exports."""
-from .agent import verifier_agent, FanOutVerifierAgent, create_verifier_agent
-from .schema import VerificationCheck, VerifierAgentOutput, CheckType
+
+from .agent import FanOutVerifierAgent, create_verifier_agent, verifier_agent
+from .schema import CheckType, VerificationCheck, VerifierAgentOutput

@@ -44,12 +44,14 @@ endif
 # Run unit and integration tests
 test:
 	uv run pytest tests/
+	$(MAKE) -C agents test
 
 # Run code quality checks (ruff and codespell)
 lint:
 	uv run codespell
 	uv run ruff check .
 	uv run ruff format . --check
+	$(MAKE) -C agents lint
 
 # ==============================================================================
 # Deployment

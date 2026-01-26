@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -22,9 +22,11 @@ class Job(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String, default="Audit", nullable=False)
-    status: Mapped[str] = mapped_column(String, default="pending")  # pending, processing, completed, failed
+    status: Mapped[str] = mapped_column(
+        String, default="pending"
+    )  # pending, processing, completed, failed
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -33,9 +35,9 @@ class Job(Base):
     )
 
     # Relationships
-    documents: Mapped[List["Document"]] = relationship(
+    documents: Mapped[list["Document"]] = relationship(
         "Document", back_populates="job", cascade="all, delete-orphan"
     )
-    findings: Mapped[List["Finding"]] = relationship(
+    findings: Mapped[list["Finding"]] = relationship(
         "Finding", back_populates="job", cascade="all, delete-orphan"
     )

@@ -1,7 +1,5 @@
 """Agent Coordination Plugin for tracking heavy agent activity."""
 
-from typing import Optional, Set
-
 from google.adk.agents import BaseAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.plugins.base_plugin import BasePlugin
@@ -11,7 +9,7 @@ from google.genai import types
 class AgentCoordinationPlugin(BasePlugin):
     """
     Plugin to track active heavy agents globally.
-    
+
     Increments a counter in session state when specified "heavy" agents start,
     and decrements when they finish. Other agents (like FanOutVerifierAgent)
     can read this counter to adjust their batch sizes dynamically.
@@ -19,12 +17,12 @@ class AgentCoordinationPlugin(BasePlugin):
 
     def __init__(
         self,
-        heavy_agent_names: Set[str],
+        heavy_agent_names: set[str],
         counter_key: str = "active_heavy_agents",
     ):
         """
         Initialize the plugin.
-        
+
         Args:
             heavy_agent_names: Names of agents considered "heavy" (resource-intensive).
             counter_key: Session state key for the counter.
@@ -35,7 +33,7 @@ class AgentCoordinationPlugin(BasePlugin):
 
     async def before_agent_callback(
         self, *, agent: BaseAgent, callback_context: CallbackContext
-    ) -> Optional[types.Content]:
+    ) -> types.Content | None:
         """Increment counter when a heavy agent starts."""
         if agent.name in self.heavy_agent_names:
             count = callback_context.state.get(self.counter_key, 0)
@@ -44,7 +42,7 @@ class AgentCoordinationPlugin(BasePlugin):
 
     async def after_agent_callback(
         self, *, agent: BaseAgent, callback_context: CallbackContext
-    ) -> Optional[types.Content]:
+    ) -> types.Content | None:
         """Decrement counter when a heavy agent finishes."""
         if agent.name in self.heavy_agent_names:
             count = callback_context.state.get(self.counter_key, 1)

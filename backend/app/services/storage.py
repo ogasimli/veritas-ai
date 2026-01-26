@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
-from typing import Optional
 
-from google.cloud import storage
 from fastapi import Depends
+from google.cloud import storage
 
 from app.config import Settings, get_settings
 
@@ -11,10 +10,10 @@ from app.config import Settings, get_settings
 class StorageService:
     """Service for handling file storage, supporting both GCS and local filesystem."""
 
-    def __init__(self, bucket_name: Optional[str] = None):
+    def __init__(self, bucket_name: str | None = None):
         self.bucket_name = bucket_name
         self.use_gcs = bool(bucket_name)
-        
+
         if self.use_gcs:
             self.client = storage.Client()
             self.bucket = self.client.bucket(bucket_name)
@@ -23,7 +22,9 @@ class StorageService:
             self.base_path = Path("uploads")
             self.base_path.mkdir(exist_ok=True)
 
-    async def upload_file(self, file_content: bytes, destination_path: str, content_type: str) -> str:
+    async def upload_file(
+        self, file_content: bytes, destination_path: str, content_type: str
+    ) -> str:
         """Uploads a file and returns its path (gs:// or local path)."""
         if self.use_gcs:
             blob = self.bucket.blob(destination_path)
@@ -44,7 +45,7 @@ class StorageService:
             parts = file_path.replace("gs://", "").split("/", 1)
             if len(parts) != 2:
                 raise ValueError(f"Invalid GCS path: {file_path}")
-            
+
             blob = self.client.bucket(parts[0]).blob(parts[1])
             return blob.download_as_bytes()
         else:
@@ -66,4 +67,6 @@ class StorageService:
 
 def get_storage_service(settings: Settings = Depends(get_settings)) -> StorageService:
     """Dependency that provides a StorageService instance."""
-    return StorageService(bucket_name=settings.gcs_bucket if settings.gcs_bucket else None)
+    return StorageService(
+        bucket_name=settings.gcs_bucket if settings.gcs_bucket else None
+    )

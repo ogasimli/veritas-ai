@@ -24,6 +24,9 @@ function mapSeverity(backendSeverity: string): 'critical' | 'warning' | 'pass' {
   return 'warning'
 }
 
+// TODO: Consolidate backend agent schemas to return a uniform data type for findings.
+// This will allow us to remove 'any' and use a strict union or base type.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function transformFinding(f: any, agentId: string, index: number): Finding {
   const agentKey = mapAgentId(agentId)
 
@@ -95,8 +98,7 @@ function transformFinding(f: any, agentId: string, index: number): Finding {
     reasoning: f.reasoning
   }
 }
-
-
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 type WebSocketMessage =
   | {
@@ -137,7 +139,7 @@ export function useAuditWebSocket(auditId: string | null) {
   })
   const [agentErrors, setAgentErrors] = useState<Record<string, AgentError | null>>({})
 
-  const connect = useCallback(() => {
+  const connect = useCallback(function connectFn() {
     if (!auditId) return
 
     setConnectionStatus('connecting')
@@ -177,6 +179,7 @@ export function useAuditWebSocket(auditId: string | null) {
 
 
               // Transform backend findings to match frontend Finding type
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
               const transformedFindings = data.findings.map((f: any, index: number) =>
                 transformFinding(f, data.agent_id, index)
               )
@@ -240,7 +243,7 @@ export function useAuditWebSocket(auditId: string | null) {
           reconnectAttempted.current = true
           console.log('Attempting auto-reconnect in 2s...')
           setTimeout(() => {
-            connect()
+            if (auditId) connectFn()
           }, 2000)
         }
       }
@@ -280,24 +283,12 @@ export function useAuditWebSocket(auditId: string | null) {
     const loadFindings = async () => {
       try {
         const initialFindings = await fetchAuditFindings(auditId)
-        // Transform the fetched findings. 
-        // Note: Backend might not return agent_id in a way we can track easily if not separated by agent.
-        // Assuming finding has agent_id field.
-        const transformed = initialFindings.map((f: any, i) =>
-          transformFinding(f, 'numeric_validation', i) // Fallback agent_id?? 
-          // Wait, finding has agent_id ??
-        )
-        // With current API and models, Finding model HAS 'agent_id'. So we can use f.agent_id.
-        const properlyTransformed = initialFindings.map((f: any, i) =>
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const properlyTransformed = initialFindings.map((f: any, i: number) =>
           transformFinding(f, f.agent_id || 'unknown', i)
         )
 
         setFindings(properlyTransformed)
-
-        // Also update statuses if we have findings? 
-        // Or assume complete if we have findings?
-        // Actually, we can check finding counts to set status to complete?
-        // For now, let's just show findings.
       } catch (error) {
         console.error('Failed to load initial findings:', error)
       }

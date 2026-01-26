@@ -36,7 +36,9 @@ Examples:
 Note: If the path contains spaces, wrap it in quotes.
         """,
     )
-    parser.add_argument("file", type=str, help="Path to the .docx file (can use ~ for home directory)")
+    parser.add_argument(
+        "file", type=str, help="Path to the .docx file (can use ~ for home directory)"
+    )
     parser.add_argument(
         "-o",
         "--output",
@@ -53,7 +55,9 @@ Note: If the path contains spaces, wrap it in quotes.
 
     if not docx_path.exists():
         print(f"Error: File not found at {docx_path}")
-        print("Tip: Provide the full absolute path if the file is outside the current directory.")
+        print(
+            "Tip: Provide the full absolute path if the file is outside the current directory."
+        )
         return 1
 
     if not docx_path.suffix.lower() == ".docx":
@@ -76,7 +80,7 @@ Note: If the path contains spaces, wrap it in quotes.
 
     # Print some stats
     lines = markdown_content.split("\n")
-    print(f"\nExtraction complete!")
+    print("\nExtraction complete!")
     print(f"Lines extracted: {len(lines):,}")
     print(f"Characters: {len(markdown_content):,}")
     print(f"Tables found: {markdown_content.count('| --- |')}")

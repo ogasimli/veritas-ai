@@ -80,4 +80,3 @@ Analyze the financial statement text and identify which IFRS/IAS standards are a
 - Typically expect 5-15 standards for a complete financial statement
 - If you find evidence of a topic but aren't certain, include it (better to check too many than miss required disclosures)
 """
-

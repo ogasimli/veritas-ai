@@ -1,24 +1,29 @@
 from datetime import datetime
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+
 from app.schemas.document import DocumentRead
+
 
 class JobBase(BaseModel):
     status: str = "pending"
 
+
 class JobCreate(JobBase):
     pass
 
+
 class JobUpdate(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
+
 
 class JobRead(JobBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     name: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime
     updated_at: datetime
-    documents: List[DocumentRead] = []
+    documents: list[DocumentRead] = []

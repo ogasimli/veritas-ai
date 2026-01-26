@@ -1,13 +1,16 @@
 """Deep Research async client wrapper for Gemini Interactions API."""
+
 import asyncio
 import time
 from typing import TypedDict
+
 from google import genai
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 class DeepResearchResult(TypedDict):
     """Result from Deep Research execution."""
+
     result: str | None
     duration_seconds: float
     status: str  # "completed" | "timeout" | "failed"
@@ -22,14 +25,13 @@ class DeepResearchClient:
         self.client = genai.Client()
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10)
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     async def run_research(
         self,
         query: str,
         timeout_minutes: int = 20,
-        enable_thinking_summaries: bool = True
+        enable_thinking_summaries: bool = True,
     ) -> DeepResearchResult:
         """
         Execute Deep Research with polling and timeout protection.
@@ -49,12 +51,14 @@ class DeepResearchClient:
             # Create Deep Research interaction via Interactions API (Async)
             interaction = await self.client.aio.interactions.create(
                 input=query,
-                agent='deep-research-pro-preview-12-2025',
+                agent="deep-research-pro-preview-12-2025",
                 background=True,
                 agent_config={
                     "type": "deep-research",
-                    "thinking_summaries": "auto" if enable_thinking_summaries else "none"
-                }
+                    "thinking_summaries": "auto"
+                    if enable_thinking_summaries
+                    else "none",
+                },
             )
 
             # Poll every 10 seconds for completion
@@ -69,26 +73,36 @@ class DeepResearchClient:
                         result=None,
                         duration_seconds=elapsed,
                         status="timeout",
-                        error=f"Research exceeded {timeout_minutes} minute timeout"
+                        error=f"Research exceeded {timeout_minutes} minute timeout",
                     )
 
                 # Get current status (Async)
                 interaction = await self.client.aio.interactions.get(interaction.id)
 
                 if interaction.status == "completed":
+                    outputs = getattr(interaction, "outputs", [])
+                    result_text = (
+                        outputs[-1].text if outputs and len(outputs) > 0 else None
+                    )
                     return DeepResearchResult(
-                        result=interaction.outputs[-1].text,
+                        result=result_text,
                         duration_seconds=elapsed,
                         status="completed",
-                        error=None
+                        error=None,
                     )
 
                 elif interaction.status == "failed":
+                    interaction_error = getattr(interaction, "error", None)
+                    error_msg = (
+                        str(interaction_error)
+                        if interaction_error is not None
+                        else "Unknown error"
+                    )
                     return DeepResearchResult(
                         result=None,
                         duration_seconds=elapsed,
                         status="failed",
-                        error=str(interaction.error)
+                        error=error_msg,
                     )
 
                 # Still in progress, yield to event loop
@@ -99,5 +113,5 @@ class DeepResearchClient:
                 result=None,
                 duration_seconds=time.time() - start_time,
                 status="failed",
-                error=str(e)
+                error=str(e),
             )

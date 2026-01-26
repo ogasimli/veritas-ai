@@ -1,11 +1,11 @@
 import io
-from typing import List, Union
+
 from docx import Document as DocumentFactory
 from docx.document import Document
+from docx.oxml.table import CT_Tbl
+from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
-from docx.oxml.text.paragraph import CT_P
-from docx.oxml.table import CT_Tbl
 
 
 class ExtractorService:
@@ -49,7 +49,7 @@ class ExtractorService:
         """Determines if a paragraph is a heading and returns its level."""
         try:
             style_name = paragraph.style.name
-            if style_name and style_name.startswith('Heading'):
+            if style_name and style_name.startswith("Heading"):
                 # Handle 'Heading 1', 'Heading 2', etc.
                 parts = style_name.split()
                 if len(parts) > 1 and parts[-1].isdigit():
@@ -65,7 +65,7 @@ class ExtractorService:
         raw_rows = []
         for row in table.rows:
             # Clean cells: remove newlines and leading/trailing whitespace
-            cells = [cell.text.strip().replace('\n', ' ') for cell in row.cells]
+            cells = [cell.text.strip().replace("\n", " ") for cell in row.cells]
             raw_rows.append(cells)
 
         if not raw_rows or not raw_rows[0]:
@@ -73,19 +73,19 @@ class ExtractorService:
 
         # Markdown table structure
         md_lines = []
-        
+
         # Header row
         md_lines.append("| " + " | ".join(raw_rows[0]) + " |")
-        
+
         # Alignment/Separator row
         md_lines.append("| " + " | ".join(["---"] * len(raw_rows[0])) + " |")
-        
+
         # Data rows
         for row in raw_rows[1:]:
             # Ensure row has same number of cells as header (fill missing with empty)
             row_cells = row + [""] * (len(raw_rows[0]) - len(row))
-            md_lines.append("| " + " | ".join(row_cells[:len(raw_rows[0])]) + " |")
-            
+            md_lines.append("| " + " | ".join(row_cells[: len(raw_rows[0])]) + " |")
+
         return "\n".join(md_lines)
 
 

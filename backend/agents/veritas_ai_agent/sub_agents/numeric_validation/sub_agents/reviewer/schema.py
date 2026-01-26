@@ -1,9 +1,11 @@
-from typing import List, Literal
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class Finding(BaseModel):
     """A confirmed numeric discrepancy that failed verification and was confirmed by re-verification."""
+
     fsli_name: str = Field(
         description="Name of the Financial Statement Line Item with the discrepancy"
     )
@@ -22,16 +24,18 @@ class Finding(BaseModel):
     discrepancy: float = Field(
         description="Absolute difference between expected and actual values"
     )
-    source_refs: List[str] = Field(
+    source_refs: list[str] = Field(
         description="References to locations in the document (e.g., 'Table 4, Row 12', 'Note 5')"
     )
 
 
 from veritas_ai_agent.schemas import BaseAgentOutput
 
+
 class ReviewerAgentOutput(BaseAgentOutput):
     """Output from numeric reviewer agent - confirmed discrepancies that failed re-verification."""
-    findings: List[Finding] = Field(
+
+    findings: list[Finding] = Field(
         default_factory=list,
-        description="List of confirmed numeric discrepancies (duplicates removed, re-verification failed)"
+        description="List of confirmed numeric discrepancies (duplicates removed, re-verification failed)",
     )

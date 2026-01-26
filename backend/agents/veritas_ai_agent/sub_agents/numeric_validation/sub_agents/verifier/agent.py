@@ -1,16 +1,19 @@
 """FanOutVerifierAgent - CustomAgent for dynamic parallel verification."""
+
 import re
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
+from google.adk.agents.invocation_context import InvocationContext
 from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.events import Event
-from google.adk.agents.invocation_context import InvocationContext
 from google.genai import types
 
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
-from .schema import VerifierAgentOutput
+
 from .prompt import get_verifier_instruction
+from .schema import VerifierAgentOutput
 
 
 class FanOutVerifierAgent(BaseAgent):
@@ -25,8 +28,7 @@ class FanOutVerifierAgent(BaseAgent):
     description: str = "Spawns parallel verifiers for each FSLI"
 
     async def _run_async_impl(
-        self,
-        ctx: InvocationContext
+        self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         # 1. Read FSLI names from session state (set by ExtractorAgent)
         extractor_output = ctx.session.state.get("extractor_output", {})
@@ -36,9 +38,8 @@ class FanOutVerifierAgent(BaseAgent):
             yield Event(
                 author=self.name,
                 content=types.Content(
-                    role="agent",
-                    parts=[types.Part(text="No FSLIs found to verify.")]
-                )
+                    role="agent", parts=[types.Part(text="No FSLIs found to verify.")]
+                ),
             )
             return
 
@@ -47,7 +48,7 @@ class FanOutVerifierAgent(BaseAgent):
             create_verifier_agent(
                 name=f"verify_{re.sub(r'[^a-zA-Z0-9_]', '_', fsli_name)}",
                 fsli_name=fsli_name,
-                output_key=f"checks:{fsli_name}"
+                output_key=f"checks:{fsli_name}",
             )
             for fsli_name in fsli_names
         ]
@@ -67,28 +68,23 @@ class FanOutVerifierAgent(BaseAgent):
                 current_batch_size = 1
             else:
                 # Speed up when running alone
-                current_batch_size = 10 
+                current_batch_size = 10
 
             batch = verifier_agents[current_index : current_index + current_batch_size]
 
             parallel = ParallelAgent(
-                name=f"verifier_parallel_batch_{batch_id}",
-                sub_agents=batch
+                name=f"verifier_parallel_batch_{batch_id}", sub_agents=batch
             )
 
             # 4. Yield all events (preserves ADK observability)
             async for event in parallel.run_async(ctx):
                 yield event
-            
+
             current_index += current_batch_size
             batch_id += 1
 
 
-def create_verifier_agent(
-    name: str,
-    fsli_name: str,
-    output_key: str
-) -> LlmAgent:
+def create_verifier_agent(name: str, fsli_name: str, output_key: str) -> LlmAgent:
     """
     Factory to create a fresh VerifierAgent for a specific FSLI.
     Must create new instances each time (ADK single-parent rule).

@@ -4,7 +4,6 @@ import google.auth
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
 from google.cloud import logging as google_cloud_logging
-from google.adk import ContextCacheConfig
 
 from veritas_ai_agent.app_utils.telemetry import setup_telemetry
 from veritas_ai_agent.app_utils.typing import Feedback
@@ -33,11 +32,13 @@ app: FastAPI = get_fast_api_app(
     allow_origins=allow_origins,
     session_service_uri=session_service_uri,
     otel_to_cloud=True,
-    extra_plugins=["veritas_ai_agent.app_utils.coordination_plugin.create_coordination_plugin"],
+    extra_plugins=[
+        "veritas_ai_agent.app_utils.coordination_plugin.create_coordination_plugin"
+    ],
     context_cache_config=ContextCacheConfig(
         min_tokens=2048,
         ttl_seconds=3600,
-        cache_intervals=100, # High interval for FanOut verifiers support
+        cache_intervals=100,  # High interval for FanOut verifiers support
     ),
 )
 app.title = "veritas-ai-agent"

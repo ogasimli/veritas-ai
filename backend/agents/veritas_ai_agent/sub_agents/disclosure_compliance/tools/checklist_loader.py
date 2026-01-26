@@ -1,12 +1,18 @@
 """Tool for loading IFRS disclosure checklists."""
-import yaml
+
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 
-CHECKLIST_PATH = Path(__file__).parent.parent.parent.parent / "data" / "ifrs_disclosure_checklist.yaml"
+import yaml
+
+CHECKLIST_PATH = (
+    Path(__file__).parent.parent.parent.parent
+    / "data"
+    / "ifrs_disclosure_checklist.yaml"
+)
 
 
-def load_standard_checklist(standard_code: str) -> Dict[str, Any]:
+def load_standard_checklist(standard_code: str) -> dict[str, Any]:
     """Load disclosure checklist for a specific IFRS/IAS standard.
 
     Args:
@@ -34,10 +40,10 @@ def load_standard_checklist(standard_code: str) -> Dict[str, Any]:
     if not CHECKLIST_PATH.exists():
         raise FileNotFoundError(f"Checklist file not found at {CHECKLIST_PATH}")
 
-    with open(CHECKLIST_PATH, 'r') as f:
+    with open(CHECKLIST_PATH) as f:
         data = yaml.safe_load(f)
 
-    standards = data.get('standards', {})
+    standards = data.get("standards", {})
     if standard_code not in standards:
         available = list(standards.keys())
         raise ValueError(
@@ -48,7 +54,7 @@ def load_standard_checklist(standard_code: str) -> Dict[str, Any]:
     return standards[standard_code]
 
 
-def get_all_standards() -> List[str]:
+def get_all_standards() -> list[str]:
     """Get list of all available standard codes.
 
     Returns:
@@ -60,10 +66,10 @@ def get_all_standards() -> List[str]:
     if not CHECKLIST_PATH.exists():
         raise FileNotFoundError(f"Checklist file not found at {CHECKLIST_PATH}")
 
-    with open(CHECKLIST_PATH, 'r') as f:
+    with open(CHECKLIST_PATH) as f:
         data = yaml.safe_load(f)
 
-    return list(data.get('standards', {}).keys())
+    return list(data.get("standards", {}).keys())
 
 
 def get_disclosure_count(standard_code: str) -> int:
@@ -79,4 +85,4 @@ def get_disclosure_count(standard_code: str) -> int:
         ValueError: If standard code is not found
     """
     checklist = load_standard_checklist(standard_code)
-    return len(checklist.get('disclosures', []))
+    return len(checklist.get("disclosures", []))

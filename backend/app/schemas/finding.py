@@ -1,15 +1,16 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Dict, Any, Optional
 
 
 class FindingBase(BaseModel):
     category: str
     severity: str
     description: str
-    source_refs: List[Dict[str, Any]] = []
-    reasoning: Optional[str] = None
+    source_refs: list[dict[str, Any]] = []
+    reasoning: str | None = None
     agent_id: str
 
 

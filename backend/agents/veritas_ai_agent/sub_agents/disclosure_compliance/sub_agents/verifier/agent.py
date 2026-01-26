@@ -1,16 +1,19 @@
 """FanOutDisclosureVerifier - Custom agent for parallel disclosure verification."""
+
 import re
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
-from google.adk.events import Event
 from google.adk.agents.invocation_context import InvocationContext
+from google.adk.events import Event
 from google.genai import types
+
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
-from .schema import VerifierAgentOutput
-from .prompt import get_verifier_instruction
 from ...tools.checklist_loader import load_standard_checklist
+from .prompt import get_verifier_instruction
+from .schema import VerifierAgentOutput
 
 
 class FanOutDisclosureVerifier(BaseAgent):
@@ -25,8 +28,7 @@ class FanOutDisclosureVerifier(BaseAgent):
     description: str = "Spawns parallel verifiers for each applicable IFRS/IAS standard"
 
     async def _run_async_impl(
-        self,
-        ctx: InvocationContext
+        self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         # 1. Read applicable standards from session state (set by ScannerAgent)
         scanner_output = ctx.session.state.get("scanner_output", {})
@@ -37,8 +39,8 @@ class FanOutDisclosureVerifier(BaseAgent):
                 author=self.name,
                 content=types.Content(
                     role="agent",
-                    parts=[types.Part(text="No applicable standards found to verify.")]
-                )
+                    parts=[types.Part(text="No applicable standards found to verify.")],
+                ),
             )
             return
 
@@ -50,12 +52,12 @@ class FanOutDisclosureVerifier(BaseAgent):
                 checklist = load_standard_checklist(standard_code)
 
                 # Create verifier agent for this standard
-                sanitized_code = re.sub(r'[^a-zA-Z0-9_]', '_', standard_code)
+                sanitized_code = re.sub(r"[^a-zA-Z0-9_]", "_", standard_code)
                 agent = create_disclosure_verifier_agent(
                     name=f"verify_{sanitized_code}",
                     standard_code=standard_code,
                     checklist=checklist,
-                    output_key=f"disclosure_findings:{standard_code}"
+                    output_key=f"disclosure_findings:{standard_code}",
                 )
                 verifier_agents.append(agent)
 
@@ -65,8 +67,8 @@ class FanOutDisclosureVerifier(BaseAgent):
                     author=self.name,
                     content=types.Content(
                         role="agent",
-                        parts=[types.Part(text=f"Skipping {standard_code}: {str(e)}")]
-                    )
+                        parts=[types.Part(text=f"Skipping {standard_code}: {e!s}")],
+                    ),
                 )
                 continue
 
@@ -75,8 +77,10 @@ class FanOutDisclosureVerifier(BaseAgent):
                 author=self.name,
                 content=types.Content(
                     role="agent",
-                    parts=[types.Part(text="No verifiable standards found in checklist.")]
-                )
+                    parts=[
+                        types.Part(text="No verifiable standards found in checklist.")
+                    ],
+                ),
             )
             return
 
@@ -84,11 +88,11 @@ class FanOutDisclosureVerifier(BaseAgent):
         BATCH_SIZE = 4
         for i in range(0, len(verifier_agents), BATCH_SIZE):
             batch = verifier_agents[i : i + BATCH_SIZE]
-            
+
             # Wrap in ParallelAgent for concurrent execution of this batch
             parallel = ParallelAgent(
                 name=f"disclosure_verifier_parallel_batch_{i // BATCH_SIZE + 1}",
-                sub_agents=batch
+                sub_agents=batch,
             )
 
             # 4. Yield all events (preserves ADK observability)
@@ -97,10 +101,7 @@ class FanOutDisclosureVerifier(BaseAgent):
 
 
 def create_disclosure_verifier_agent(
-    name: str,
-    standard_code: str,
-    checklist: dict,
-    output_key: str
+    name: str, standard_code: str, checklist: dict, output_key: str
 ) -> LlmAgent:
     """
     Factory to create a fresh disclosure verifier for a specific standard.
@@ -120,9 +121,9 @@ def create_disclosure_verifier_agent(
     disclosures_text += f"Standard: {checklist['name']}\n\n"
     disclosures_text += "Required disclosures to check:\n\n"
 
-    for disclosure in checklist['disclosures']:
+    for disclosure in checklist["disclosures"]:
         disclosures_text += f"- **{disclosure['id']}**: {disclosure['requirement']}\n"
-        if disclosure['description'] != disclosure['requirement']:
+        if disclosure["description"] != disclosure["requirement"]:
             disclosures_text += f"  Details: {disclosure['description']}\n"
         disclosures_text += "\n"
 
