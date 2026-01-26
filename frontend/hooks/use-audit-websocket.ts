@@ -92,7 +92,80 @@ export function useAuditWebSocket(auditId: string | null) {
                 ...prev,
                 [completedAgentKey]: 'complete',
               }))
-              setFindings((prev) => [...prev, ...data.findings])
+
+              // Transform backend findings to match frontend Finding type
+              const transformedFindings = data.findings.map((f: any, index: number) => {
+                // Map backend severity to frontend severity
+                const mapSeverity = (backendSeverity: string): 'critical' | 'warning' | 'pass' => {
+                  if (backendSeverity === 'high') return 'critical'
+                  if (backendSeverity === 'medium' || backendSeverity === 'low') return 'warning'
+                  return 'warning'
+                }
+
+                // Transform based on agent type and actual schema
+                if (completedAgentKey === 'numeric') {
+                  // Schema: fsli_name, summary, severity, expected_value, actual_value, discrepancy, source_refs
+                  return {
+                    id: `${completedAgentKey}-${index}`,
+                    agent: completedAgentKey,
+                    severity: mapSeverity(f.severity || 'medium'),
+                    title: f.summary || `${f.fsli_name}: Numeric discrepancy`,
+                    description: `Expected: ${f.expected_value}, Actual: ${f.actual_value}, Discrepancy: ${f.discrepancy}`,
+                  }
+                } else if (completedAgentKey === 'logic') {
+                  // Schema: fsli_name, claim, contradiction, severity, reasoning, source_refs
+                  return {
+                    id: `${completedAgentKey}-${index}`,
+                    agent: completedAgentKey,
+                    severity: mapSeverity(f.severity || 'medium'),
+                    title: f.contradiction || 'Logic inconsistency',
+                    description: `Claim: ${f.claim || ''}. ${f.reasoning || ''}`,
+                  }
+                } else if (completedAgentKey === 'disclosure') {
+                  // Schema: standard, disclosure_id, requirement, severity, description
+                  return {
+                    id: `${completedAgentKey}-${index}`,
+                    agent: completedAgentKey,
+                    severity: mapSeverity(f.severity || 'medium'),
+                    title: `${f.standard || ''} - ${f.requirement || 'Missing disclosure'}`,
+                    description: f.description || '',
+                  }
+                } else if (completedAgentKey === 'external') {
+                  // Two schemas:
+                  // 1) Internet-to-Report: signal_type, summary, source_url, publication_date, potential_contradiction
+                  // 2) Report-to-Internet: claim, status, evidence_summary, source_urls, discrepancy
+                  if (f.claim && f.status) {
+                    // Report-to-Internet verification
+                    return {
+                      id: `${completedAgentKey}-${index}`,
+                      agent: completedAgentKey,
+                      severity: f.status === 'CONTRADICTED' ? 'critical' : f.status === 'VERIFIED' ? 'pass' : 'warning',
+                      title: `${f.status}: ${f.claim}`,
+                      description: `${f.evidence_summary || ''}${f.discrepancy ? ' | Discrepancy: ' + f.discrepancy : ''}`,
+                    }
+                  } else {
+                    // Internet-to-Report finding
+                    return {
+                      id: `${completedAgentKey}-${index}`,
+                      agent: completedAgentKey,
+                      severity: f.signal_type === 'financial_distress' || f.signal_type === 'litigation' ? 'critical' : 'warning',
+                      title: `${f.signal_type || 'External signal'}: ${f.summary || ''}`,
+                      description: `${f.potential_contradiction || ''}${f.publication_date ? ' (Published: ' + f.publication_date + ')' : ''}`,
+                    }
+                  }
+                }
+
+                // Fallback for unknown structure
+                return {
+                  id: `${completedAgentKey}-${index}`,
+                  agent: completedAgentKey,
+                  severity: 'warning' as const,
+                  title: f.title || f.summary || f.requirement || f.claim || 'Finding',
+                  description: f.description || f.reasoning || f.evidence_summary || '',
+                }
+              })
+
+              setFindings((prev) => [...prev, ...transformedFindings])
               console.log(
                 `Agent ${data.agent_id} completed with ${data.findings.length} findings`
               )
