@@ -11,20 +11,6 @@ import { fetchAudit, deleteAudit } from '@/lib/api'
 import { type Audit } from '@/lib/types'
 import { Trash2 } from 'lucide-react'
 
-// NOTE: In Next.js App Router, params is a Promise which needs to be unwrapped.
-// However, the exact behavior depends on the version. We'll use React.use() if available or await it.
-// Actually, since this is a Client Component ('use client'), we receive params as a prop.
-// Check if params is a Promise in Next.js 15, but for 14 it's usually just params.
-// Let's assume params is passed directly or awaited in parent.
-// Wait, for client components in Next.js 13+, params might be passed as props.
-// BUT, to be safe with newer Next.js versions where params might be a promise even in client components
-// (or passed from server component page wrapper), let's inspect usage.
-// Standard pattern: keep Page as server component and import a client component.
-// But we want to use 'use client' for hooks.
-
-// Let's stick to the simple pattern:
-// export default function AuditDetailsPage({ params }: { params: { id: string } }) { ... }
-
 export default function AuditDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: auditId } = use(params)
     const router = useRouter()
@@ -135,7 +121,7 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                                     />
                                 </svg>
                                 <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                                    {audit.name || 'Financial Report'}
+                                    {audit.documents?.[0]?.filename || 'Financial Report'}
                                 </span>
                             </div>
                         </div>
