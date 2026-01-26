@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import type { Finding, AgentStatus } from '@/lib/types'
 import { fetchAuditFindings, fetchAudit } from '@/lib/api'
-import { transformFinding } from '@/utils/finding-transformers'
+import { transformDatabaseFinding } from '@/utils/finding-transformers'
 
 interface UseInitialAuditDataReturn {
     findings: Finding[]
@@ -39,8 +39,8 @@ export function useInitialAuditData(auditId: string | null): UseInitialAuditData
                 ])
 
                 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                const transformedFindings = initialFindings.map((f: any, i: number) =>
-                    transformFinding(f, f.agent_id || 'unknown', i)
+                const transformedFindings = initialFindings.map((f: any) =>
+                    transformDatabaseFinding(f)
                 )
 
                 setFindings(transformedFindings)

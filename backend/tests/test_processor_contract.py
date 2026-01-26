@@ -18,6 +18,11 @@ async def test_processor_extraction_contract():
     db.get = AsyncMock()
     db.commit = AsyncMock()
     db.add = MagicMock()
+    db.execute = AsyncMock(
+        return_value=MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        )
+    )
 
     processor = DocumentProcessor(db)
     job_id = uuid4()

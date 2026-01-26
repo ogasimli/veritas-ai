@@ -1,115 +1,52 @@
 /**
- * Finding transformation utilities for converting backend agent findings to frontend Finding type
+ * Finding transformation - DATABASE FORMAT ONLY
+ * All findings come from database, no raw agent format handling
  */
 
 import type { Finding } from '@/lib/types'
-import { mapAgentId, mapSeverity } from './agent-mapping'
+import { mapSeverity } from './agent-mapping'
 
-// TODO: Consolidate backend agent schemas to return a uniform data type for findings.
-// This will allow us to remove 'any' and use a strict union or base type.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface DatabaseFinding {
+    id: string
+    category: string
+    severity: string
+    description: string
+    reasoning: string | null
+    source_refs: Array<Record<string, unknown>>
+    agent_id: string
+    created_at: string
+}
 
 /**
- * Transforms numeric validation agent findings
+ * Transform database finding to frontend Finding type
+ * Database schema: { id, category, severity, description, reasoning, source_refs, agent_id, created_at }
  */
-function transformNumericFinding(f: any, agentKey: string, index: number): Finding {
+export function transformDatabaseFinding(dbFinding: DatabaseFinding): Finding {
     return {
-        id: `${agentKey}-${index}-${Date.now()}`,
-        agent: agentKey,
-        severity: mapSeverity(f.severity || 'medium'),
-        title: f.summary || `${f.fsli_name}: Numeric discrepancy`,
-        description: `Expected: ${f.expected_value}, Actual: ${f.actual_value}, Discrepancy: ${f.discrepancy}`,
-        reasoning: f.reasoning
+        id: dbFinding.id, // Use database UUID directly
+        agent: dbFinding.category, // "numeric", "logic", "disclosure", "external"
+        severity: mapSeverity(dbFinding.severity), // Map "high"→"critical", etc.
+        title: dbFinding.description, // Backend stores summary in description
+        description: dbFinding.reasoning || '', // Backend stores details in reasoning
+        reasoning: dbFinding.reasoning
     }
 }
 
 /**
- * Transforms logic consistency agent findings
+ * Validation helper
  */
-function transformLogicFinding(f: any, agentKey: string, index: number): Finding {
-    return {
-        id: `${agentKey}-${index}-${Date.now()}`,
-        agent: agentKey,
-        severity: mapSeverity(f.severity || 'medium'),
-        title: f.contradiction || 'Logic inconsistency',
-        description: `Claim: ${f.claim || ''}. ${f.reasoning || ''}`,
-        reasoning: f.reasoning
+export function validateFinding(finding: Finding): boolean {
+    const issues: string[] = []
+
+    if (!finding.id) issues.push('Missing id')
+    if (!finding.agent) issues.push('Missing agent')
+    if (!finding.title) issues.push('Missing title')
+    if (finding.title?.includes('undefined')) issues.push('Title contains "undefined"')
+    if (finding.description?.includes('undefined')) issues.push('Description contains "undefined"')
+
+    if (issues.length > 0) {
+        console.error('[VALIDATION] Finding validation failed:', issues, finding)
+        return false
     }
+    return true
 }
-
-/**
- * Transforms disclosure compliance agent findings
- */
-function transformDisclosureFinding(f: any, agentKey: string, index: number): Finding {
-    return {
-        id: `${agentKey}-${index}-${Date.now()}`,
-        agent: agentKey,
-        severity: mapSeverity(f.severity || 'medium'),
-        title: `${f.standard || ''} - ${f.requirement || 'Missing disclosure'}`,
-        description: f.description || '',
-        reasoning: f.reasoning
-    }
-}
-
-/**
- * Transforms external signal agent findings (handles both Internet-to-Report and Report-to-Internet)
- */
-function transformExternalFinding(f: any, agentKey: string, index: number): Finding {
-    // Report-to-Internet verification
-    if (f.claim && f.status) {
-        return {
-            id: `${agentKey}-${index}-${Date.now()}`,
-            agent: agentKey,
-            severity: f.status === 'CONTRADICTED' ? 'critical' : f.status === 'VERIFIED' ? 'pass' : 'warning',
-            title: `${f.status}: ${f.claim}`,
-            description: `${f.evidence_summary || ''}${f.discrepancy ? ' | Discrepancy: ' + f.discrepancy : ''}`,
-            reasoning: f.reasoning
-        }
-    }
-
-    // Internet-to-Report finding
-    return {
-        id: `${agentKey}-${index}-${Date.now()}`,
-        agent: agentKey,
-        severity: f.signal_type === 'financial_distress' || f.signal_type === 'litigation' ? 'critical' : 'warning',
-        title: `${f.signal_type || 'External signal'}: ${f.summary || ''}`,
-        description: `${f.potential_contradiction || ''}${f.publication_date ? ' (Published: ' + f.publication_date + ')' : ''}`,
-        reasoning: f.reasoning
-    }
-}
-
-/**
- * Fallback transformer for unknown agent types
- */
-function transformGenericFinding(f: any, agentKey: string, index: number): Finding {
-    return {
-        id: `${agentKey}-${index}-${Date.now()}`,
-        agent: agentKey,
-        severity: 'warning' as const,
-        title: f.title || f.summary || f.requirement || f.claim || 'Finding',
-        description: f.description || f.reasoning || f.evidence_summary || '',
-        reasoning: f.reasoning
-    }
-}
-
-/**
- * Main transformer that routes to appropriate agent-specific transformer
- */
-export function transformFinding(f: any, agentId: string, index: number): Finding {
-    const agentKey = mapAgentId(agentId)
-
-    switch (agentKey) {
-        case 'numeric':
-            return transformNumericFinding(f, agentKey, index)
-        case 'logic':
-            return transformLogicFinding(f, agentKey, index)
-        case 'disclosure':
-            return transformDisclosureFinding(f, agentKey, index)
-        case 'external':
-            return transformExternalFinding(f, agentKey, index)
-        default:
-            return transformGenericFinding(f, agentKey, index)
-    }
-}
-
-/* eslint-enable @typescript-eslint/no-explicit-any */

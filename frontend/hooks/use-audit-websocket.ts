@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Finding, AgentStatus, AgentError } from '@/lib/types'
 import type { WebSocketMessage, ConnectionStatus } from '@/types/websocket'
 import { mapAgentId } from '@/utils/agent-mapping'
-import { transformFinding } from '@/utils/finding-transformers'
+import { transformDatabaseFinding, type DatabaseFinding } from '@/utils/finding-transformers'
 import { useInitialAuditData } from './use-initial-audit-data'
 
 /**
@@ -33,6 +33,34 @@ export function useAuditWebSocket(auditId: string | null) {
   }, [initialFindings, initialStatuses])
 
   /**
+   * Fetch findings for a specific agent from the database
+   */
+  const fetchAgentFindings = useCallback(async (jobId: string, agentId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/v1/jobs/${jobId}/findings/agent/${agentId}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch findings: ${response.statusText}`)
+      }
+
+      const dbFindings = await response.json() as DatabaseFinding[]
+      const transformedFindings = dbFindings.map((f) => transformDatabaseFinding(f))
+
+      setFindings((prev) => {
+        // Use database IDs to prevent duplicates
+        const existingIds = new Set(prev.map(f => f.id))
+        const newFindings = transformedFindings.filter((f: Finding) => !existingIds.has(f.id))
+        return [...prev, ...newFindings]
+      })
+
+      console.log(`Agent ${agentId} completed: loaded ${transformedFindings.length} findings from DB`)
+    } catch (error) {
+      console.error(`Error fetching findings for ${agentId}:`, error)
+    }
+  }, [])
+
+  /**
    * Handles incoming WebSocket messages
    */
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -57,14 +85,11 @@ export function useAuditWebSocket(auditId: string | null) {
             [agentKey]: 'complete',
           }))
 
-          // Transform backend findings to frontend format
-          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-          const transformedFindings = data.findings.map((f: any, index: number) =>
-            transformFinding(f, data.agent_id, index)
-          )
-
-          setFindings((prev) => [...prev, ...transformedFindings])
-          console.log(`Agent ${data.agent_id} completed with ${data.findings.length} findings`)
+          // Fetch findings from database instead of using WebSocket payload
+          console.log(`Agent ${data.agent_id} completed with ${data.findings_count} findings. Fetching from DB...`)
+          if (auditId) {
+            fetchAgentFindings(auditId, data.agent_id)
+          }
           break
         }
 
@@ -103,7 +128,7 @@ export function useAuditWebSocket(auditId: string | null) {
     } catch (error) {
       console.error('Error parsing WebSocket message:', error)
     }
-  }, [])
+  }, [auditId, fetchAgentFindings])
 
   /**
    * Establishes WebSocket connection

@@ -56,6 +56,31 @@ async def get_job_findings(job_id: UUID, db: AsyncSession = Depends(get_db)):
     return findings
 
 
+@router.get("/{job_id}/findings/agent/{agent_id}", response_model=list[FindingRead])
+async def get_agent_findings(
+    job_id: UUID, agent_id: str, db: AsyncSession = Depends(get_db)
+):
+    """Get findings for a specific agent in a job."""
+    # First verify job exists
+    stmt_job = select(Job).where(Job.id == job_id)
+    result_job = await db.execute(stmt_job)
+    job = result_job.scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Get findings for this specific agent
+    stmt = (
+        select(Finding)
+        .where(Finding.job_id == job_id, Finding.agent_id == agent_id)
+        .order_by(Finding.created_at)
+    )
+    result = await db.execute(stmt)
+    findings = result.scalars().all()
+
+    return findings
+
+
 @router.patch("/{job_id}", response_model=JobRead)
 async def update_job(
     job_id: UUID, job_update: JobUpdate, db: AsyncSession = Depends(get_db)

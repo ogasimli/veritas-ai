@@ -221,8 +221,11 @@ class DocumentProcessor:
         if payload is not None:
             if message_type == "agent_error":
                 message["error"] = payload
-            else:
-                message["findings"] = payload
+            elif message_type == "agent_completed":
+                # Only send findings count, not the actual findings
+                message["findings_count"] = (
+                    len(payload) if isinstance(payload, list) else 0
+                )
 
         log_prefix = (
             "🎯"
@@ -239,6 +242,30 @@ class DocumentProcessor:
         print("      📤 Sending WebSocket message", flush=True)
 
         await manager.send_to_audit(str(job_id), message)
+
+    async def _save_agent_findings_to_db(
+        self, job_id: UUID, config: AgentConfig, findings: list[dict]
+    ):
+        """Save findings for a single agent to database immediately."""
+        for finding_data in findings:
+            transformed = config.db_transformer(finding_data)
+            finding = FindingModel(
+                job_id=job_id,
+                category=config.category,
+                severity=transformed["severity"],
+                description=transformed["description"],
+                source_refs=transformed["source_refs"],
+                reasoning=transformed["reasoning"],
+                agent_id=config.agent_id,
+            )
+            self.db.add(finding)
+
+        # Commit immediately so frontend can fetch
+        await self.db.commit()
+        print(
+            f"      💾 Saved {len(findings)} findings to DB for agent '{config.agent_id}'",
+            flush=True,
+        )
 
     async def _check_and_notify_agents(
         self,
@@ -277,6 +304,11 @@ class DocumentProcessor:
                 findings = config.completion_check(state)
                 if findings and isinstance(findings, list):
                     agents_completed.add(agent_id)
+
+                    # ✅ NEW: Save to DB immediately before notifying
+                    await self._save_agent_findings_to_db(job_id, config, findings)
+
+                    # ✅ Send notification (findings count only, not data)
                     await self._send_websocket_message(
                         job_id, "agent_completed", agent_id, findings
                     )
@@ -299,12 +331,33 @@ class DocumentProcessor:
     async def _save_findings_to_database(
         self, job_id: UUID, findings_by_agent: dict[str, list[dict]]
     ):
-        """Save all findings to database."""
-        total_count = sum(len(findings) for findings in findings_by_agent.values())
-        print(f"\n💾 Saving {total_count} findings to database...", flush=True)
+        """Save any remaining findings to database (fallback for agents that didn't notify)."""
+        from sqlalchemy import select
 
+        total_count = sum(len(findings) for findings in findings_by_agent.values())
+        print(f"\n💾 Checking {total_count} findings against database...", flush=True)
+
+        saved_count = 0
         for config in self.agent_configs:
             findings = findings_by_agent.get(config.agent_id, [])
+            if not findings:
+                continue
+
+            # Check if findings already exist for this agent
+            stmt = select(FindingModel).where(
+                FindingModel.job_id == job_id, FindingModel.agent_id == config.agent_id
+            )
+            result = await self.db.execute(stmt)
+            existing_findings = result.scalars().all()
+
+            if existing_findings:
+                print(
+                    f"   ⏭️  Skipping {len(findings)} findings for '{config.agent_id}' (already saved)",
+                    flush=True,
+                )
+                continue
+
+            # Save findings if not already present
             for finding_data in findings:
                 transformed = config.db_transformer(finding_data)
                 finding = FindingModel(
@@ -317,8 +370,11 @@ class DocumentProcessor:
                     agent_id=config.agent_id,
                 )
                 self.db.add(finding)
+                saved_count += 1
 
-        print("✅ All findings saved successfully", flush=True)
+        if saved_count > 0:
+            print(f"   💾 Saved {saved_count} new findings", flush=True)
+        print("✅ All findings verified in database", flush=True)
 
     async def process_document(self, job_id: UUID, extracted_text: str) -> None:
         """Run orchestrator with validation agents and save findings."""

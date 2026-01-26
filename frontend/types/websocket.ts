@@ -2,7 +2,7 @@
  * WebSocket message types for audit real-time updates
  */
 
-import type { Finding, AgentError } from '@/lib/types'
+import type { AgentError } from '@/lib/types'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -15,7 +15,7 @@ export type WebSocketMessage =
     | {
         type: 'agent_completed'
         agent_id: string
-        findings: Finding[]
+        findings_count: number
         timestamp: string
     }
     | {
