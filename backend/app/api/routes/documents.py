@@ -89,12 +89,21 @@ async def upload_document(
     if not file.filename.endswith(".docx"):
         raise HTTPException(status_code=400, detail="Only .docx files are supported")
 
-    # 1. Create a new Job
-    job = Job(status="processing")
+    # 1. Generate default name
+    # Count existing jobs to determine the number
+    from sqlalchemy import func
+    count_stmt = select(func.count(Job.id))
+    count_result = await db.execute(count_stmt)
+    count = count_result.scalar_one()
+    
+    default_name = f"Audit #{count + 1:03d}"
+
+    # 2. Create a new Job
+    job = Job(status="processing", name=default_name)
     db.add(job)
     await db.flush()  # Get the job ID
 
-    # 2. Upload file to storage
+    # 3. Upload file to storage
     content = await file.read()
     destination_path = f"jobs/{job.id}/{file.filename}"
     gcs_path = await storage.upload_file(
