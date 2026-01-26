@@ -1,6 +1,6 @@
 'use client'
 
-import type { Finding, AgentStatus } from '@/lib/types'
+import type { Finding, AgentStatus, AgentError } from '@/lib/types'
 
 const AGENT_CONFIG = {
   numeric: {
@@ -62,9 +62,10 @@ interface AgentCardProps {
   agent: keyof typeof AGENT_CONFIG
   status: AgentStatus['status']
   findings: Finding[]
+  error?: AgentError | null
 }
 
-export function AgentCard({ agent, status, findings }: AgentCardProps) {
+export function AgentCard({ agent, status, findings, error }: AgentCardProps) {
   const config = AGENT_CONFIG[agent]
   const colors = COLOR_CLASSES[config.color]
 
@@ -137,24 +138,32 @@ export function AgentCard({ agent, status, findings }: AgentCardProps) {
         )}
 
         {status === 'error' && (
-          <div className="flex items-center gap-2 py-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="h-5 w-5 text-red-500"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-              />
-            </svg>
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">
-              Processing failed
-            </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 py-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="h-5 w-5 text-red-500"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                />
+              </svg>
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">
+                Processing failed
+              </p>
+            </div>
+            {error && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900 dark:bg-red-900/20 dark:text-red-200">
+                <p className="font-semibold">{error.error_type}</p>
+                <p className="mt-1">{error.error_message}</p>
+              </div>
+            )}
           </div>
         )}
 

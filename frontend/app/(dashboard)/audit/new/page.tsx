@@ -60,11 +60,7 @@ export default function NewAuditPage() {
               Upload financial documents to begin automated validation
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-              Draft
-            </span>
-          </div>
+
         </div>
       </div>
 
@@ -78,14 +74,66 @@ export default function NewAuditPage() {
                   label="Current Year (Required)"
                   onUpload={(file) => setCurrentYearFile(file)}
                 />
-                <FileUploadZone
-                  label="Prior Year (Optional)"
-                  onUpload={(file) => setPriorYearFile(file)}
-                />
-                <FileUploadZone
-                  label="Internal Memos (Optional)"
-                  onUpload={(file) => setMemosFile(file)}
-                />
+                <div className="relative overflow-hidden rounded-lg">
+                  {/* Overlay */}
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] transition-all duration-300 dark:bg-slate-950/40">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-800/90">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-4 w-4 text-slate-500 dark:text-slate-400"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                        />
+                      </svg>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pointer-events-none grayscale filter">
+                    <FileUploadZone
+                      label="Prior Year (Optional)"
+                      onUpload={(file) => setPriorYearFile(file)}
+                    />
+                  </div>
+                </div>
+                <div className="relative overflow-hidden rounded-lg">
+                  {/* Overlay */}
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[2px] transition-all duration-300 dark:bg-slate-950/40">
+                    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-800/90">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-4 w-4 text-slate-500 dark:text-slate-400"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                        />
+                      </svg>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pointer-events-none grayscale filter">
+                    <FileUploadZone
+                      label="Internal Memos (Optional)"
+                      onUpload={(file) => setMemosFile(file)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Start Review Button */}
@@ -185,20 +233,19 @@ export default function NewAuditPage() {
                   <>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`h-2 w-2 rounded-full ${
-                          connectionStatus === 'connected'
-                            ? 'bg-green-500'
-                            : connectionStatus === 'connecting'
+                        className={`h-2 w-2 rounded-full ${connectionStatus === 'connected'
+                          ? 'bg-green-500'
+                          : connectionStatus === 'connecting'
                             ? 'bg-amber-500 animate-pulse'
                             : 'bg-red-500'
-                        }`}
+                          }`}
                       />
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         {connectionStatus === 'connected'
                           ? 'Connected'
                           : connectionStatus === 'connecting'
-                          ? 'Connecting...'
-                          : 'Disconnected'}
+                            ? 'Connecting...'
+                            : 'Disconnected'}
                       </span>
                     </div>
                     <ExportButton findings={findings} disabled={findings.length === 0} />

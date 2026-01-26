@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { Finding, AgentStatus } from '@/lib/types'
+import type { Finding, AgentStatus, AgentError } from '@/lib/types'
+import { fetchAuditFindings } from '@/lib/api'
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -15,6 +16,86 @@ function mapAgentId(agentId: string): string {
   }
   return mapping[agentId] || agentId
 }
+
+// Map backend severity to frontend severity
+function mapSeverity(backendSeverity: string): 'critical' | 'warning' | 'pass' {
+  if (backendSeverity === 'high') return 'critical'
+  if (backendSeverity === 'medium' || backendSeverity === 'low') return 'warning'
+  return 'warning'
+}
+
+function transformFinding(f: any, agentId: string, index: number): Finding {
+  const agentKey = mapAgentId(agentId)
+
+  // Transform based on agent type and actual schema
+  if (agentKey === 'numeric') {
+    // Schema: fsli_name, summary, severity, expected_value, actual_value, discrepancy, source_refs
+    return {
+      id: `${agentKey}-${index}-${Date.now()}`, // Ensure unique ID
+      agent: agentKey,
+      severity: mapSeverity(f.severity || 'medium'),
+      title: f.summary || `${f.fsli_name}: Numeric discrepancy`,
+      description: `Expected: ${f.expected_value}, Actual: ${f.actual_value}, Discrepancy: ${f.discrepancy}`,
+      reasoning: f.reasoning // Pass through reasoning if available
+    }
+  } else if (agentKey === 'logic') {
+    // Schema: fsli_name, claim, contradiction, severity, reasoning, source_refs
+    return {
+      id: `${agentKey}-${index}-${Date.now()}`,
+      agent: agentKey,
+      severity: mapSeverity(f.severity || 'medium'),
+      title: f.contradiction || 'Logic inconsistency',
+      description: `Claim: ${f.claim || ''}. ${f.reasoning || ''}`,
+      reasoning: f.reasoning
+    }
+  } else if (agentKey === 'disclosure') {
+    // Schema: standard, disclosure_id, requirement, severity, description
+    return {
+      id: `${agentKey}-${index}-${Date.now()}`,
+      agent: agentKey,
+      severity: mapSeverity(f.severity || 'medium'),
+      title: `${f.standard || ''} - ${f.requirement || 'Missing disclosure'}`,
+      description: f.description || '',
+      reasoning: f.reasoning
+    }
+  } else if (agentKey === 'external') {
+    // Two schemas:
+    // 1) Internet-to-Report: signal_type, summary, source_url, publication_date, potential_contradiction
+    // 2) Report-to-Internet: claim, status, evidence_summary, source_urls, discrepancy
+    if (f.claim && f.status) {
+      // Report-to-Internet verification
+      return {
+        id: `${agentKey}-${index}-${Date.now()}`,
+        agent: agentKey,
+        severity: f.status === 'CONTRADICTED' ? 'critical' : f.status === 'VERIFIED' ? 'pass' : 'warning',
+        title: `${f.status}: ${f.claim}`,
+        description: `${f.evidence_summary || ''}${f.discrepancy ? ' | Discrepancy: ' + f.discrepancy : ''}`,
+        reasoning: f.reasoning
+      }
+    } else {
+      // Internet-to-Report finding
+      return {
+        id: `${agentKey}-${index}-${Date.now()}`,
+        agent: agentKey,
+        severity: f.signal_type === 'financial_distress' || f.signal_type === 'litigation' ? 'critical' : 'warning',
+        title: `${f.signal_type || 'External signal'}: ${f.summary || ''}`,
+        description: `${f.potential_contradiction || ''}${f.publication_date ? ' (Published: ' + f.publication_date + ')' : ''}`,
+        reasoning: f.reasoning
+      }
+    }
+  }
+
+  // Fallback for unknown structure
+  return {
+    id: `${agentKey}-${index}-${Date.now()}`,
+    agent: agentKey,
+    severity: 'warning' as const,
+    title: f.title || f.summary || f.requirement || f.claim || 'Finding',
+    description: f.description || f.reasoning || f.evidence_summary || '',
+    reasoning: f.reasoning
+  }
+}
+
 
 
 type WebSocketMessage =
@@ -36,7 +117,7 @@ type WebSocketMessage =
   | {
     type: 'agent_error'
     agent_id: string
-    error: string
+    error: AgentError | string
     timestamp: string
   }
 
@@ -54,6 +135,7 @@ export function useAuditWebSocket(auditId: string | null) {
     disclosure: 'idle',
     external: 'idle',
   })
+  const [agentErrors, setAgentErrors] = useState<Record<string, AgentError | null>>({})
 
   const connect = useCallback(() => {
     if (!auditId) return
@@ -93,77 +175,12 @@ export function useAuditWebSocket(auditId: string | null) {
                 [completedAgentKey]: 'complete',
               }))
 
+
               // Transform backend findings to match frontend Finding type
-              const transformedFindings = data.findings.map((f: any, index: number) => {
-                // Map backend severity to frontend severity
-                const mapSeverity = (backendSeverity: string): 'critical' | 'warning' | 'pass' => {
-                  if (backendSeverity === 'high') return 'critical'
-                  if (backendSeverity === 'medium' || backendSeverity === 'low') return 'warning'
-                  return 'warning'
-                }
+              const transformedFindings = data.findings.map((f: any, index: number) =>
+                transformFinding(f, data.agent_id, index)
+              )
 
-                // Transform based on agent type and actual schema
-                if (completedAgentKey === 'numeric') {
-                  // Schema: fsli_name, summary, severity, expected_value, actual_value, discrepancy, source_refs
-                  return {
-                    id: `${completedAgentKey}-${index}`,
-                    agent: completedAgentKey,
-                    severity: mapSeverity(f.severity || 'medium'),
-                    title: f.summary || `${f.fsli_name}: Numeric discrepancy`,
-                    description: `Expected: ${f.expected_value}, Actual: ${f.actual_value}, Discrepancy: ${f.discrepancy}`,
-                  }
-                } else if (completedAgentKey === 'logic') {
-                  // Schema: fsli_name, claim, contradiction, severity, reasoning, source_refs
-                  return {
-                    id: `${completedAgentKey}-${index}`,
-                    agent: completedAgentKey,
-                    severity: mapSeverity(f.severity || 'medium'),
-                    title: f.contradiction || 'Logic inconsistency',
-                    description: `Claim: ${f.claim || ''}. ${f.reasoning || ''}`,
-                  }
-                } else if (completedAgentKey === 'disclosure') {
-                  // Schema: standard, disclosure_id, requirement, severity, description
-                  return {
-                    id: `${completedAgentKey}-${index}`,
-                    agent: completedAgentKey,
-                    severity: mapSeverity(f.severity || 'medium'),
-                    title: `${f.standard || ''} - ${f.requirement || 'Missing disclosure'}`,
-                    description: f.description || '',
-                  }
-                } else if (completedAgentKey === 'external') {
-                  // Two schemas:
-                  // 1) Internet-to-Report: signal_type, summary, source_url, publication_date, potential_contradiction
-                  // 2) Report-to-Internet: claim, status, evidence_summary, source_urls, discrepancy
-                  if (f.claim && f.status) {
-                    // Report-to-Internet verification
-                    return {
-                      id: `${completedAgentKey}-${index}`,
-                      agent: completedAgentKey,
-                      severity: f.status === 'CONTRADICTED' ? 'critical' : f.status === 'VERIFIED' ? 'pass' : 'warning',
-                      title: `${f.status}: ${f.claim}`,
-                      description: `${f.evidence_summary || ''}${f.discrepancy ? ' | Discrepancy: ' + f.discrepancy : ''}`,
-                    }
-                  } else {
-                    // Internet-to-Report finding
-                    return {
-                      id: `${completedAgentKey}-${index}`,
-                      agent: completedAgentKey,
-                      severity: f.signal_type === 'financial_distress' || f.signal_type === 'litigation' ? 'critical' : 'warning',
-                      title: `${f.signal_type || 'External signal'}: ${f.summary || ''}`,
-                      description: `${f.potential_contradiction || ''}${f.publication_date ? ' (Published: ' + f.publication_date + ')' : ''}`,
-                    }
-                  }
-                }
-
-                // Fallback for unknown structure
-                return {
-                  id: `${completedAgentKey}-${index}`,
-                  agent: completedAgentKey,
-                  severity: 'warning' as const,
-                  title: f.title || f.summary || f.requirement || f.claim || 'Finding',
-                  description: f.description || f.reasoning || f.evidence_summary || '',
-                }
-              })
 
               setFindings((prev) => [...prev, ...transformedFindings])
               console.log(
@@ -181,6 +198,23 @@ export function useAuditWebSocket(auditId: string | null) {
               setAgentStatuses((prev) => ({
                 ...prev,
                 [errorAgentKey]: 'error',
+              }))
+
+              // Normalize error to AgentError type
+              let errorData: AgentError
+              if (typeof data.error === 'string') {
+                errorData = {
+                  agent_name: data.agent_id,
+                  error_type: 'Error',
+                  error_message: data.error,
+                }
+              } else {
+                errorData = data.error
+              }
+
+              setAgentErrors((prev) => ({
+                ...prev,
+                [errorAgentKey]: errorData,
               }))
               break
 
@@ -239,9 +273,44 @@ export function useAuditWebSocket(auditId: string | null) {
     }
   }, [auditId, connect])
 
+  // Load initial findings
+  useEffect(() => {
+    if (!auditId) return
+
+    const loadFindings = async () => {
+      try {
+        const initialFindings = await fetchAuditFindings(auditId)
+        // Transform the fetched findings. 
+        // Note: Backend might not return agent_id in a way we can track easily if not separated by agent.
+        // Assuming finding has agent_id field.
+        const transformed = initialFindings.map((f: any, i) =>
+          transformFinding(f, 'numeric_validation', i) // Fallback agent_id?? 
+          // Wait, finding has agent_id ??
+        )
+        // With current API and models, Finding model HAS 'agent_id'. So we can use f.agent_id.
+        const properlyTransformed = initialFindings.map((f: any, i) =>
+          transformFinding(f, f.agent_id || 'unknown', i)
+        )
+
+        setFindings(properlyTransformed)
+
+        // Also update statuses if we have findings? 
+        // Or assume complete if we have findings?
+        // Actually, we can check finding counts to set status to complete?
+        // For now, let's just show findings.
+      } catch (error) {
+        console.error('Failed to load initial findings:', error)
+      }
+    }
+
+    loadFindings()
+  }, [auditId])
+
+
   return {
     findings,
     agentStatuses,
+    agentErrors,
     connectionStatus,
     reconnect,
   }
