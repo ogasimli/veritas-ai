@@ -14,15 +14,30 @@ async def test_processor_extraction_contract():
     from the current session state structure produced by agents.
     """
     # 1. Setup Mock DB
+    session_added = []
+
     db = MagicMock()
     db.get = AsyncMock()
     db.commit = AsyncMock()
-    db.add = MagicMock()
-    db.execute = AsyncMock(
-        return_value=MagicMock(
-            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
-        )
-    )
+
+    def mock_add(obj):
+        if isinstance(obj, AgentResultModel):
+            session_added.append(obj)
+
+    db.add.side_effect = mock_add
+
+    async def mock_execute(stmt):
+        # Very basic simulation of select(...).where(...)
+        # We just need to check if we're querying AgentResultModel
+        # For simplicity in this contract test, we'll return what's been added so far
+        # that matches the agent_id if possible, but honestly returning everything
+        # is enough to stop the fallback from duplicating.
+        results = session_added[:]
+        mock_res = MagicMock()
+        mock_res.scalars.return_value.all.return_value = results
+        return mock_res
+
+    db.execute = AsyncMock(side_effect=mock_execute)
 
     processor = DocumentProcessor(db)
     job_id = uuid4()
@@ -104,7 +119,11 @@ async def test_processor_extraction_contract():
     }
 
     # 4. Mock the runner to yield this state
-    with patch("app.services.processor.InMemoryRunner") as MockRunner:
+    with (
+        patch("app.services.processor.InMemoryRunner") as MockRunner,
+        patch("app.services.processor.get_settings") as mock_get_settings,
+    ):
+        mock_get_settings.return_value = MagicMock(use_dummy_agents=False)
         mock_runner_instance = MockRunner.return_value
         mock_runner_instance.session_service.create_session = AsyncMock(
             return_value=MagicMock(id="test-session", user_id="test-user")
@@ -113,10 +132,12 @@ async def test_processor_extraction_contract():
             return_value=MagicMock(state=contract_final_state)
         )
 
-        # Mock run_async to yield an event with our contract state
         async def mock_run_async(*args, **kwargs):
             event = MagicMock()
             event.session.state = contract_final_state
+            event.actions = MagicMock()
+            event.actions.state_delta = contract_final_state
+            event.is_final_response.return_value = True
             yield event
 
         mock_runner_instance.run_async = mock_run_async
@@ -124,23 +145,19 @@ async def test_processor_extraction_contract():
         # 5. Execute processing
         await processor.process_document(job_id=job_id, extracted_text="Dummy text")
 
-    # 6. Verify Contract Adherence (Database Inserts)
-    # Check if all 5 findings (from 4 categories) were added to the DB
-    added_results = [
-        args[0]
-        for args, _ in db.add.call_args_list
-        if isinstance(args[0], AgentResultModel)
-    ]
-
+    # 6. Verify Contract Adherence
+    added_results = session_added
     categories = [f.category for f in added_results]
+
     assert "numeric" in categories
     assert "logic" in categories
     assert "disclosure" in categories
-    assert (
-        "external" in categories
-    )  # Both internet->report and report->internet are 'external'
+    assert "external" in categories
 
-    assert len(added_results) == 5  # 1 numeric, 1 logic, 1 disclosure, 2 external
+    # We expect EXACTLY 5 results. If fallback logic is buggy, we'd get 10.
+    assert len(added_results) == 5, (
+        f"Expected 5 results, got {len(added_results)}. Check for duplicates!"
+    )
 
     print("\n✅ Processor Contract Test Passed!")
 
@@ -152,17 +169,25 @@ async def test_processor_empty_findings_contract():
     and saves the expected default values (None for description/severity, {} for raw_data).
     """
     # 1. Setup Mock DB
+    session_added = []
+
     db = MagicMock()
     db.get = AsyncMock()
     db.commit = AsyncMock()
-    db.add = MagicMock()
 
-    # Create a mock result object that can be reused for execute calls
-    mock_execute_result = MagicMock()
-    # Configure scalars().all() to return []
-    mock_execute_result.scalars.return_value.all.return_value = []
-    # Make db.execute return this result object
-    db.execute = AsyncMock(return_value=mock_execute_result)
+    def mock_add(obj):
+        if isinstance(obj, AgentResultModel):
+            session_added.append(obj)
+
+    db.add.side_effect = mock_add
+
+    async def mock_execute(stmt):
+        results = session_added[:]
+        mock_res = MagicMock()
+        mock_res.scalars.return_value.all.return_value = results
+        return mock_res
+
+    db.execute = AsyncMock(side_effect=mock_execute)
 
     processor = DocumentProcessor(db)
     job_id = uuid4()
@@ -184,16 +209,17 @@ async def test_processor_empty_findings_contract():
     }
 
     # 4. Mock the runner
-    with patch("app.services.processor.InMemoryRunner") as MockRunner:
+    with (
+        patch("app.services.processor.InMemoryRunner") as MockRunner,
+        patch("app.services.processor.get_settings") as mock_get_settings,
+    ):
+        mock_get_settings.return_value = MagicMock(use_dummy_agents=False)
         mock_runner_instance = MockRunner.return_value
 
-        # Configure session service mocks
         mock_session = MagicMock()
         mock_session.id = "test-session-empty"
         mock_session.user_id = "test-user"
-        mock_session.state = (
-            contract_empty_state  # Ensure state is accessible on session object
-        )
+        mock_session.state = contract_empty_state
 
         mock_runner_instance.session_service.create_session = AsyncMock(
             return_value=mock_session
@@ -204,16 +230,11 @@ async def test_processor_empty_findings_contract():
 
         mock_runner_instance.app_name = "test-app"
 
-        # Mock run_async being an async generator
         async def mock_run_async(*args, **kwargs):
-            # Create a mock event with is_final_response method
             event = MagicMock()
             event.is_final_response.return_value = True
-
-            # The processor might access event.actions.state_delta
             event.actions = MagicMock()
             event.actions.state_delta = contract_empty_state
-
             yield event
 
         mock_runner_instance.run_async = mock_run_async
@@ -225,41 +246,21 @@ async def test_processor_empty_findings_contract():
             pytest.fail(f"Processor failed with error: {e}")
 
     # 6. Verify Database Inserts
-    # Capture all AgentResultModel objects added to the session
-    added_results = []
-    for call in db.add.call_args_list:
-        args, _ = call
-        if args and isinstance(args[0], AgentResultModel):
-            added_results.append(args[0])
-
-    print(f"\nDebug: Added {len(added_results)} AgentResultModel objects to DB")
-    for r in added_results:
-        print(
-            f"  - Category: {r.category}, Raw Data: {r.raw_data}, Desc: {r.description}"
-        )
+    added_results = session_added
 
     # We expect 4 results (numeric, logic, disclosure, external)
-    # Note: external agent aggregates from 2 sources but produces 1 empty result if both are empty?
-    # Actually, verify logic for external:
-    # _aggregate_external_findings combines both lists. If both empty -> returns [] (empty list).
-    # So yes, 1 result for external category.
-    # Total expected: 4
+    assert len(added_results) == 4, f"Expected 4 results, got {len(added_results)}"
 
-    # Filter results by category to ensure we have coverage
     categories_found = {r.category for r in added_results}
-    assert "numeric" in categories_found, "Missing numeric result"
-    assert "logic" in categories_found, "Missing logic result"
+    assert "numeric" in categories_found
+    assert "logic" in categories_found
 
-    # Check specific fields for the empty results
     for result in added_results:
-        # All of them should be empty success results
         assert result.description is None, (
             f"Description should be None for {result.category}"
         )
-        assert result.severity is None, f"Severity should be None for {result.category}"
-        assert result.raw_data == {}, (
-            f"Raw data should be empty dict for {result.category}"
-        )
-        assert result.error is None, f"Error should be None for {result.category}"
+        assert result.severity is None
+        assert result.raw_data == {}
+        assert result.error is None
 
     print("\n✅ Processor Empty Findings Contract Test Passed!")

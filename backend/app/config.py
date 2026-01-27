@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # Application
     debug: bool = False
+    use_dummy_agents: bool = False
 
 
 @lru_cache

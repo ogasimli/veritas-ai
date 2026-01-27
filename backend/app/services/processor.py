@@ -10,8 +10,10 @@ from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.finding import AgentResult as AgentResultModel
 from app.models.job import Job
+from app.services.dummy_agent_service import DummyAgentService
 from app.services.websocket_manager import manager
 from veritas_ai_agent import app
 
@@ -185,7 +187,7 @@ class DocumentProcessor:
         if isinstance(r2i_findings, list):
             findings.extend(r2i_findings)
 
-        return findings if findings else None
+        return findings
 
     def _transform_external_finding(self, finding: dict) -> dict:
         """Transform external finding based on its type."""
@@ -348,8 +350,6 @@ class DocumentProcessor:
         """Save any remaining findings to database (fallback for agents that didn't notify)."""
         from sqlalchemy import select
 
-        from app.models.finding import AgentResult as AgentResultModel
-
         total_count = sum(len(findings) for findings in findings_by_agent.values())
         print(
             f"\n💾 Checking findings against database (Total: {total_count})...",
@@ -427,115 +427,173 @@ class DocumentProcessor:
         await self.db.commit()
         print("✅ Job status updated to 'processing'", flush=True)
 
+        # Check if dummy agent mode is enabled
+        settings = get_settings()
+        use_dummy_agents = settings.use_dummy_agents
+
         try:
-            print(f"\n{'🤖' * 40}", flush=True)
-            print("✅ REAL AGENT MODE ENABLED", flush=True)
-            print("   → Using actual ADK agents (INFERENCE COSTS APPLY)", flush=True)
-            print(f"{'🤖' * 40}\n", flush=True)
-
-            # Real agent mode: continue with ADK runner
-            # Initialize ADK runner and session
-            print("\n🚀 Initializing ADK runner with app...", flush=True)
-            runner = InMemoryRunner(app=app)
-            print("✅ Runner initialized successfully", flush=True)
-
-            print(f"📦 Creating session for job {job_id}...", flush=True)
-            session = await runner.session_service.create_session(
-                app_name=runner.app_name, user_id=str(job_id)
-            )
-            print(f"✅ Session created: {session.id}", flush=True)
-
-            # Run agent pipeline with event streaming
-            content = UserContent(parts=[Part(text=extracted_text)])
-            final_state = {}
-            agents_started = set()
-            agents_completed = set()
-
-            print(f"\n{'=' * 80}", flush=True)
-            print("🎬 STARTING AGENT PIPELINE EXECUTION", flush=True)
-            print(f"{'=' * 80}\n", flush=True)
-
-            event_count = 0
-            async for event in runner.run_async(
-                user_id=session.user_id,
-                session_id=session.id,
-                new_message=content,
-            ):
-                event_count += 1
+            if use_dummy_agents:
+                print(f"\n{'🎭' * 40}", flush=True)
+                print("⚠️  DUMMY AGENT MODE ENABLED", flush=True)
                 print(
-                    f"\n📡 Event #{event_count} received: {type(event).__name__}",
+                    "   → Using simulated agent responses (NO INFERENCE COSTS)",
+                    flush=True,
+                )
+                print(
+                    "   → Set USE_DUMMY_AGENTS=false in .env to use real agents",
+                    flush=True,
+                )
+                print(f"{'🎭' * 40}\n", flush=True)
+
+                # Use dummy agent service
+                dummy_service = DummyAgentService()
+
+                # Consume findings as generator
+                async for agent_id, findings, error in dummy_service.run_dummy_agents(
+                    job_id
+                ):
+                    config = next(
+                        (c for c in self.agent_configs if c.agent_id == agent_id), None
+                    )
+                    if config:
+                        await self._save_agent_results_to_db(
+                            job_id, config, findings, error
+                        )
+
+                # Update job status to completed
+                print("\n🔄 Updating job status to 'completed'...", flush=True)
+                job.status = "completed"
+                await self.db.commit()
+                print("✅ Job status updated to 'completed'", flush=True)
+
+                # Send audit complete message
+                print("📤 Sending 'audit_complete' WebSocket message...", flush=True)
+                await manager.send_to_audit(
+                    str(job_id),
+                    {
+                        "type": "audit_complete",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
+                )
+                print("✅ Audit complete message sent", flush=True)
+                return
+
+            else:
+                print(f"\n{'🤖' * 40}", flush=True)
+                print("✅ REAL AGENT MODE ENABLED", flush=True)
+                print(
+                    "   → Using actual ADK agents (INFERENCE COSTS APPLY)", flush=True
+                )
+                print(
+                    "   → Set USE_DUMMY_AGENTS=true in .env to use dummy agents",
+                    flush=True,
+                )
+                print(f"{'🤖' * 40}\n", flush=True)
+
+                # Real agent mode: continue with ADK runner
+                # Initialize ADK runner and session
+                print("\n🚀 Initializing ADK runner with app...", flush=True)
+                runner = InMemoryRunner(app=app)
+                print("✅ Runner initialized successfully", flush=True)
+
+                print(f"📦 Creating session for job {job_id}...", flush=True)
+                session = await runner.session_service.create_session(
+                    app_name=runner.app_name, user_id=str(job_id)
+                )
+                print(f"✅ Session created: {session.id}", flush=True)
+
+                # Run agent pipeline with event streaming
+                content = UserContent(parts=[Part(text=extracted_text)])
+                final_state = {}
+                agents_started = set()
+                agents_completed = set()
+
+                print(f"\n{'=' * 80}", flush=True)
+                print("🎬 STARTING AGENT PIPELINE EXECUTION", flush=True)
+                print(f"{'=' * 80}\n", flush=True)
+
+                event_count = 0
+                async for event in runner.run_async(
+                    user_id=session.user_id,
+                    session_id=session.id,
+                    new_message=content,
+                ):
+                    event_count += 1
+                    print(
+                        f"\n📡 Event #{event_count} received: {type(event).__name__}",
+                        flush=True,
+                    )
+
+                    # Accumulate state from event deltas
+                    if (
+                        hasattr(event, "actions")
+                        and event.actions
+                        and event.actions.state_delta
+                    ):
+                        print(
+                            f"   📝 State delta received. Keys: {list(event.actions.state_delta.keys())}",
+                            flush=True,
+                        )
+                        final_state.update(event.actions.state_delta)
+                        print(
+                            f"   📋 Accumulated state keys: {list(final_state.keys())}",
+                            flush=True,
+                        )
+
+                    # Only process WebSocket updates on final responses
+                    if not (
+                        hasattr(event, "is_final_response")
+                        and event.is_final_response()
+                    ):
+                        continue
+
+                    print(
+                        "   ✅ Final response - checking for agent completions",
+                        flush=True,
+                    )
+                    await self._check_and_notify_agents(
+                        job_id, final_state, agents_started, agents_completed
+                    )
+
+                print(f"\n{'=' * 80}", flush=True)
+                print("📊 AGENT PIPELINE COMPLETED", flush=True)
+                print(f"   Total events processed: {event_count}", flush=True)
+                print(f"   Agents started: {agents_started}", flush=True)
+                print(f"   Agents completed: {agents_completed}", flush=True)
+                print(f"{'=' * 80}\n", flush=True)
+
+                # Fetch final session state
+                print("📦 Fetching final session state from runner...", flush=True)
+                final_session = await runner.session_service.get_session(
+                    app_name=runner.app_name, user_id=str(job_id), session_id=session.id
+                )
+                final_state = final_session.state
+                print(
+                    f"✅ Session state retrieved. Keys: {list(final_state.keys())}",
                     flush=True,
                 )
 
-                # Accumulate state from event deltas
-                if (
-                    hasattr(event, "actions")
-                    and event.actions
-                    and event.actions.state_delta
-                ):
-                    print(
-                        f"   📝 State delta received. Keys: {list(event.actions.state_delta.keys())}",
-                        flush=True,
-                    )
-                    final_state.update(event.actions.state_delta)
-                    print(
-                        f"   📋 Accumulated state keys: {list(final_state.keys())}",
-                        flush=True,
-                    )
+                # Extract and save findings
+                print("\n📦 Extracting findings from session state...", flush=True)
+                findings_by_agent = self._extract_all_findings(final_state)
+                await self._save_findings_to_database(job_id, findings_by_agent)
 
-                # Only process WebSocket updates on final responses
-                if not (
-                    hasattr(event, "is_final_response") and event.is_final_response()
-                ):
-                    continue
+                # Update job status to completed
+                print("\n🔄 Updating job status to 'completed'...", flush=True)
+                job.status = "completed"
+                await self.db.commit()
+                print("✅ Job status updated to 'completed'", flush=True)
 
-                print(
-                    "   ✅ Final response - checking for agent completions",
-                    flush=True,
+                # Send audit complete message
+                print("📤 Sending 'audit_complete' WebSocket message...", flush=True)
+                await manager.send_to_audit(
+                    str(job_id),
+                    {
+                        "type": "audit_complete",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
                 )
-                await self._check_and_notify_agents(
-                    job_id, final_state, agents_started, agents_completed
-                )
-
-            print(f"\n{'=' * 80}", flush=True)
-            print("📊 AGENT PIPELINE COMPLETED", flush=True)
-            print(f"   Total events processed: {event_count}", flush=True)
-            print(f"   Agents started: {agents_started}", flush=True)
-            print(f"   Agents completed: {agents_completed}", flush=True)
-            print(f"{'=' * 80}\n", flush=True)
-
-            # Fetch final session state
-            print("📦 Fetching final session state from runner...", flush=True)
-            final_session = await runner.session_service.get_session(
-                app_name=runner.app_name, user_id=str(job_id), session_id=session.id
-            )
-            final_state = final_session.state
-            print(
-                f"✅ Session state retrieved. Keys: {list(final_state.keys())}",
-                flush=True,
-            )
-
-            # Extract and save findings
-            print("\n📦 Extracting findings from session state...", flush=True)
-            findings_by_agent = self._extract_all_findings(final_state)
-            await self._save_findings_to_database(job_id, findings_by_agent)
-
-            # Update job status to completed
-            print("\n🔄 Updating job status to 'completed'...", flush=True)
-            job.status = "completed"
-            await self.db.commit()
-            print("✅ Job status updated to 'completed'", flush=True)
-
-            # Send audit complete message
-            print("📤 Sending 'audit_complete' WebSocket message...", flush=True)
-            await manager.send_to_audit(
-                str(job_id),
-                {
-                    "type": "audit_complete",
-                    "timestamp": datetime.utcnow().isoformat(),
-                },
-            )
-            print("✅ Audit complete message sent", flush=True)
+                print("✅ Audit complete message sent", flush=True)
 
         except Exception as e:
             print(f"\n{'=' * 80}", flush=True)
