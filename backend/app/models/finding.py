@@ -33,9 +33,7 @@ class AgentResult(Base):
         String, nullable=True
     )  # high, medium, low
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source_refs: Mapped[list[dict[str, Any]] | None] = mapped_column(
-        JSONB, nullable=True
-    )
+    source_refs: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Error fields (nullable)

@@ -27,10 +27,14 @@ class MockEvent:
         event_type: str,
         state_delta: dict[str, Any] | None = None,
         is_final: bool = False,
+        branch: str | None = None,
+        author: str | None = None,
     ):
         self.event_type = event_type
         self.actions = MockActions(state_delta) if state_delta else None
         self._is_final = is_final
+        self.branch = branch
+        self.author = author
 
     def is_final_response(self) -> bool:
         """Check if this is a final response event."""
@@ -139,24 +143,30 @@ class DummyAgentService:
         events = self.events_data.get("events", [])
 
         for event_data in events:
-            # Wait for realistic delay
-            delay_seconds = event_data.get("delay_ms", 100) / 1000.0
+            # Use a much smaller delay for faster testing
+            raw_delay = event_data.get("delay_ms", 100)
+            # Cap at 500ms and scale down significantly (e.g., 5% of original)
+            delay_seconds = min(500, raw_delay * 0.05) / 1000.0
             if delay_seconds > 0:
                 await asyncio.sleep(delay_seconds)
 
             # Get state delta and is_final from event data
             state_delta = event_data.get("state_delta", {})
             is_final = event_data.get("is_final", False)
+            branch = event_data.get("branch", "")
+            author = event_data.get("author", "")
 
             # Accumulate state
             if state_delta:
                 self._accumulated_state.update(state_delta)
 
-            # Create and yield mock event with proper is_final marking
+            # Create and yield mock event with proper is_final marking and branch info
             event = MockEvent(
                 event_type=event_data.get("type", "AgentEvent"),
                 state_delta=state_delta,
                 is_final=is_final,
+                branch=branch,
+                author=author,
             )
 
             yield event

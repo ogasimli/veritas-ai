@@ -12,7 +12,7 @@ class AgentResultBase(BaseModel):
     # Success fields (optional)
     severity: str | None = None
     description: str | None = None
-    source_refs: list[dict[str, Any]] | None = None
+    source_refs: list[str] | None = None
     reasoning: str | None = None
 
     # Error fields (optional)

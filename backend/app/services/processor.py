@@ -23,7 +23,6 @@ class AgentConfig:
     """Configuration for agent detection and findings extraction."""
 
     agent_id: str
-    start_keys: list[str]  # Keys that indicate agent has started
     completion_check: Callable[
         [dict[str, Any]], list[dict] | None
     ]  # Function to extract findings
@@ -44,7 +43,6 @@ class DocumentProcessor:
         return [
             AgentConfig(
                 agent_id="numeric_validation",
-                start_keys=["reviewer_output"],
                 completion_check=lambda state: self._get_nested_findings(
                     state, "numeric_validation", "reviewer_output"
                 ),
@@ -64,7 +62,6 @@ class DocumentProcessor:
             ),
             AgentConfig(
                 agent_id="logic_consistency",
-                start_keys=["detector_output", "reviewer_output"],
                 completion_check=lambda state: self._get_nested_findings(
                     state, "logic_consistency", "reviewer_output"
                 ),
@@ -82,7 +79,6 @@ class DocumentProcessor:
             ),
             AgentConfig(
                 agent_id="disclosure_compliance",
-                start_keys=["scanner_output", "reviewer_output"],
                 completion_check=lambda state: self._get_nested_findings(
                     state, "disclosure_compliance", "reviewer_output"
                 ),
@@ -92,20 +88,16 @@ class DocumentProcessor:
                 ),
                 category="disclosure",
                 db_transformer=lambda f: {
-                    "description": f.get("requirement", ""),
+                    "description": f.get("description", ""),
                     "severity": f.get("severity", "medium"),
                     "source_refs": [],
                     "reasoning": f"Standard: {f.get('standard')}\n"
                     f"ID: {f.get('disclosure_id')}\n\n"
-                    f"Requirement Detail: {f.get('description', '')}",
+                    f"requirement: {f.get('requirement', '')}",
                 },
             ),
             AgentConfig(
                 agent_id="external_signal",
-                start_keys=[
-                    "internet_to_report_findings",
-                    "report_to_internet_findings",
-                ],
                 completion_check=lambda state: self._aggregate_external_findings(
                     self._get_agent_namespace(state, "external_signal")
                 ),
@@ -202,10 +194,11 @@ class DocumentProcessor:
                 f"Discrepancy: {finding.get('discrepancy', 'none')}",
             }
         else:  # Internet→Report signal
+            source_url = finding.get("source_url", "")
             return {
                 "description": finding.get("summary", ""),
                 "severity": "medium",
-                "source_refs": [finding.get("source_url", "")],
+                "source_refs": [source_url] if source_url else [],
                 "reasoning": f"Signal type: {finding.get('signal_type')}, "
                 f"Publication: {finding.get('publication_date', 'unknown')}, "
                 f"Potential contradiction: {finding.get('potential_contradiction', 'none')}",
@@ -293,30 +286,41 @@ class DocumentProcessor:
         state: dict[str, Any],
         agents_started: set,
         agents_completed: set,
+        specific_agent: str | None = None,
+        is_final: bool = False,
     ):
-        """Check agent states and send WebSocket notifications."""
+        """Check agent states and send WebSocket notifications.
+
+        Args:
+            job_id: The job ID
+            state: Current accumulated state
+            agents_started: Set of agent IDs that have started
+            agents_completed: Set of agent IDs that have completed
+            specific_agent: If provided, only check this specific agent for findings.
+            is_final: Whether this is a final event for specific_agent
+        """
+        # We always check for errors for all agents that have started but not completed
         for config in self.agent_configs:
             agent_id = config.agent_id
-
-            # Check if agent has started (any start key exists)
-            if agent_id not in agents_started:
-                for key in config.start_keys:
-                    value = state.get(key)
-                    if isinstance(value, dict) and value:
-                        agents_started.add(agent_id)
-                        await self._send_websocket_message(
-                            job_id, "agent_started", agent_id
-                        )
-                        break
-
-            # Check if agent has completed
-            if agent_id not in agents_completed:
-                # Check for completion (error OR success)
+            if agent_id in agents_started and agent_id not in agents_completed:
+                # Check for errors on every event
                 error = config.error_check(state)
-                findings = config.completion_check(state)
+
+                # Check for findings only if this is the final event for this specific agent
+                findings = None
+                is_agent_final = is_final and (
+                    specific_agent is None or specific_agent == agent_id
+                )
+
+                if is_agent_final:
+                    findings = config.completion_check(state)
 
                 # Check if we have a definitive result (error present OR findings is not None)
-                if error or (findings is not None and isinstance(findings, list)):
+                if error or (
+                    is_agent_final
+                    and findings is not None
+                    and isinstance(findings, list)
+                ):
                     agents_completed.add(agent_id)
 
                     # Unified save call - logic handled inside
@@ -492,8 +496,18 @@ class DocumentProcessor:
                 new_message=content,
             ):
                 event_count += 1
+
+                # Mark all agents as started on the very first event to ensure frontend is ready
+                if event_count == 1:
+                    print("🚀 Starting all agents...", flush=True)
+                    for config in self.agent_configs:
+                        agents_started.add(config.agent_id)
+                        await self._send_websocket_message(
+                            job_id, "agent_started", config.agent_id
+                        )
+
                 print(
-                    f"\n📡 Event #{event_count} received: {type(event).__name__}",
+                    f"\n📡 Event #{event_count} received: {type(event).__name__} (author={getattr(event, 'author', 'unknown')}, branch={getattr(event, 'branch', 'none')}, is_final={getattr(event, 'is_final_response', lambda: False)()})",
                     flush=True,
                 )
 
@@ -503,28 +517,32 @@ class DocumentProcessor:
                     and event.actions
                     and event.actions.state_delta
                 ):
-                    print(
-                        f"   📝 State delta received. Keys: {list(event.actions.state_delta.keys())}",
-                        flush=True,
-                    )
                     final_state.update(event.actions.state_delta)
-                    print(
-                        f"   📋 Accumulated state keys: {list(final_state.keys())}",
-                        flush=True,
-                    )
 
-                # Only process WebSocket updates on final responses
-                if not (
+                # Check for completion vs continuous error monitoring
+                is_final = (
                     hasattr(event, "is_final_response") and event.is_final_response()
-                ):
-                    continue
-
-                print(
-                    "   ✅ Final response - checking for agent completions",
-                    flush=True,
                 )
+                specific_agent = None
+
+                if is_final and hasattr(event, "branch") and event.branch:
+                    # Identify which agent this branch belongs to
+                    branch_parts = event.branch.split(".")
+                    config_agent_ids = {c.agent_id for c in self.agent_configs}
+                    for part in reversed(branch_parts):
+                        if part in config_agent_ids:
+                            specific_agent = part
+                            break
+
+                # Call check_and_notify on EVERY event for error detection
+                # findings will only be checked if is_final=True and specific_agent matches
                 await self._check_and_notify_agents(
-                    job_id, final_state, agents_started, agents_completed
+                    job_id,
+                    final_state,
+                    agents_started,
+                    agents_completed,
+                    specific_agent=specific_agent,
+                    is_final=is_final,
                 )
 
             print(f"\n{'=' * 80}", flush=True)
