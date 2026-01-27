@@ -70,7 +70,7 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
 
   // Find error result if any
   const errorResult = results.find(r => r.error)
-  const findings = results.filter(r => !r.error)
+  const findings = results.filter(r => !r.error && (r.title || r.description))
 
   return (
     <div
