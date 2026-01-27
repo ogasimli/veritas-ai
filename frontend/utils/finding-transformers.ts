@@ -1,51 +1,55 @@
-/**
- * Finding transformation - DATABASE FORMAT ONLY
- * All findings come from database, no raw agent format handling
- */
-
-import type { Finding } from '@/lib/types'
+import type { AgentResult } from '@/lib/types'
 import { mapSeverity } from './agent-mapping'
 
-export interface DatabaseFinding {
+export interface DatabaseAgentResult {
     id: string
     category: string
-    severity: string
-    description: string
-    reasoning: string | null
-    source_refs: Array<Record<string, unknown>>
     agent_id: string
+    // Success fields (nullable)
+    severity: string | null
+    description: string | null
+    reasoning: string | null
+    source_refs: Array<Record<string, unknown>> | null
+    // Error fields (nullable)
+    error: string | null
+    // Common
+    raw_data: Record<string, unknown>
     created_at: string
 }
 
 /**
- * Transform database finding to frontend Finding type
- * Database schema: { id, category, severity, description, reasoning, source_refs, agent_id, created_at }
+ * Transform database result to frontend AgentResult type
  */
-export function transformDatabaseFinding(dbFinding: DatabaseFinding): Finding {
+export function transformDatabaseResult(dbResult: DatabaseAgentResult): AgentResult {
     return {
-        id: dbFinding.id, // Use database UUID directly
-        agent: dbFinding.category, // "numeric", "logic", "disclosure", "external"
-        severity: mapSeverity(dbFinding.severity), // Map "high"→"critical", etc.
-        title: dbFinding.description, // Backend stores summary in description
-        description: dbFinding.reasoning || '', // Backend stores details in reasoning
-        reasoning: dbFinding.reasoning
+        id: dbResult.id,
+        agent: dbResult.category, // "numeric", "logic", "disclosure", "external"
+        severity: dbResult.severity ? mapSeverity(dbResult.severity) : undefined,
+        title: dbResult.description || undefined, // Backend stores summary in description
+        description: dbResult.reasoning || undefined, // Backend stores details in reasoning
+        reasoning: dbResult.reasoning || undefined,
+        error: dbResult.error || undefined,
+        raw_data: dbResult.raw_data
     }
 }
 
 /**
  * Validation helper
  */
-export function validateFinding(finding: Finding): boolean {
+export function validateAgentResult(result: AgentResult): boolean {
     const issues: string[] = []
 
-    if (!finding.id) issues.push('Missing id')
-    if (!finding.agent) issues.push('Missing agent')
-    if (!finding.title) issues.push('Missing title')
-    if (finding.title?.includes('undefined')) issues.push('Title contains "undefined"')
-    if (finding.description?.includes('undefined')) issues.push('Description contains "undefined"')
+    if (!result.id) issues.push('Missing id')
+    if (!result.agent) issues.push('Missing agent')
+
+    // For successful results, we expect title
+    if (!result.error && !result.title) issues.push('Missing title for successful result')
+
+    if (result.title?.includes('undefined')) issues.push('Title contains "undefined"')
+    if (result.description?.includes('undefined')) issues.push('Description contains "undefined"')
 
     if (issues.length > 0) {
-        console.error('[VALIDATION] Finding validation failed:', issues, finding)
+        console.error('[VALIDATION] AgentResult validation failed:', issues, result)
         return false
     }
     return true

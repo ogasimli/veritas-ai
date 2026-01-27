@@ -3,18 +3,18 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { Finding, AgentStatus } from '@/lib/types'
-import { fetchAuditFindings, fetchAudit } from '@/lib/api'
-import { transformDatabaseFinding } from '@/utils/finding-transformers'
+import type { AgentResult, AgentStatus } from '@/lib/types'
+import { fetchAuditResults, fetchAudit } from '@/lib/api'
+import { transformDatabaseResult } from '@/utils/finding-transformers'
 
 interface UseInitialAuditDataReturn {
-    findings: Finding[]
+    results: AgentResult[]
     agentStatuses: Record<string, AgentStatus['status']>
     isLoading: boolean
 }
 
 export function useInitialAuditData(auditId: string | null): UseInitialAuditDataReturn {
-    const [findings, setFindings] = useState<Finding[]>([])
+    const [results, setResults] = useState<AgentResult[]>([])
     const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus['status']>>({
         numeric: 'idle',
         logic: 'idle',
@@ -32,20 +32,20 @@ export function useInitialAuditData(auditId: string | null): UseInitialAuditData
         const loadInitialData = async () => {
             setIsLoading(true)
             try {
-                // Parallel fetch for findings and audit status
-                const [initialFindings, audit] = await Promise.all([
-                    fetchAuditFindings(auditId),
+                // Parallel fetch for results and audit status
+                const [initialResults, audit] = await Promise.all([
+                    fetchAuditResults(auditId),
                     fetchAudit(auditId).catch(() => null)
                 ])
 
                 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                const transformedFindings = initialFindings.map((f: any) =>
-                    transformDatabaseFinding(f)
+                const transformedResults = initialResults.map((r: any) =>
+                    transformDatabaseResult(r)
                 )
 
-                setFindings(transformedFindings)
+                setResults(transformedResults)
 
-                // Initialize statuses based on findings and audit status
+                // Initialize statuses based on results and audit status
                 const newStatuses: Record<string, AgentStatus['status']> = {
                     numeric: 'idle',
                     logic: 'idle',
@@ -53,11 +53,18 @@ export function useInitialAuditData(auditId: string | null): UseInitialAuditData
                     external: 'idle',
                 }
 
-                // 1. Any agent with findings is "complete"
-                const completedAgents = new Set(transformedFindings.map((f: Finding) => f.agent))
-                completedAgents.forEach(agentKey => {
-                    if (newStatuses[agentKey as string]) {
-                        newStatuses[agentKey as string] = 'complete'
+                // 1. Any agent with results is "complete" (or error if error present)
+                // Group results by agent
+                const agentResults = new Map<string, AgentResult[]>()
+                transformedResults.forEach(r => {
+                    if (!agentResults.has(r.agent)) agentResults.set(r.agent, [])
+                    agentResults.get(r.agent)?.push(r)
+                })
+
+                agentResults.forEach((results, agentKey) => {
+                    const hasError = results.some(r => r.error)
+                    if (newStatuses[agentKey]) {
+                        newStatuses[agentKey] = hasError ? 'error' : 'complete'
                     }
                 })
 
@@ -89,7 +96,7 @@ export function useInitialAuditData(auditId: string | null): UseInitialAuditData
     }, [auditId])
 
     return {
-        findings,
+        results,
         agentStatuses,
         isLoading
     }

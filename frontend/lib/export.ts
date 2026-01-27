@@ -1,9 +1,11 @@
 import { Parser } from 'json2csv'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { Finding } from './types'
+import type { AgentResult } from './types'
 
-export function exportToCSV(findings: Finding[]) {
+export function exportToCSV(results: AgentResult[]) {
+  const findings = results.filter(r => !r.error)
+
   if (findings.length === 0) {
     alert('No findings to export')
     return
@@ -38,7 +40,9 @@ export function exportToCSV(findings: Finding[]) {
   }
 }
 
-export function exportToPDF(findings: Finding[]) {
+export function exportToPDF(results: AgentResult[]) {
+  const findings = results.filter(r => !r.error)
+
   if (findings.length === 0) {
     alert('No findings to export')
     return
@@ -58,10 +62,10 @@ export function exportToPDF(findings: Finding[]) {
 
     // Prepare table data
     const tableData = findings.map((finding) => [
-      finding.agent,
-      finding.severity,
-      finding.title,
-      finding.description,
+      finding.agent || '',
+      finding.severity || '',
+      finding.title || '',
+      finding.description || '',
     ])
 
     // Add table using autoTable

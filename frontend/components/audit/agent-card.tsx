@@ -1,6 +1,6 @@
 'use client'
 
-import type { Finding, AgentStatus, AgentError } from '@/lib/types'
+import type { AgentStatus, AgentResult } from '@/lib/types'
 
 const AGENT_CONFIG = {
   numeric: {
@@ -61,13 +61,16 @@ const SEVERITY_COLORS = {
 interface AgentCardProps {
   agent: keyof typeof AGENT_CONFIG
   status: AgentStatus['status']
-  findings: Finding[]
-  error?: AgentError | null
+  results: AgentResult[]
 }
 
-export function AgentCard({ agent, status, findings, error }: AgentCardProps) {
+export function AgentCard({ agent, status, results }: AgentCardProps) {
   const config = AGENT_CONFIG[agent]
   const colors = COLOR_CLASSES[config.color]
+
+  // Find error result if any
+  const errorResult = results.find(r => r.error)
+  const findings = results.filter(r => !r.error)
 
   return (
     <div
@@ -121,13 +124,13 @@ export function AgentCard({ agent, status, findings, error }: AgentCardProps) {
             {findings.map((finding, index) => (
               <div
                 key={finding.id}
-                className={`border-l-4 ${SEVERITY_COLORS[finding.severity]} rounded-r bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md dark:bg-slate-800`}
+                className={`border-l-4 ${SEVERITY_COLORS[finding.severity || 'pass']} rounded-r bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md dark:bg-slate-800`}
                 style={{
                   animation: `fadeIn 0.3s ease-in-out ${index * 0.1}s both`,
                 }}
               >
                 <h4 className="text-sm font-medium text-slate-900 dark:text-white">
-                  {finding.title}
+                  {finding.title || 'Untitled Finding'}
                 </h4>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                   {finding.description}
@@ -158,10 +161,10 @@ export function AgentCard({ agent, status, findings, error }: AgentCardProps) {
                 Processing failed
               </p>
             </div>
-            {error && (
+            {errorResult && (
               <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900 dark:bg-red-900/20 dark:text-red-200">
-                <p className="font-semibold">{error.error_type}</p>
-                <p className="mt-1">{error.error_message}</p>
+                <p className="font-semibold">Error</p>
+                <p className="mt-1">{errorResult.error}</p>
               </div>
             )}
           </div>

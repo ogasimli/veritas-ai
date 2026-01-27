@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { Finding, AgentStatus, AgentError } from '@/lib/types'
+import type { AgentResult, AgentStatus } from '@/lib/types'
 import type { WebSocketMessage, ConnectionStatus } from '@/types/websocket'
 import { mapAgentId } from '@/utils/agent-mapping'
-import { transformDatabaseFinding, type DatabaseFinding } from '@/utils/finding-transformers'
+import { transformDatabaseResult } from '@/utils/finding-transformers'
 import { useInitialAuditData } from './use-initial-audit-data'
+import { fetchAgentResults } from '@/lib/api'
 
 /**
  * Hook for managing WebSocket connection and real-time audit updates
@@ -14,49 +15,44 @@ export function useAuditWebSocket(auditId: string | null) {
   const ws = useRef<WebSocket | null>(null)
   const reconnectAttempted = useRef(false)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
-  const [agentErrors, setAgentErrors] = useState<Record<string, AgentError | null>>({})
 
   // Load initial audit data
   const {
-    findings: initialFindings,
+    results: initialResults,
     agentStatuses: initialStatuses
   } = useInitialAuditData(auditId)
 
   // WebSocket state (merges with initial data)
-  const [findings, setFindings] = useState<Finding[]>(initialFindings)
+  const [results, setResults] = useState<AgentResult[]>(initialResults)
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus['status']>>(initialStatuses)
 
   // Sync initial data when it loads
   useEffect(() => {
-    setFindings(initialFindings)
+    setResults(initialResults)
     setAgentStatuses(initialStatuses)
-  }, [initialFindings, initialStatuses])
+  }, [initialResults, initialStatuses])
 
   /**
-   * Fetch findings for a specific agent from the database
+   * Fetch results for a specific agent from the database
    */
-  const fetchAgentFindings = useCallback(async (jobId: string, agentId: string) => {
+  const loadAgentResults = useCallback(async (jobId: string, agentId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-      const response = await fetch(`${apiUrl}/api/v1/jobs/${jobId}/findings/agent/${agentId}`)
+      const dbResults = await fetchAgentResults(jobId, agentId)
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch findings: ${response.statusText}`)
-      }
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      const transformedResults = dbResults.map((r: any) => transformDatabaseResult(r))
 
-      const dbFindings = await response.json() as DatabaseFinding[]
-      const transformedFindings = dbFindings.map((f) => transformDatabaseFinding(f))
-
-      setFindings((prev) => {
+      setResults((prev) => {
         // Use database IDs to prevent duplicates
-        const existingIds = new Set(prev.map(f => f.id))
-        const newFindings = transformedFindings.filter((f: Finding) => !existingIds.has(f.id))
-        return [...prev, ...newFindings]
+        const existingIds = new Set(prev.map(r => r.id))
+        const newResults = transformedResults.filter((r: AgentResult) => !existingIds.has(r.id))
+        return [...prev, ...newResults]
       })
 
-      console.log(`Agent ${agentId} completed: loaded ${transformedFindings.length} findings from DB`)
+      return transformedResults
     } catch (error) {
-      console.error(`Error fetching findings for ${agentId}:`, error)
+      console.error(`Error fetching results for ${agentId}:`, error)
+      return []
     }
   }, [])
 
@@ -80,15 +76,19 @@ export function useAuditWebSocket(auditId: string | null) {
 
         case 'agent_completed': {
           const agentKey = mapAgentId(data.agent_id)
-          setAgentStatuses((prev) => ({
-            ...prev,
-            [agentKey]: 'complete',
-          }))
 
-          // Fetch findings from database instead of using WebSocket payload
-          console.log(`Agent ${data.agent_id} completed with ${data.findings_count} findings. Fetching from DB...`)
+          // Fetch results from DB to determine status (complete vs error)
+          console.log(`Agent ${data.agent_id} completed. Fetching results...`)
+
           if (auditId) {
-            fetchAgentFindings(auditId, data.agent_id)
+            loadAgentResults(auditId, data.agent_id).then((newResults) => {
+              const hasError = newResults.some(r => !!r.error)
+              setAgentStatuses((prev) => ({
+                ...prev,
+                [agentKey]: hasError ? 'error' : 'complete',
+              }))
+              console.log(`Agent ${data.agent_id} status updated to: ${hasError ? 'error' : 'complete'}`)
+            })
           }
           break
         }
@@ -97,38 +97,13 @@ export function useAuditWebSocket(auditId: string | null) {
           console.log('Audit processing complete')
           break
 
-        case 'agent_error': {
-          console.error(`Agent ${data.agent_id} error:`, data.error)
-          const agentKey = mapAgentId(data.agent_id)
-
-          setAgentStatuses((prev) => ({
-            ...prev,
-            [agentKey]: 'error',
-          }))
-
-          // Normalize error to AgentError type
-          const errorData: AgentError = typeof data.error === 'string'
-            ? {
-              agent_name: data.agent_id,
-              error_type: 'Error',
-              error_message: data.error,
-            }
-            : data.error
-
-          setAgentErrors((prev) => ({
-            ...prev,
-            [agentKey]: errorData,
-          }))
-          break
-        }
-
         default:
           console.log('Unknown message type:', data)
       }
     } catch (error) {
       console.error('Error parsing WebSocket message:', error)
     }
-  }, [auditId, fetchAgentFindings])
+  }, [auditId, loadAgentResults])
 
   /**
    * Establishes WebSocket connection
@@ -202,9 +177,8 @@ export function useAuditWebSocket(auditId: string | null) {
   }, [auditId, connect])
 
   return {
-    findings,
+    results, // Renamed from findings
     agentStatuses,
-    agentErrors,
     connectionStatus,
     reconnect,
   }

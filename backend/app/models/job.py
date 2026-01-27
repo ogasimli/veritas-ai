@@ -10,7 +10,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.document import Document
-    from app.models.finding import Finding
+    from app.models.finding import AgentResult
 
 
 class Job(Base):
@@ -38,6 +38,6 @@ class Job(Base):
     documents: Mapped[list["Document"]] = relationship(
         "Document", back_populates="job", cascade="all, delete-orphan"
     )
-    findings: Mapped[list["Finding"]] = relationship(
-        "Finding", back_populates="job", cascade="all, delete-orphan"
+    results: Mapped[list["AgentResult"]] = relationship(
+        "AgentResult", back_populates="job", cascade="all, delete-orphan"
     )

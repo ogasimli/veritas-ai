@@ -1,10 +1,18 @@
-export type Finding = {
+export type AgentResult = {
   id: string
   agent: string
-  severity: 'critical' | 'warning' | 'pass'
-  title: string
-  description: string
-  reasoning?: string // Added for detailed output details (Expected/Actual)
+
+  // Success fields (optional)
+  severity?: 'critical' | 'warning' | 'pass'
+  title?: string
+  description?: string
+  reasoning?: string
+
+  // Error fields (optional)
+  error?: string
+
+  // Common fields
+  raw_data: Record<string, unknown>
 }
 
 export type AgentStatus = {
@@ -29,10 +37,4 @@ export type Audit = {
   created_at: string
   updated_at?: string
   documents: Document[]
-}
-
-export type AgentError = {
-  agent_name: string
-  error_type: string
-  error_message: string
 }

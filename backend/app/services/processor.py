@@ -10,7 +10,7 @@ from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.finding import Finding as FindingModel
+from app.models.finding import AgentResult as AgentResultModel
 from app.models.job import Job
 from app.services.websocket_manager import manager
 from veritas_ai_agent import app
@@ -210,7 +210,7 @@ class DocumentProcessor:
             }
 
     async def _send_websocket_message(
-        self, job_id: UUID, message_type: str, agent_id: str, payload: Any | None = None
+        self, job_id: UUID, message_type: str, agent_id: str
     ):
         """Send WebSocket message for agent state change."""
         message = {
@@ -218,54 +218,72 @@ class DocumentProcessor:
             "agent_id": agent_id,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        if payload is not None:
-            if message_type == "agent_error":
-                message["error"] = payload
-            elif message_type == "agent_completed":
-                # Only send findings count, not the actual findings
-                message["findings_count"] = (
-                    len(payload) if isinstance(payload, list) else 0
-                )
 
-        log_prefix = (
-            "🎯"
-            if message_type == "agent_started"
-            else ("❌" if message_type == "agent_error" else "✅")
-        )
-        status_msg = "STARTED"
-        if message_type == "agent_completed":
-            status_msg = f"COMPLETED with {len(payload) if isinstance(payload, list) else 0} findings"
-        elif message_type == "agent_error":
-            status_msg = f"FAILED: {payload.get('error_message')}"
+        log_prefix = "🎯" if message_type == "agent_started" else "✅"
+        status_msg = "STARTED" if message_type == "agent_started" else "COMPLETED"
 
         print(f"   {log_prefix} Agent '{agent_id}' {status_msg}", flush=True)
         print("      📤 Sending WebSocket message", flush=True)
 
         await manager.send_to_audit(str(job_id), message)
 
-    async def _save_agent_findings_to_db(
-        self, job_id: UUID, config: AgentConfig, findings: list[dict]
+    async def _save_agent_results_to_db(
+        self,
+        job_id: UUID,
+        config: AgentConfig,
+        findings: list[dict] | None,
+        error: dict | None,
     ):
-        """Save findings for a single agent to database immediately."""
-        for finding_data in findings:
-            transformed = config.db_transformer(finding_data)
-            finding = FindingModel(
+        """Save results (findings or error) to database immediately."""
+        if error:
+            # Save error result
+            result = AgentResultModel(
                 job_id=job_id,
-                category=config.category,
-                severity=transformed["severity"],
-                description=transformed["description"],
-                source_refs=transformed["source_refs"],
-                reasoning=transformed["reasoning"],
                 agent_id=config.agent_id,
+                category=config.category,
+                error=error.get("error_message", str(error)),
+                raw_data=error,
             )
-            self.db.add(finding)
+            self.db.add(result)
+            print(
+                f"      💾 Saved ERROR to DB for agent '{config.agent_id}'", flush=True
+            )
+
+        elif findings:
+            # Save each finding result
+            for finding_data in findings:
+                transformed = config.db_transformer(finding_data)
+                result = AgentResultModel(
+                    job_id=job_id,
+                    agent_id=config.agent_id,
+                    category=config.category,
+                    raw_data=finding_data,
+                    **transformed,
+                )
+                self.db.add(result)
+            print(
+                f"      💾 Saved {len(findings)} findings to DB for agent '{config.agent_id}'",
+                flush=True,
+            )
+
+        elif findings is not None:
+            # findings is empty list -> Save empty success result
+            result = AgentResultModel(
+                job_id=job_id,
+                agent_id=config.agent_id,
+                category=config.category,
+                raw_data={},
+                description=None,
+                severity=None,
+            )
+            self.db.add(result)
+            print(
+                f"      💾 Saved EMPTY result to DB for agent '{config.agent_id}'",
+                flush=True,
+            )
 
         # Commit immediately so frontend can fetch
         await self.db.commit()
-        print(
-            f"      💾 Saved {len(findings)} findings to DB for agent '{config.agent_id}'",
-            flush=True,
-        )
 
     async def _check_and_notify_agents(
         self,
@@ -289,28 +307,24 @@ class DocumentProcessor:
                         )
                         break
 
-            # Check if agent has completed (completion check returns findings OR error)
+            # Check if agent has completed
             if agent_id not in agents_completed:
-                # 1. Check for errors first
+                # Check for completion (error OR success)
                 error = config.error_check(state)
-                if error:
-                    agents_completed.add(agent_id)
-                    await self._send_websocket_message(
-                        job_id, "agent_error", agent_id, error
-                    )
-                    continue
-
-                # 2. Check for successful completion
                 findings = config.completion_check(state)
-                if findings and isinstance(findings, list):
+
+                # Check if we have a definitive result (error present OR findings is not None)
+                if error or (findings is not None and isinstance(findings, list)):
                     agents_completed.add(agent_id)
 
-                    # ✅ NEW: Save to DB immediately before notifying
-                    await self._save_agent_findings_to_db(job_id, config, findings)
+                    # Unified save call - logic handled inside
+                    await self._save_agent_results_to_db(
+                        job_id, config, findings, error
+                    )
 
-                    # ✅ Send notification (findings count only, not data)
+                    # Unified notification
                     await self._send_websocket_message(
-                        job_id, "agent_completed", agent_id, findings
+                        job_id, "agent_completed", agent_id
                     )
 
     def _extract_all_findings(self, state: dict[str, Any]) -> dict[str, list[dict]]:
@@ -334,47 +348,66 @@ class DocumentProcessor:
         """Save any remaining findings to database (fallback for agents that didn't notify)."""
         from sqlalchemy import select
 
+        from app.models.finding import AgentResult as AgentResultModel
+
         total_count = sum(len(findings) for findings in findings_by_agent.values())
-        print(f"\n💾 Checking {total_count} findings against database...", flush=True)
+        print(
+            f"\n💾 Checking findings against database (Total: {total_count})...",
+            flush=True,
+        )
 
         saved_count = 0
         for config in self.agent_configs:
-            findings = findings_by_agent.get(config.agent_id, [])
-            if not findings:
+            findings = findings_by_agent.get(config.agent_id)
+
+            # If findings is None, skip (maybe agent didn't run or produce valid output)
+            if findings is None:
                 continue
 
-            # Check if findings already exist for this agent
-            stmt = select(FindingModel).where(
-                FindingModel.job_id == job_id, FindingModel.agent_id == config.agent_id
+            # Check if ANY result (findings or error/empty) already exists for this agent
+            stmt = select(AgentResultModel).where(
+                AgentResultModel.job_id == job_id,
+                AgentResultModel.agent_id == config.agent_id,
             )
             result = await self.db.execute(stmt)
-            existing_findings = result.scalars().all()
+            existing_results = result.scalars().all()
 
-            if existing_findings:
+            if existing_results:
                 print(
-                    f"   ⏭️  Skipping {len(findings)} findings for '{config.agent_id}' (already saved)",
+                    f"   ⏭️  Skipping agent '{config.agent_id}' (already saved)",
                     flush=True,
                 )
                 continue
 
-            # Save findings if not already present
-            for finding_data in findings:
-                transformed = config.db_transformer(finding_data)
-                finding = FindingModel(
+            # Save findings (or empty result) if not already present
+            if not findings:
+                # Save empty result
+                result = AgentResultModel(
                     job_id=job_id,
-                    category=config.category,
-                    severity=transformed["severity"],
-                    description=transformed["description"],
-                    source_refs=transformed["source_refs"],
-                    reasoning=transformed["reasoning"],
                     agent_id=config.agent_id,
+                    category=config.category,
+                    raw_data={},
+                    description=None,
+                    severity=None,
                 )
-                self.db.add(finding)
+                self.db.add(result)
                 saved_count += 1
+            else:
+                for finding_data in findings:
+                    transformed = config.db_transformer(finding_data)
+                    result = AgentResultModel(
+                        job_id=job_id,
+                        agent_id=config.agent_id,
+                        category=config.category,
+                        raw_data=finding_data,
+                        **transformed,
+                    )
+                    self.db.add(result)
+                    saved_count += 1
 
         if saved_count > 0:
-            print(f"   💾 Saved {saved_count} new findings", flush=True)
-        print("✅ All findings verified in database", flush=True)
+            print(f"   💾 Saved {saved_count} new result rows", flush=True)
+        print("✅ All agents verified in database", flush=True)
 
     async def process_document(self, job_id: UUID, extracted_text: str) -> None:
         """Run orchestrator with validation agents and save findings."""
@@ -395,6 +428,12 @@ class DocumentProcessor:
         print("✅ Job status updated to 'processing'", flush=True)
 
         try:
+            print(f"\n{'🤖' * 40}", flush=True)
+            print("✅ REAL AGENT MODE ENABLED", flush=True)
+            print("   → Using actual ADK agents (INFERENCE COSTS APPLY)", flush=True)
+            print(f"{'🤖' * 40}\n", flush=True)
+
+            # Real agent mode: continue with ADK runner
             # Initialize ADK runner and session
             print("\n🚀 Initializing ADK runner with app...", flush=True)
             runner = InMemoryRunner(app=app)
@@ -451,7 +490,8 @@ class DocumentProcessor:
                     continue
 
                 print(
-                    "   ✅ Final response - checking for agent completions", flush=True
+                    "   ✅ Final response - checking for agent completions",
+                    flush=True,
                 )
                 await self._check_and_notify_agents(
                     job_id, final_state, agents_started, agents_completed
@@ -490,7 +530,10 @@ class DocumentProcessor:
             print("📤 Sending 'audit_complete' WebSocket message...", flush=True)
             await manager.send_to_audit(
                 str(job_id),
-                {"type": "audit_complete", "timestamp": datetime.utcnow().isoformat()},
+                {
+                    "type": "audit_complete",
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
             )
             print("✅ Audit complete message sent", flush=True)
 
@@ -509,14 +552,7 @@ class DocumentProcessor:
             job.error_message = str(e)
             await self.db.commit()
 
-            await manager.send_to_audit(
-                str(job_id),
-                {
-                    "type": "agent_error",
-                    "agent_id": "audit_pipeline",
-                    "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat(),
-                },
-            )
+            # Note: We rely on job status update for pipeline errors
+            # agent_error message is deprecated
 
             raise

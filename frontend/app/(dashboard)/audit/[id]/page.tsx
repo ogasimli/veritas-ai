@@ -17,7 +17,8 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
     const queryClient = useQueryClient()
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
-    const { findings, agentStatuses, connectionStatus } = useAuditWebSocket(auditId)
+    // Use unified results from WebSocket hook
+    const { results, agentStatuses, connectionStatus } = useAuditWebSocket(auditId)
 
     // Fetch audit details for header info
     const { data: audit, isLoading: isLoadingAudit } = useQuery({
@@ -151,7 +152,7 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                                                 : 'Disconnected'}
                                     </span>
                                 </div>
-                                <ExportButton findings={findings} disabled={findings.length === 0} />
+                                <ExportButton results={results} disabled={results.length === 0} />
                             </div>
                         </div>
 
@@ -159,22 +160,22 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                             <AgentCard
                                 agent="numeric"
                                 status={agentStatuses.numeric}
-                                findings={findings.filter((f) => f.agent === 'numeric')}
+                                results={results.filter((r) => r.agent === 'numeric')}
                             />
                             <AgentCard
                                 agent="logic"
                                 status={agentStatuses.logic}
-                                findings={findings.filter((f) => f.agent === 'logic')}
+                                results={results.filter((r) => r.agent === 'logic')}
                             />
                             <AgentCard
                                 agent="disclosure"
                                 status={agentStatuses.disclosure}
-                                findings={findings.filter((f) => f.agent === 'disclosure')}
+                                results={results.filter((r) => r.agent === 'disclosure')}
                             />
                             <AgentCard
                                 agent="external"
                                 status={agentStatuses.external}
-                                findings={findings.filter((f) => f.agent === 'external')}
+                                results={results.filter((r) => r.agent === 'external')}
                             />
                         </div>
                     </div>
@@ -190,6 +191,6 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                 confirmText="Delete"
                 variant="danger"
             />
-        </div >
+        </div>
     )
 }

@@ -1,15 +1,15 @@
 'use client'
 
 import { exportToCSV, exportToPDF } from '@/lib/export'
-import type { Finding } from '@/lib/types'
+import type { AgentResult } from '@/lib/types'
 
 interface ExportButtonProps {
-  findings: Finding[]
+  results: AgentResult[]
   disabled?: boolean
 }
 
-export function ExportButton({ findings, disabled }: ExportButtonProps) {
-  const isDisabled = disabled || findings.length === 0
+export function ExportButton({ results, disabled }: ExportButtonProps) {
+  const isDisabled = disabled || results.length === 0
 
   return (
     <div className="relative inline-block text-left">
@@ -40,7 +40,7 @@ export function ExportButton({ findings, disabled }: ExportButtonProps) {
           <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right scale-0 rounded-lg border border-slate-200 bg-white shadow-lg transition-transform group-hover:scale-100 dark:border-slate-700 dark:bg-slate-800">
             <div className="py-1">
               <button
-                onClick={() => exportToCSV(findings)}
+                onClick={() => exportToCSV(results)}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 <svg
@@ -60,7 +60,7 @@ export function ExportButton({ findings, disabled }: ExportButtonProps) {
                 Export to CSV
               </button>
               <button
-                onClick={() => exportToPDF(findings)}
+                onClick={() => exportToPDF(results)}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
               >
                 <svg

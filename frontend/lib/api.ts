@@ -1,4 +1,4 @@
-import type { Audit, Finding } from './types'
+import type { Audit, AgentResult } from './types'
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -71,10 +71,18 @@ export async function uploadFile(file: File): Promise<string> {
   }
 }
 
-export async function fetchAuditFindings(jobId: string): Promise<Finding[]> {
-  const response = await fetch(`${API_URL}/api/v1/jobs/${jobId}/findings`)
+export async function fetchAuditResults(jobId: string): Promise<AgentResult[]> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${jobId}/results`)
   if (!response.ok) {
-    throw new Error('Failed to fetch findings')
+    throw new Error('Failed to fetch results')
+  }
+  return response.json()
+}
+
+export async function fetchAgentResults(jobId: string, agentId: string): Promise<AgentResult[]> {
+  const response = await fetch(`${API_URL}/api/v1/jobs/${jobId}/results/agent/${agentId}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch agent results')
   }
   return response.json()
 }

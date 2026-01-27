@@ -12,10 +12,10 @@ if TYPE_CHECKING:
     from app.models.job import Job
 
 
-class Finding(Base):
-    """Finding model representing a detected issue."""
+class AgentResult(Base):
+    """AgentResult model representing the outcome of an agent's execution."""
 
-    __tablename__ = "findings"
+    __tablename__ = "agent_results"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -27,10 +27,22 @@ class Finding(Base):
     category: Mapped[str] = mapped_column(
         String, nullable=False
     )  # numeric, logic, disclosure, external
-    severity: Mapped[str] = mapped_column(String, nullable=False)  # high, medium, low
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    source_refs: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+
+    # Successful finding fields (nullable)
+    severity: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )  # high, medium, low
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_refs: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSONB, nullable=True
+    )
     reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Error fields (nullable)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Common fields
+    raw_data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     agent_id: Mapped[str] = mapped_column(String, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -38,4 +50,4 @@ class Finding(Base):
     )
 
     # Relationships
-    job: Mapped["Job"] = relationship("Job", back_populates="findings")
+    job: Mapped["Job"] = relationship("Job", back_populates="results")
