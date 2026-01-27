@@ -1,0 +1,1308 @@
+{
+  "metadata": {
+    "source": "session_export",
+    "session_id": "fbbbf6f1-ceee-4840-80dd-b5513bbd1690",
+    "app_name": "veritas_ai_agent",
+    "total_events": 25,
+    "total_raw_events": 40
+  },
+  "events": [
+    {
+      "event_number": 2,
+      "type": "AgentEvent",
+      "author": "ExtractorAgent",
+      "branch": "audit_orchestrator.numeric_validation",
+      "state_delta": {
+        "extractor_output": {
+          "fsli_names": [
+            "Revenue",
+            "Cost of Goods Sold",
+            "Gross Profit",
+            "Operating Expenses",
+            "Net Income",
+            "Property, plant, and equipment"
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490426.764713,
+      "delay_ms": 0
+    },
+    {
+      "event_number": 3,
+      "type": "AgentEvent",
+      "author": "logic_consistency",
+      "branch": "audit_orchestrator.logic_consistency",
+      "state_delta": {
+        "active_heavy_agents": 1
+      },
+      "is_final": false,
+      "timestamp": 1769490426.776157,
+      "delay_ms": 11
+    },
+    {
+      "event_number": 4,
+      "type": "AgentEvent",
+      "author": "disclosure_compliance",
+      "branch": "audit_orchestrator.disclosure_compliance",
+      "state_delta": {
+        "active_heavy_agents": 2
+      },
+      "is_final": false,
+      "timestamp": 1769490426.776217,
+      "delay_ms": 0
+    },
+    {
+      "event_number": 5,
+      "type": "AgentEvent",
+      "author": "external_signal",
+      "branch": "audit_orchestrator.external_signal",
+      "state_delta": {
+        "active_heavy_agents": 3
+      },
+      "is_final": false,
+      "timestamp": 1769490426.776264,
+      "delay_ms": 0
+    },
+    {
+      "event_number": 6,
+      "type": "AgentEvent",
+      "author": "LogicDetector",
+      "branch": "audit_orchestrator.logic_consistency",
+      "state_delta": {
+        "detector_output": {
+          "findings": [
+            {
+              "fsli_name": "Revenue",
+              "claim": "Achieved 500% revenue growth ($5,000k vs $1,000k) through sheer manual effort of the remaining team (15 employees) despite closing all manufacturing facilities",
+              "contradiction": "Operational impossibility: Generating 5x revenue growth in a hardware business while closing all production facilities and reducing workforce by 85% violates business logic.",
+              "severity": "high",
+              "reasoning": "Revenue increased from $1M to $5M, implying a 5x increase in product volume (assuming stable pricing). However, the company closed 'all three manufacturing facilities' and reduced headcount to 15 people. The MD&A attributes this to 'manual effort', but it is physically impossible for 15 people to manually produce 5x the output of a previously larger workforce supported by three factories. There is no mention of outsourcing to explain the production volume.",
+              "source_refs": [
+                "Income Statement (Revenue)",
+                "MD&A Paragraph 1"
+              ]
+            },
+            {
+              "fsli_name": "Market Share",
+              "claim": "Market share increased to 25%, while primary competitor (80% share) doubled their sales",
+              "contradiction": "The combined market share claims result in a total market exceeding 100%, which is mathematically impossible.",
+              "severity": "high",
+              "reasoning": "In FY 2024, Veritas had $1M revenue (10% share), implying a Total Market of $10M. The competitor (80% share) had $8M revenue. In FY 2025, the competitor doubled sales to $16M. Veritas had $5M revenue. If Veritas's $5M represents a 25% market share, the implied Total Market is $20M ($5M / 0.25). However, the competitor's $16M revenue alone would represent 80% of that $20M market. Veritas (25%) + Competitor (80%) = 105%, leaving no room for other players and exceeding 100%.",
+              "source_refs": [
+                "MD&A Paragraph 2",
+                "Income Statement (Revenue)"
+              ]
+            },
+            {
+              "fsli_name": "Depreciation Expense",
+              "claim": "Recorded $450k in depreciation expense for the full year ended December 31, 2025, for machinery decommissioned on January 1, 2025",
+              "contradiction": "Temporal contradiction: Depreciation was recorded for a period after the asset was removed from service.",
+              "severity": "medium",
+              "reasoning": "The note states the facility was closed and machinery decommissioned/listed for sale on Jan 1, 2025. Standard accounting logic dictates that depreciation ceases when an asset is retired from active use and held for sale. Charging 'full year' depreciation for an asset not in use during that year is logically inconsistent with the stated timeline.",
+              "source_refs": [
+                "Note 4: Property, Plant, and Equipment"
+              ]
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490426.785219,
+      "delay_ms": 8
+    },
+    {
+      "event_number": 7,
+      "type": "AgentEvent",
+      "author": "ScannerAgent",
+      "branch": "audit_orchestrator.disclosure_compliance",
+      "state_delta": {
+        "scanner_output": {
+          "applicable_standards": [
+            "IAS 1",
+            "IFRS 15",
+            "IAS 2",
+            "IAS 16",
+            "IFRS 10",
+            "IFRS 12",
+            "IAS 33",
+            "IAS 19"
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490426.805448,
+      "delay_ms": 20
+    },
+    {
+      "event_number": 11,
+      "type": "AgentEvent",
+      "author": "internet_to_report",
+      "branch": "audit_orchestrator.external_signal.external_signal.internet_to_report",
+      "state_delta": {
+        "internet_to_report_findings": {
+          "error": {
+            "is_error": true,
+            "agent_name": "internet_to_report",
+            "error_type": "rate_limit",
+            "error_message": "Deep Research tool failed due to quota exhaustion (Error code 429). Unable to retrieve external signals for Veritas Tech Inc. for fiscal year 2025."
+          },
+          "findings": []
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490433.801352,
+      "delay_ms": 6995
+    },
+    {
+      "event_number": 13,
+      "type": "AgentEvent",
+      "author": "report_to_internet",
+      "branch": "audit_orchestrator.external_signal.external_signal.report_to_internet",
+      "state_delta": {
+        "report_to_internet_findings": {
+          "error": {
+            "is_error": true,
+            "agent_name": "report_to_internet",
+            "error_type": "rate_limit",
+            "error_message": "Deep Research tool failed with status 429: Quota exceeded for Global Deep Research Agent requests."
+          },
+          "verifications": []
+        }
+      },
+      "is_final": true,
+      "timestamp": 1769490440.005842,
+      "delay_ms": 6204
+    },
+    {
+      "event_number": 14,
+      "type": "AgentEvent",
+      "author": "external_signal",
+      "branch": "audit_orchestrator.external_signal",
+      "state_delta": {
+        "active_heavy_agents": 2
+      },
+      "is_final": false,
+      "timestamp": 1769490443.317098,
+      "delay_ms": 3311
+    },
+    {
+      "event_number": 18,
+      "type": "AgentEvent",
+      "author": "verify_IAS_1",
+      "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_1",
+      "state_delta": {
+        "disclosure_findings:IAS 1": {
+          "findings": [
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D3",
+              "requirement": "Statement of financial position",
+              "severity": "high",
+              "description": "A statement of financial position at the period end date is required. The provided document only contains a Statement of Operations."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D5",
+              "requirement": "Statement of changes in equity",
+              "severity": "high",
+              "description": "A statement of changes in equity for the period is required. No such statement was found in the provided text."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D6",
+              "requirement": "Statement of cash flows",
+              "severity": "high",
+              "description": "A statement of cash flows for the period is required. No such statement was found in the provided text."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D15",
+              "requirement": "Statement of compliance with IFRS",
+              "severity": "high",
+              "description": "An explicit and unreserved statement in the notes that the financial statements comply with IFRS is required. This statement is missing."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D26",
+              "requirement": "Basis of preparation and accounting policies",
+              "severity": "high",
+              "description": "Notes disclosing the basis of preparation of the financial statements and specific accounting policies used are required. Only Note 4 (PPE) was provided; general policy notes are missing."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D116",
+              "requirement": "Tax expense line item",
+              "severity": "medium",
+              "description": "The statement of profit or loss must present a line item for tax expense. The provided Statement of Operations calculates Net Income directly from Operating Expenses without showing Tax Expense."
+            },
+            {
+              "standard": "IAS 1",
+              "disclosure_id": "IAS1-D117",
+              "requirement": "Discontinued operations line item",
+              "severity": "medium",
+              "description": "A single amount for the total of discontinued operations is required in the statement of profit or loss. Note 4 and MD&A indicate the closure of all manufacturing facilities and decommissioning of machinery, which likely constitutes a discontinued operation under IFRS 5, yet no separate line item is presented."
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490453.454735,
+      "delay_ms": 10137
+    },
+    {
+      "event_number": 19,
+      "type": "AgentEvent",
+      "author": "verify_IAS_2",
+      "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_2",
+      "state_delta": {
+        "disclosure_findings:IAS 2": {
+          "findings": [
+            {
+              "standard": "IAS 2",
+              "disclosure_id": "IAS2-D1",
+              "requirement": "Inventories, including the cost formula used",
+              "severity": "high",
+              "description": "The financial statements are missing the accounting policy for inventories, specifically the cost formula used (for example, FIFO or weighted average cost)."
+            },
+            {
+              "standard": "IAS 2",
+              "disclosure_id": "IAS2-D11",
+              "requirement": "Carrying amount of inventories and sub-classification",
+              "severity": "high",
+              "description": "The document lacks a disclosure of the carrying amount of inventories in total and sub-classified by main categories appropriate to the entity (e.g., merchandise, materials, finished goods)."
+            },
+            {
+              "standard": "IAS 2",
+              "disclosure_id": "IAS2-D2",
+              "requirement": "Contracts with Customers - Performance obligations",
+              "severity": "high",
+              "description": "There is no disclosure regarding performance obligations in contracts with customers found in the document."
+            },
+            {
+              "standard": "IAS 2",
+              "disclosure_id": "IAS2-D3",
+              "requirement": "Information about performance obligations",
+              "severity": "medium",
+              "description": "Disclosures describing performance obligations, including when they are typically satisfied, payment terms, and the nature of goods/services promised, are missing."
+            },
+            {
+              "standard": "IAS 2",
+              "disclosure_id": "IAS2-D18",
+              "requirement": "Trade and other receivables",
+              "severity": "high",
+              "description": "No disclosure was found regarding trade and other receivables."
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490453.466269,
+      "delay_ms": 11
+    },
+    {
+      "event_number": 20,
+      "type": "AgentEvent",
+      "author": "verify_IFRS_12",
+      "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IFRS_12",
+      "state_delta": {
+        "disclosure_findings:IFRS 12": {
+          "findings": [
+            {
+              "standard": "IFRS 12",
+              "disclosure_id": "IFRS12-D2",
+              "requirement": "Present information separately for interests in subsidiaries, joint ventures, etc.",
+              "severity": "high",
+              "description": "The financial statements are titled 'Consolidated Statements of Operations', which indicates the existence of subsidiaries. However, the provided document presents no information regarding the entity's interests in subsidiaries, failing the requirement to present information separately for interests in subsidiaries."
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490453.484004,
+      "delay_ms": 17
+    },
+    {
+      "event_number": 21,
+      "type": "AgentEvent",
+      "author": "verify_IAS_33",
+      "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_33",
+      "state_delta": {
+        "disclosure_findings:IAS 33": {
+          "findings": [
+            {
+              "standard": "IAS 33",
+              "disclosure_id": "IAS33-D10",
+              "requirement": "Presentation of Basic and Diluted EPS",
+              "severity": "high",
+              "description": "66 An entity shall present in the statement of comprehensive income basic and diluted earnings per share for profit or loss from continuing operations attributable to the ordinary equity holders of the parent entity and for profit or loss attributable to the ordinary equity holders of the parent entity for the period for each class of ordinary shares that has a different right to share in profit for the period. An entity shall present basic and diluted earnings per share with equal prominence for all periods presented."
+            },
+            {
+              "standard": "IAS 33",
+              "disclosure_id": "IAS33-D17",
+              "requirement": "Disclosure of Numerators for EPS",
+              "severity": "medium",
+              "description": "(a) the amounts used as the numerators in calculating basic and diluted earnings per share, and a reconciliation of those amounts to profit or loss attributable to the parent entity for the period. The reconciliation should include the individual effect of each class of instruments that affects earnings per share;"
+            },
+            {
+              "standard": "IAS 33",
+              "disclosure_id": "IAS33-D18",
+              "requirement": "Disclosure of Denominators (Weighted Average Shares)",
+              "severity": "medium",
+              "description": "(b) the weighted average number of ordinary shares used as the denominator in calculating basic and diluted earnings per share, and a reconciliation of these denominators to each other. The reconciliation should include the individual effect of each class of instruments that affects earnings per share; and"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490453.50234,
+      "delay_ms": 18
+    },
+    {
+      "event_number": 22,
+      "type": "AgentEvent",
+      "author": "LogicReviewer",
+      "branch": "audit_orchestrator.logic_consistency",
+      "state_delta": {
+        "reviewer_output": {
+          "findings": [
+            {
+              "fsli_name": "Revenue",
+              "claim": "Achieved 500% revenue growth ($5,000k vs $1,000k) through sheer manual effort of the remaining team (15 employees) despite closing all manufacturing facilities",
+              "contradiction": "Operational impossibility: Generating 5x revenue growth in a hardware business while closing all production facilities and reducing workforce by 85% violates business logic.",
+              "severity": "high",
+              "reasoning": "Revenue increased from $1M to $5M, implying a 5x increase in product volume. The company closed 'all three manufacturing facilities' and reduced headcount to 15 people, attributing growth to 'manual effort'. It is physically impossible for 15 people to manually produce 5x the output of a previously larger workforce supported by three factories without undisclosed outsourcing, suggesting a material misstatement or fraud risk.",
+              "source_refs": [
+                "Income Statement (Revenue)",
+                "MD&A Paragraph 1"
+              ]
+            },
+            {
+              "fsli_name": "Market Share",
+              "claim": "Market share increased to 25%, while primary competitor (80% share) doubled their sales",
+              "contradiction": "The combined market share claims result in a total market exceeding 100%, which is mathematically impossible.",
+              "severity": "medium",
+              "reasoning": "In FY 2025, Veritas claims 25% share with $5M revenue (implied Total Market $20M). The competitor, controlling 80% of the market, doubled sales to $16M (80% of $20M). Summing Veritas (25%) and the Competitor (80%) equals 105% of the market, which is logically impossible and undermines the reliability of the MD&A disclosure.",
+              "source_refs": [
+                "MD&A Paragraph 2",
+                "Income Statement (Revenue)"
+              ]
+            },
+            {
+              "fsli_name": "Depreciation Expense",
+              "claim": "Recorded $450k in depreciation expense for the full year ended December 31, 2025, for machinery decommissioned on January 1, 2025",
+              "contradiction": "Temporal contradiction: Depreciation was recorded for a period after the asset was removed from service.",
+              "severity": "medium",
+              "reasoning": "The note states the facility was closed and machinery decommissioned/listed for sale on Jan 1, 2025. Standard accounting logic dictates that depreciation ceases when an asset is retired from active use and held for sale. Charging 'full year' depreciation for an asset not in use constitutes a compliance risk and potential material misstatement of expenses.",
+              "source_refs": [
+                "Note 4: Property, Plant, and Equipment"
+              ]
+            }
+          ]
+        }
+      },
+      "is_final": true,
+      "timestamp": 1769490457.85944,
+      "delay_ms": 4357
+    },
+    {
+      "event_number": 24,
+      "type": "AgentEvent",
+      "author": "verify_Revenue",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_1.verify_Revenue",
+      "state_delta": {
+        "checks:Revenue": {
+          "checks": [
+            {
+              "fsli_name": "Revenue",
+              "check_type": "cross_table_consistency",
+              "description": "Verify FY 2025 Revenue in Statement of Operations matches MD&A value",
+              "expected_value": 5000000,
+              "actual_value": 5000000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS",
+                "MANAGEMENT DISCUSSION & ANALYSIS"
+              ],
+              "code_executed": "rev_2025_table = 5000 * 1000\nrev_2025_text = 5000 * 1000\ncheck_passed = (rev_2025_table == rev_2025_text)"
+            },
+            {
+              "fsli_name": "Revenue",
+              "check_type": "cross_table_consistency",
+              "description": "Verify FY 2024 Revenue in Statement of Operations matches MD&A value",
+              "expected_value": 1000000,
+              "actual_value": 1000000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS",
+                "MANAGEMENT DISCUSSION & ANALYSIS"
+              ],
+              "code_executed": "rev_2024_table = 1000 * 1000\nrev_2024_text = 1000 * 1000\ncheck_passed = (rev_2024_table == rev_2024_text)"
+            },
+            {
+              "fsli_name": "Revenue",
+              "check_type": "in_table_sum",
+              "description": "Verify FY 2025 Revenue relationship with Gross Profit and Cost of Goods Sold",
+              "expected_value": 5500000,
+              "actual_value": 5000000,
+              "check_passed": false,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "gp_2025 = 3500 * 1000\ncogs_2025 = 2000 * 1000\nexpected_rev = gp_2025 + cogs_2025"
+            },
+            {
+              "fsli_name": "Revenue",
+              "check_type": "in_table_sum",
+              "description": "Verify FY 2024 Revenue relationship with Gross Profit and Cost of Goods Sold",
+              "expected_value": 1000000,
+              "actual_value": 1000000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "gp_2024 = 200 * 1000\ncogs_2024 = 800 * 1000\nexpected_rev = gp_2024 + cogs_2024"
+            },
+            {
+              "fsli_name": "Revenue",
+              "check_type": "in_table_sum",
+              "description": "Verify Revenue value matches the claimed 500% growth rate in MD&A",
+              "expected_value": 6000000,
+              "actual_value": 5000000,
+              "check_passed": false,
+              "source_refs": [
+                "MANAGEMENT DISCUSSION & ANALYSIS"
+              ],
+              "code_executed": "rev_2024 = 1000 * 1000\ngrowth_rate = 5.0\nexpected_rev_2025 = rev_2024 * (1 + growth_rate)"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490478.949938,
+      "delay_ms": 21090
+    },
+    {
+      "event_number": 25,
+      "type": "AgentEvent",
+      "author": "verify_IAS_19",
+      "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_2.verify_IAS_19",
+      "state_delta": {
+        "disclosure_findings:IAS 19": {
+          "findings": [
+            {
+              "standard": "IAS 19",
+              "disclosure_id": "IAS19-D1",
+              "requirement": "Disclosure of employee benefits expense",
+              "severity": "high",
+              "description": "IAS 19 does not require specific disclosures about short-term employee benefits, but other IFRSs may require disclosures. For example, IAS 24 requires disclosures about employee benefits for key management personnel. IAS 1 requires disclosure of employee benefits expense. (see also A5.19.7)"
+            },
+            {
+              "standard": "IAS 19",
+              "disclosure_id": "IAS19-D3",
+              "requirement": "Disclose expense for defined contribution plans",
+              "severity": "medium",
+              "description": "Disclose the amount recognised as an expense for defined contribution plans."
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490495.460429,
+      "delay_ms": 16510
+    },
+    {
+      "event_number": 26,
+      "type": "AgentEvent",
+      "author": "logic_consistency",
+      "branch": "audit_orchestrator.logic_consistency",
+      "state_delta": {
+        "active_heavy_agents": 1
+      },
+      "is_final": false,
+      "timestamp": 1769490496.463912,
+      "delay_ms": 1003
+    },
+    {
+      "event_number": 28,
+      "type": "AgentEvent",
+      "author": "verify_Cost_of_Goods_Sold",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_2.verify_Cost_of_Goods_Sold",
+      "state_delta": {
+        "checks:Cost of Goods Sold": {
+          "checks": [
+            {
+              "fsli_name": "Cost of Goods Sold",
+              "check_type": "in_table_sum",
+              "description": "Consistency check for FY 2025: Calculated Cost of Goods Sold (Revenue - Gross Profit) vs Reported Cost of Goods Sold",
+              "expected_value": 1500000,
+              "actual_value": 2000000,
+              "check_passed": false,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "revenue_2025 = 5000 * 1000\ngp_2025 = 3500 * 1000\n\n# COGS = Revenue - Gross Profit\nexpected_cogs_2025 = revenue_2025 - gp_2025\nreported_cogs_2025 = 2000 * 1000\n\nprint(f'Expected: {expected_cogs_2025}, Actual: {reported_cogs_2025}')"
+            },
+            {
+              "fsli_name": "Cost of Goods Sold",
+              "check_type": "in_table_sum",
+              "description": "Consistency check for FY 2024: Calculated Cost of Goods Sold (Revenue - Gross Profit) vs Reported Cost of Goods Sold",
+              "expected_value": 800000,
+              "actual_value": 800000,
+              "check_passed": true,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "revenue_2024 = 1000 * 1000\ngp_2024 = 200 * 1000\n\n# COGS = Revenue - Gross Profit\nexpected_cogs_2024 = revenue_2024 - gp_2024\nreported_cogs_2024 = 800 * 1000\n\nprint(f'Expected: {expected_cogs_2024}, Actual: {reported_cogs_2024}')"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490522.878672,
+      "delay_ms": 26414
+    },
+    {
+      "event_number": 30,
+      "type": "AgentEvent",
+      "author": "verify_Gross_Profit",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_3.verify_Gross_Profit",
+      "state_delta": {
+        "checks:Gross Profit": {
+          "checks": [
+            {
+              "fsli_name": "Gross Profit",
+              "check_type": "in_table_sum",
+              "description": "Verify Gross Profit calculation for FY 2025 in Consolidated Statements of Operations (Revenue - Cost of Goods Sold)",
+              "expected_value": 3000000,
+              "actual_value": 3500000,
+              "check_passed": false,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "rev_2025 = 5000 * 1000\ncogs_2025 = 2000 * 1000\ngp_2025_actual = 3500 * 1000\ngp_2025_expected = rev_2025 - cogs_2025"
+            },
+            {
+              "fsli_name": "Gross Profit",
+              "check_type": "in_table_sum",
+              "description": "Verify Gross Profit calculation for FY 2024 in Consolidated Statements of Operations (Revenue - Cost of Goods Sold)",
+              "expected_value": 200000,
+              "actual_value": 200000,
+              "check_passed": true,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "rev_2024 = 1000 * 1000\ncogs_2024 = 800 * 1000\ngp_2024_actual = 200 * 1000\ngp_2024_expected = rev_2024 - cogs_2024"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490545.610463,
+      "delay_ms": 22731
+    },
+    {
+      "event_number": 31,
+      "type": "AgentEvent",
+      "author": "DisclosureReviewer",
+      "branch": "audit_orchestrator.disclosure_compliance",
+      "state_delta": {
+        "reviewer_output": {
+          "findings": []
+        }
+      },
+      "is_final": true,
+      "timestamp": 1769490586.57674,
+      "delay_ms": 40966
+    },
+    {
+      "event_number": 33,
+      "type": "AgentEvent",
+      "author": "verify_Operating_Expenses",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_4.verify_Operating_Expenses",
+      "state_delta": {
+        "checks:Operating Expenses": {
+          "checks": [
+            {
+              "fsli_name": "Operating Expenses",
+              "check_type": "in_table_sum",
+              "description": "FY 2025: Gross Profit - Operating Expenses = Net Income",
+              "expected_value": 2500000,
+              "actual_value": 2500000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Gross Profit, Column: FY 2025",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2025",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2025"
+              ],
+              "code_executed": "gp_2025 = 3500 * 1000\nopex_2025 = 1000 * 1000\nni_2025 = 2500 * 1000\n# Calculation: Gross Profit - Operating Expenses\ncalculated_ni = gp_2025 - opex_2025\ncheck_passed = calculated_ni == ni_2025"
+            },
+            {
+              "fsli_name": "Operating Expenses",
+              "check_type": "in_table_sum",
+              "description": "FY 2024: Gross Profit - Operating Expenses = Net Income",
+              "expected_value": -700000,
+              "actual_value": -700000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Gross Profit, Column: FY 2024",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2024",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2024"
+              ],
+              "code_executed": "gp_2024 = 200 * 1000\nopex_2024 = 900 * 1000\nni_2024 = -700 * 1000\n# Calculation: Gross Profit - Operating Expenses\ncalculated_ni = gp_2024 - opex_2024\ncheck_passed = calculated_ni == ni_2024"
+            },
+            {
+              "fsli_name": "Operating Expenses",
+              "check_type": "in_table_sum",
+              "description": "FY 2025: Revenue - Cost of Goods Sold - Operating Expenses = Net Income",
+              "expected_value": 2500000,
+              "actual_value": 2000000,
+              "check_passed": false,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Revenue, Column: FY 2025",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Cost of Goods Sold, Column: FY 2025",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2025",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2025"
+              ],
+              "code_executed": "rev_2025 = 5000 * 1000\ncogs_2025 = 2000 * 1000\nopex_2025 = 1000 * 1000\nni_2025_stated = 2500 * 1000\n# Calculation: Revenue - COGS - Operating Expenses\ncalculated_ni = rev_2025 - cogs_2025 - opex_2025\ncheck_passed = calculated_ni == ni_2025_stated"
+            },
+            {
+              "fsli_name": "Operating Expenses",
+              "check_type": "in_table_sum",
+              "description": "FY 2024: Revenue - Cost of Goods Sold - Operating Expenses = Net Income",
+              "expected_value": -700000,
+              "actual_value": -700000,
+              "check_passed": true,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Revenue, Column: FY 2024",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Cost of Goods Sold, Column: FY 2024",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2024",
+                "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2024"
+              ],
+              "code_executed": "rev_2024 = 1000 * 1000\ncogs_2024 = 800 * 1000\nopex_2024 = 900 * 1000\nni_2024_stated = -700 * 1000\n# Calculation: Revenue - COGS - Operating Expenses\ncalculated_ni = rev_2024 - cogs_2024 - opex_2024\ncheck_passed = calculated_ni == ni_2024_stated"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490628.760525,
+      "delay_ms": 42183
+    },
+    {
+      "event_number": 34,
+      "type": "AgentEvent",
+      "author": "disclosure_compliance",
+      "branch": "audit_orchestrator.disclosure_compliance",
+      "state_delta": {
+        "active_heavy_agents": 0
+      },
+      "is_final": false,
+      "timestamp": 1769490634.174889,
+      "delay_ms": 5414
+    },
+    {
+      "event_number": 36,
+      "type": "AgentEvent",
+      "author": "verify_Net_Income",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_5.verify_Net_Income",
+      "state_delta": {
+        "checks:Net Income": {
+          "checks": [
+            {
+              "fsli_name": "Net Income",
+              "check_type": "in_table_sum",
+              "description": "FY 2025 Net Income calculated from Gross Profit and Operating Expenses",
+              "expected_value": 2500000,
+              "actual_value": 2500000,
+              "check_passed": true,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "fy2025_gp = 3500000\nfy2025_opex = 1000000\nexpected_ni = fy2025_gp - fy2025_opex\nprint(expected_ni)"
+            },
+            {
+              "fsli_name": "Net Income",
+              "check_type": "in_table_sum",
+              "description": "FY 2025 Net Income calculated from Revenue, COGS, and Operating Expenses",
+              "expected_value": 2000000,
+              "actual_value": 2500000,
+              "check_passed": false,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "fy2025_rev = 5000000\nfy2025_cogs = 2000000\nfy2025_opex = 1000000\nexpected_ni = fy2025_rev - fy2025_cogs - fy2025_opex\nprint(expected_ni)"
+            },
+            {
+              "fsli_name": "Net Income",
+              "check_type": "in_table_sum",
+              "description": "FY 2024 Net Income calculated from Gross Profit and Operating Expenses",
+              "expected_value": -700000,
+              "actual_value": -700000,
+              "check_passed": true,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "fy2024_gp = 200000\nfy2024_opex = 900000\nexpected_ni = fy2024_gp - fy2024_opex\nprint(expected_ni)"
+            },
+            {
+              "fsli_name": "Net Income",
+              "check_type": "in_table_sum",
+              "description": "FY 2024 Net Income calculated from Revenue, COGS, and Operating Expenses",
+              "expected_value": -700000,
+              "actual_value": -700000,
+              "check_passed": true,
+              "source_refs": [
+                "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ],
+              "code_executed": "fy2024_rev = 1000000\nfy2024_cogs = 800000\nfy2024_opex = 900000\nexpected_ni = fy2024_rev - fy2024_cogs - fy2024_opex\nprint(expected_ni)"
+            }
+          ]
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490669.822649,
+      "delay_ms": 35647
+    },
+    {
+      "event_number": 38,
+      "type": "AgentEvent",
+      "author": "verify_Property__plant__and_equipment",
+      "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_6.verify_Property__plant__and_equipment",
+      "state_delta": {
+        "checks:Property, plant, and equipment": {
+          "checks": []
+        }
+      },
+      "is_final": false,
+      "timestamp": 1769490745.95718,
+      "delay_ms": 76134
+    },
+    {
+      "event_number": 40,
+      "type": "AgentEvent",
+      "author": "ReviewerAgent",
+      "branch": "audit_orchestrator.numeric_validation",
+      "state_delta": {
+        "reviewer_output": {
+          "findings": [
+            {
+              "fsli_name": "Gross Profit",
+              "summary": "Reported Gross Profit ($3,500) does not match the calculated value ($3,000) derived from Revenue ($5,000) and Cost of Goods Sold ($2,000).",
+              "severity": "high",
+              "expected_value": 3000,
+              "actual_value": 3500,
+              "discrepancy": 500,
+              "source_refs": [
+                "CONSOLIDATED STATEMENTS OF OPERATIONS"
+              ]
+            },
+            {
+              "fsli_name": "Revenue Growth",
+              "summary": "MD&A claims 500% revenue growth ($5,000k vs $1,000k), but the calculated growth rate is 400%.",
+              "severity": "high",
+              "expected_value": 400,
+              "actual_value": 500,
+              "discrepancy": 100,
+              "source_refs": [
+                "MANAGEMENT DISCUSSION & ANALYSIS (MD&A)"
+              ]
+            }
+          ]
+        }
+      },
+      "is_final": true,
+      "timestamp": 1769490816.062491,
+      "delay_ms": 70105
+    }
+  ],
+  "final_state": {
+    "active_heavy_agents": 0,
+    "extractor_output": {
+      "fsli_names": [
+        "Revenue",
+        "Cost of Goods Sold",
+        "Gross Profit",
+        "Operating Expenses",
+        "Net Income",
+        "Property, plant, and equipment"
+      ]
+    },
+    "internet_to_report_findings": {
+      "error": {
+        "is_error": true,
+        "agent_name": "internet_to_report",
+        "error_type": "rate_limit",
+        "error_message": "Deep Research tool failed due to quota exhaustion (Error code 429). Unable to retrieve external signals for Veritas Tech Inc. for fiscal year 2025."
+      },
+      "findings": []
+    },
+    "report_to_internet_findings": {
+      "error": {
+        "is_error": true,
+        "agent_name": "report_to_internet",
+        "error_type": "rate_limit",
+        "error_message": "Deep Research tool failed with status 429: Quota exceeded for Global Deep Research Agent requests."
+      },
+      "verifications": []
+    },
+    "scanner_output": {
+      "applicable_standards": [
+        "IAS 1",
+        "IFRS 15",
+        "IAS 2",
+        "IAS 16",
+        "IFRS 10",
+        "IFRS 12",
+        "IAS 33",
+        "IAS 19"
+      ]
+    },
+    "detector_output": {
+      "findings": [
+        {
+          "fsli_name": "Revenue",
+          "claim": "Achieved 500% revenue growth ($5,000k vs $1,000k) through sheer manual effort of the remaining team (15 employees) despite closing all manufacturing facilities",
+          "contradiction": "Operational impossibility: Generating 5x revenue growth in a hardware business while closing all production facilities and reducing workforce by 85% violates business logic.",
+          "severity": "high",
+          "reasoning": "Revenue increased from $1M to $5M, implying a 5x increase in product volume (assuming stable pricing). However, the company closed 'all three manufacturing facilities' and reduced headcount to 15 people. The MD&A attributes this to 'manual effort', but it is physically impossible for 15 people to manually produce 5x the output of a previously larger workforce supported by three factories. There is no mention of outsourcing to explain the production volume.",
+          "source_refs": [
+            "Income Statement (Revenue)",
+            "MD&A Paragraph 1"
+          ]
+        },
+        {
+          "fsli_name": "Market Share",
+          "claim": "Market share increased to 25%, while primary competitor (80% share) doubled their sales",
+          "contradiction": "The combined market share claims result in a total market exceeding 100%, which is mathematically impossible.",
+          "severity": "high",
+          "reasoning": "In FY 2024, Veritas had $1M revenue (10% share), implying a Total Market of $10M. The competitor (80% share) had $8M revenue. In FY 2025, the competitor doubled sales to $16M. Veritas had $5M revenue. If Veritas's $5M represents a 25% market share, the implied Total Market is $20M ($5M / 0.25). However, the competitor's $16M revenue alone would represent 80% of that $20M market. Veritas (25%) + Competitor (80%) = 105%, leaving no room for other players and exceeding 100%.",
+          "source_refs": [
+            "MD&A Paragraph 2",
+            "Income Statement (Revenue)"
+          ]
+        },
+        {
+          "fsli_name": "Depreciation Expense",
+          "claim": "Recorded $450k in depreciation expense for the full year ended December 31, 2025, for machinery decommissioned on January 1, 2025",
+          "contradiction": "Temporal contradiction: Depreciation was recorded for a period after the asset was removed from service.",
+          "severity": "medium",
+          "reasoning": "The note states the facility was closed and machinery decommissioned/listed for sale on Jan 1, 2025. Standard accounting logic dictates that depreciation ceases when an asset is retired from active use and held for sale. Charging 'full year' depreciation for an asset not in use during that year is logically inconsistent with the stated timeline.",
+          "source_refs": [
+            "Note 4: Property, Plant, and Equipment"
+          ]
+        }
+      ]
+    },
+    "checks:Revenue": {
+      "checks": [
+        {
+          "fsli_name": "Revenue",
+          "check_type": "cross_table_consistency",
+          "description": "Verify FY 2025 Revenue in Statement of Operations matches MD&A value",
+          "expected_value": 5000000,
+          "actual_value": 5000000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS",
+            "MANAGEMENT DISCUSSION & ANALYSIS"
+          ],
+          "code_executed": "rev_2025_table = 5000 * 1000\nrev_2025_text = 5000 * 1000\ncheck_passed = (rev_2025_table == rev_2025_text)"
+        },
+        {
+          "fsli_name": "Revenue",
+          "check_type": "cross_table_consistency",
+          "description": "Verify FY 2024 Revenue in Statement of Operations matches MD&A value",
+          "expected_value": 1000000,
+          "actual_value": 1000000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS",
+            "MANAGEMENT DISCUSSION & ANALYSIS"
+          ],
+          "code_executed": "rev_2024_table = 1000 * 1000\nrev_2024_text = 1000 * 1000\ncheck_passed = (rev_2024_table == rev_2024_text)"
+        },
+        {
+          "fsli_name": "Revenue",
+          "check_type": "in_table_sum",
+          "description": "Verify FY 2025 Revenue relationship with Gross Profit and Cost of Goods Sold",
+          "expected_value": 5500000,
+          "actual_value": 5000000,
+          "check_passed": false,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "gp_2025 = 3500 * 1000\ncogs_2025 = 2000 * 1000\nexpected_rev = gp_2025 + cogs_2025"
+        },
+        {
+          "fsli_name": "Revenue",
+          "check_type": "in_table_sum",
+          "description": "Verify FY 2024 Revenue relationship with Gross Profit and Cost of Goods Sold",
+          "expected_value": 1000000,
+          "actual_value": 1000000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "gp_2024 = 200 * 1000\ncogs_2024 = 800 * 1000\nexpected_rev = gp_2024 + cogs_2024"
+        },
+        {
+          "fsli_name": "Revenue",
+          "check_type": "in_table_sum",
+          "description": "Verify Revenue value matches the claimed 500% growth rate in MD&A",
+          "expected_value": 6000000,
+          "actual_value": 5000000,
+          "check_passed": false,
+          "source_refs": [
+            "MANAGEMENT DISCUSSION & ANALYSIS"
+          ],
+          "code_executed": "rev_2024 = 1000 * 1000\ngrowth_rate = 5.0\nexpected_rev_2025 = rev_2024 * (1 + growth_rate)"
+        }
+      ]
+    },
+    "disclosure_findings:IAS 33": {
+      "findings": [
+        {
+          "standard": "IAS 33",
+          "disclosure_id": "IAS33-D10",
+          "requirement": "Presentation of Basic and Diluted EPS",
+          "severity": "high",
+          "description": "66 An entity shall present in the statement of comprehensive income basic and diluted earnings per share for profit or loss from continuing operations attributable to the ordinary equity holders of the parent entity and for profit or loss attributable to the ordinary equity holders of the parent entity for the period for each class of ordinary shares that has a different right to share in profit for the period. An entity shall present basic and diluted earnings per share with equal prominence for all periods presented."
+        },
+        {
+          "standard": "IAS 33",
+          "disclosure_id": "IAS33-D17",
+          "requirement": "Disclosure of Numerators for EPS",
+          "severity": "medium",
+          "description": "(a) the amounts used as the numerators in calculating basic and diluted earnings per share, and a reconciliation of those amounts to profit or loss attributable to the parent entity for the period. The reconciliation should include the individual effect of each class of instruments that affects earnings per share;"
+        },
+        {
+          "standard": "IAS 33",
+          "disclosure_id": "IAS33-D18",
+          "requirement": "Disclosure of Denominators (Weighted Average Shares)",
+          "severity": "medium",
+          "description": "(b) the weighted average number of ordinary shares used as the denominator in calculating basic and diluted earnings per share, and a reconciliation of these denominators to each other. The reconciliation should include the individual effect of each class of instruments that affects earnings per share; and"
+        }
+      ]
+    },
+    "disclosure_findings:IAS 2": {
+      "findings": [
+        {
+          "standard": "IAS 2",
+          "disclosure_id": "IAS2-D1",
+          "requirement": "Inventories, including the cost formula used",
+          "severity": "high",
+          "description": "The financial statements are missing the accounting policy for inventories, specifically the cost formula used (for example, FIFO or weighted average cost)."
+        },
+        {
+          "standard": "IAS 2",
+          "disclosure_id": "IAS2-D11",
+          "requirement": "Carrying amount of inventories and sub-classification",
+          "severity": "high",
+          "description": "The document lacks a disclosure of the carrying amount of inventories in total and sub-classified by main categories appropriate to the entity (e.g., merchandise, materials, finished goods)."
+        },
+        {
+          "standard": "IAS 2",
+          "disclosure_id": "IAS2-D2",
+          "requirement": "Contracts with Customers - Performance obligations",
+          "severity": "high",
+          "description": "There is no disclosure regarding performance obligations in contracts with customers found in the document."
+        },
+        {
+          "standard": "IAS 2",
+          "disclosure_id": "IAS2-D3",
+          "requirement": "Information about performance obligations",
+          "severity": "medium",
+          "description": "Disclosures describing performance obligations, including when they are typically satisfied, payment terms, and the nature of goods/services promised, are missing."
+        },
+        {
+          "standard": "IAS 2",
+          "disclosure_id": "IAS2-D18",
+          "requirement": "Trade and other receivables",
+          "severity": "high",
+          "description": "No disclosure was found regarding trade and other receivables."
+        }
+      ]
+    },
+    "disclosure_findings:IFRS 12": {
+      "findings": [
+        {
+          "standard": "IFRS 12",
+          "disclosure_id": "IFRS12-D2",
+          "requirement": "Present information separately for interests in subsidiaries, joint ventures, etc.",
+          "severity": "high",
+          "description": "The financial statements are titled 'Consolidated Statements of Operations', which indicates the existence of subsidiaries. However, the provided document presents no information regarding the entity's interests in subsidiaries, failing the requirement to present information separately for interests in subsidiaries."
+        }
+      ]
+    },
+    "disclosure_findings:IAS 1": {
+      "findings": [
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D3",
+          "requirement": "Statement of financial position",
+          "severity": "high",
+          "description": "A statement of financial position at the period end date is required. The provided document only contains a Statement of Operations."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D5",
+          "requirement": "Statement of changes in equity",
+          "severity": "high",
+          "description": "A statement of changes in equity for the period is required. No such statement was found in the provided text."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D6",
+          "requirement": "Statement of cash flows",
+          "severity": "high",
+          "description": "A statement of cash flows for the period is required. No such statement was found in the provided text."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D15",
+          "requirement": "Statement of compliance with IFRS",
+          "severity": "high",
+          "description": "An explicit and unreserved statement in the notes that the financial statements comply with IFRS is required. This statement is missing."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D26",
+          "requirement": "Basis of preparation and accounting policies",
+          "severity": "high",
+          "description": "Notes disclosing the basis of preparation of the financial statements and specific accounting policies used are required. Only Note 4 (PPE) was provided; general policy notes are missing."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D116",
+          "requirement": "Tax expense line item",
+          "severity": "medium",
+          "description": "The statement of profit or loss must present a line item for tax expense. The provided Statement of Operations calculates Net Income directly from Operating Expenses without showing Tax Expense."
+        },
+        {
+          "standard": "IAS 1",
+          "disclosure_id": "IAS1-D117",
+          "requirement": "Discontinued operations line item",
+          "severity": "medium",
+          "description": "A single amount for the total of discontinued operations is required in the statement of profit or loss. Note 4 and MD&A indicate the closure of all manufacturing facilities and decommissioning of machinery, which likely constitutes a discontinued operation under IFRS 5, yet no separate line item is presented."
+        }
+      ]
+    },
+    "reviewer_output": {
+      "findings": [
+        {
+          "fsli_name": "Gross Profit",
+          "summary": "Reported Gross Profit ($3,500) does not match the calculated value ($3,000) derived from Revenue ($5,000) and Cost of Goods Sold ($2,000).",
+          "severity": "high",
+          "expected_value": 3000,
+          "actual_value": 3500,
+          "discrepancy": 500,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ]
+        },
+        {
+          "fsli_name": "Revenue Growth",
+          "summary": "MD&A claims 500% revenue growth ($5,000k vs $1,000k), but the calculated growth rate is 400%.",
+          "severity": "high",
+          "expected_value": 400,
+          "actual_value": 500,
+          "discrepancy": 100,
+          "source_refs": [
+            "MANAGEMENT DISCUSSION & ANALYSIS (MD&A)"
+          ]
+        }
+      ]
+    },
+    "checks:Cost of Goods Sold": {
+      "checks": [
+        {
+          "fsli_name": "Cost of Goods Sold",
+          "check_type": "in_table_sum",
+          "description": "Consistency check for FY 2025: Calculated Cost of Goods Sold (Revenue - Gross Profit) vs Reported Cost of Goods Sold",
+          "expected_value": 1500000,
+          "actual_value": 2000000,
+          "check_passed": false,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "revenue_2025 = 5000 * 1000\ngp_2025 = 3500 * 1000\n\n# COGS = Revenue - Gross Profit\nexpected_cogs_2025 = revenue_2025 - gp_2025\nreported_cogs_2025 = 2000 * 1000\n\nprint(f'Expected: {expected_cogs_2025}, Actual: {reported_cogs_2025}')"
+        },
+        {
+          "fsli_name": "Cost of Goods Sold",
+          "check_type": "in_table_sum",
+          "description": "Consistency check for FY 2024: Calculated Cost of Goods Sold (Revenue - Gross Profit) vs Reported Cost of Goods Sold",
+          "expected_value": 800000,
+          "actual_value": 800000,
+          "check_passed": true,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "revenue_2024 = 1000 * 1000\ngp_2024 = 200 * 1000\n\n# COGS = Revenue - Gross Profit\nexpected_cogs_2024 = revenue_2024 - gp_2024\nreported_cogs_2024 = 800 * 1000\n\nprint(f'Expected: {expected_cogs_2024}, Actual: {reported_cogs_2024}')"
+        }
+      ]
+    },
+    "checks:Gross Profit": {
+      "checks": [
+        {
+          "fsli_name": "Gross Profit",
+          "check_type": "in_table_sum",
+          "description": "Verify Gross Profit calculation for FY 2025 in Consolidated Statements of Operations (Revenue - Cost of Goods Sold)",
+          "expected_value": 3000000,
+          "actual_value": 3500000,
+          "check_passed": false,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "rev_2025 = 5000 * 1000\ncogs_2025 = 2000 * 1000\ngp_2025_actual = 3500 * 1000\ngp_2025_expected = rev_2025 - cogs_2025"
+        },
+        {
+          "fsli_name": "Gross Profit",
+          "check_type": "in_table_sum",
+          "description": "Verify Gross Profit calculation for FY 2024 in Consolidated Statements of Operations (Revenue - Cost of Goods Sold)",
+          "expected_value": 200000,
+          "actual_value": 200000,
+          "check_passed": true,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "rev_2024 = 1000 * 1000\ncogs_2024 = 800 * 1000\ngp_2024_actual = 200 * 1000\ngp_2024_expected = rev_2024 - cogs_2024"
+        }
+      ]
+    },
+    "disclosure_findings:IAS 19": {
+      "findings": [
+        {
+          "standard": "IAS 19",
+          "disclosure_id": "IAS19-D1",
+          "requirement": "Disclosure of employee benefits expense",
+          "severity": "high",
+          "description": "IAS 19 does not require specific disclosures about short-term employee benefits, but other IFRSs may require disclosures. For example, IAS 24 requires disclosures about employee benefits for key management personnel. IAS 1 requires disclosure of employee benefits expense. (see also A5.19.7)"
+        },
+        {
+          "standard": "IAS 19",
+          "disclosure_id": "IAS19-D3",
+          "requirement": "Disclose expense for defined contribution plans",
+          "severity": "medium",
+          "description": "Disclose the amount recognised as an expense for defined contribution plans."
+        }
+      ]
+    },
+    "checks:Operating Expenses": {
+      "checks": [
+        {
+          "fsli_name": "Operating Expenses",
+          "check_type": "in_table_sum",
+          "description": "FY 2025: Gross Profit - Operating Expenses = Net Income",
+          "expected_value": 2500000,
+          "actual_value": 2500000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Gross Profit, Column: FY 2025",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2025",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2025"
+          ],
+          "code_executed": "gp_2025 = 3500 * 1000\nopex_2025 = 1000 * 1000\nni_2025 = 2500 * 1000\n# Calculation: Gross Profit - Operating Expenses\ncalculated_ni = gp_2025 - opex_2025\ncheck_passed = calculated_ni == ni_2025"
+        },
+        {
+          "fsli_name": "Operating Expenses",
+          "check_type": "in_table_sum",
+          "description": "FY 2024: Gross Profit - Operating Expenses = Net Income",
+          "expected_value": -700000,
+          "actual_value": -700000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Gross Profit, Column: FY 2024",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2024",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2024"
+          ],
+          "code_executed": "gp_2024 = 200 * 1000\nopex_2024 = 900 * 1000\nni_2024 = -700 * 1000\n# Calculation: Gross Profit - Operating Expenses\ncalculated_ni = gp_2024 - opex_2024\ncheck_passed = calculated_ni == ni_2024"
+        },
+        {
+          "fsli_name": "Operating Expenses",
+          "check_type": "in_table_sum",
+          "description": "FY 2025: Revenue - Cost of Goods Sold - Operating Expenses = Net Income",
+          "expected_value": 2500000,
+          "actual_value": 2000000,
+          "check_passed": false,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Revenue, Column: FY 2025",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Cost of Goods Sold, Column: FY 2025",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2025",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2025"
+          ],
+          "code_executed": "rev_2025 = 5000 * 1000\ncogs_2025 = 2000 * 1000\nopex_2025 = 1000 * 1000\nni_2025_stated = 2500 * 1000\n# Calculation: Revenue - COGS - Operating Expenses\ncalculated_ni = rev_2025 - cogs_2025 - opex_2025\ncheck_passed = calculated_ni == ni_2025_stated"
+        },
+        {
+          "fsli_name": "Operating Expenses",
+          "check_type": "in_table_sum",
+          "description": "FY 2024: Revenue - Cost of Goods Sold - Operating Expenses = Net Income",
+          "expected_value": -700000,
+          "actual_value": -700000,
+          "check_passed": true,
+          "source_refs": [
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Revenue, Column: FY 2024",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Cost of Goods Sold, Column: FY 2024",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Operating Expenses, Column: FY 2024",
+            "CONSOLIDATED STATEMENTS OF OPERATIONS, Row: Net Income, Column: FY 2024"
+          ],
+          "code_executed": "rev_2024 = 1000 * 1000\ncogs_2024 = 800 * 1000\nopex_2024 = 900 * 1000\nni_2024_stated = -700 * 1000\n# Calculation: Revenue - COGS - Operating Expenses\ncalculated_ni = rev_2024 - cogs_2024 - opex_2024\ncheck_passed = calculated_ni == ni_2024_stated"
+        }
+      ]
+    },
+    "checks:Net Income": {
+      "checks": [
+        {
+          "fsli_name": "Net Income",
+          "check_type": "in_table_sum",
+          "description": "FY 2025 Net Income calculated from Gross Profit and Operating Expenses",
+          "expected_value": 2500000,
+          "actual_value": 2500000,
+          "check_passed": true,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "fy2025_gp = 3500000\nfy2025_opex = 1000000\nexpected_ni = fy2025_gp - fy2025_opex\nprint(expected_ni)"
+        },
+        {
+          "fsli_name": "Net Income",
+          "check_type": "in_table_sum",
+          "description": "FY 2025 Net Income calculated from Revenue, COGS, and Operating Expenses",
+          "expected_value": 2000000,
+          "actual_value": 2500000,
+          "check_passed": false,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "fy2025_rev = 5000000\nfy2025_cogs = 2000000\nfy2025_opex = 1000000\nexpected_ni = fy2025_rev - fy2025_cogs - fy2025_opex\nprint(expected_ni)"
+        },
+        {
+          "fsli_name": "Net Income",
+          "check_type": "in_table_sum",
+          "description": "FY 2024 Net Income calculated from Gross Profit and Operating Expenses",
+          "expected_value": -700000,
+          "actual_value": -700000,
+          "check_passed": true,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "fy2024_gp = 200000\nfy2024_opex = 900000\nexpected_ni = fy2024_gp - fy2024_opex\nprint(expected_ni)"
+        },
+        {
+          "fsli_name": "Net Income",
+          "check_type": "in_table_sum",
+          "description": "FY 2024 Net Income calculated from Revenue, COGS, and Operating Expenses",
+          "expected_value": -700000,
+          "actual_value": -700000,
+          "check_passed": true,
+          "source_refs": [
+            "VERITAS TECH INC. - CONSOLIDATED STATEMENTS OF OPERATIONS"
+          ],
+          "code_executed": "fy2024_rev = 1000000\nfy2024_cogs = 800000\nfy2024_opex = 900000\nexpected_ni = fy2024_rev - fy2024_cogs - fy2024_opex\nprint(expected_ni)"
+        }
+      ]
+    },
+    "checks:Property, plant, and equipment": {
+      "checks": []
+    }
+  }
+}
