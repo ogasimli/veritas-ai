@@ -163,7 +163,6 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
             </div>
             {errorResult && (
               <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900 dark:bg-red-900/20 dark:text-red-200">
-                <p className="font-semibold">Error</p>
                 <p className="mt-1">{errorResult.error}</p>
               </div>
             )}
