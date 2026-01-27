@@ -159,7 +159,6 @@ class DummyAgentService:
                 {
                     "type": "agent_completed",
                     "agent_id": agent_id,
-                    "findings_count": len(findings),
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             )
@@ -176,7 +175,6 @@ class DummyAgentService:
                 {
                     "type": "agent_completed",
                     "agent_id": agent_id,
-                    "findings_count": 0,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             )
@@ -188,13 +186,13 @@ class DummyAgentService:
 
         elif response_type == "error":
             error_data = config["error"]
-            # Send error message
+
+            # Send completion message (same as success/empty)
             await manager.send_to_audit(
                 str(job_id),
                 {
-                    "type": "agent_error",
+                    "type": "agent_completed",
                     "agent_id": agent_id,
-                    "error": error_data,
                     "timestamp": datetime.utcnow().isoformat(),
                 },
             )
