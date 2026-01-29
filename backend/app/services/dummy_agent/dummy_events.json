@@ -197,51 +197,51 @@
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D3",
-              "requirement": "Statement of financial position",
+              "reference": "IFRS15p126(b)",
               "severity": "high",
-              "description": "A statement of financial position at the period end date is required. The provided document only contains a Statement of Operations."
+              "requirement": "A statement of financial position at the period end date is required. The provided document only contains a Statement of Operations."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D5",
-              "requirement": "Statement of changes in equity",
+              "reference": "IFRS15p126(c)",
               "severity": "high",
-              "description": "A statement of changes in equity for the period is required. No such statement was found in the provided text."
+              "requirement": "A statement of changes in equity for the period is required. No such statement was found in the provided text."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D6",
-              "requirement": "Statement of cash flows",
+              "reference": "IFRS15p126(d)",
               "severity": "high",
-              "description": "A statement of cash flows for the period is required. No such statement was found in the provided text."
+              "requirement": "A statement of cash flows for the period is required. No such statement was found in the provided text."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D15",
-              "requirement": "Statement of compliance with IFRS",
+              "reference": "IFRS15p126(e)",
               "severity": "high",
-              "description": "An explicit and unreserved statement in the notes that the financial statements comply with IFRS is required. This statement is missing."
+              "requirement": "An explicit and unreserved statement in the notes that the financial statements comply with IFRS is required. This statement is missing."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D26",
-              "requirement": "Basis of preparation and accounting policies",
+              "reference": "IFRS15p126(f)",
               "severity": "high",
-              "description": "Notes disclosing the basis of preparation of the financial statements and specific accounting policies used are required. Only Note 4 (PPE) was provided; general policy notes are missing."
+              "requirement": "Notes disclosing the basis of preparation of the financial statements and specific accounting policies used are required. Only Note 4 (PPE) was provided; general policy notes are missing."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D116",
-              "requirement": "Tax expense line item",
+              "reference": "IFRS15p126(g)",
               "severity": "medium",
-              "description": "The statement of profit or loss must present a line item for tax expense. The provided Statement of Operations calculates Net Income directly from Operating Expenses without showing Tax Expense."
+              "requirement": "The statement of profit or loss must present a line item for tax expense. The provided Statement of Operations calculates Net Income directly from Operating Expenses without showing Tax Expense."
             },
             {
               "standard": "IAS 1",
               "disclosure_id": "IAS1-D117",
-              "requirement": "Discontinued operations line item",
+              "reference": "IFRS15p126(h)",
               "severity": "medium",
-              "description": "A single amount for the total of discontinued operations is required in the statement of profit or loss. Note 4 and MD&A indicate the closure of all manufacturing facilities and decommissioning of machinery, which likely constitutes a discontinued operation under IFRS 5, yet no separate line item is presented."
+              "requirement": "A single amount for the total of discontinued operations is required in the statement of profit or loss. Note 4 and MD&A indicate the closure of all manufacturing facilities and decommissioning of machinery, which likely constitutes a discontinued operation under IFRS 5, yet no separate line item is presented."
             }
           ]
         }
@@ -261,37 +261,37 @@
             {
               "standard": "IAS 2",
               "disclosure_id": "IAS2-D1",
-              "requirement": "Inventories, including the cost formula used",
+              "reference": "IFRS15p126(i)",
               "severity": "high",
-              "description": "The financial statements are missing the accounting policy for inventories, specifically the cost formula used (for example, FIFO or weighted average cost)."
+              "requirement": "The financial statements are missing the accounting policy for inventories, specifically the cost formula used (for example, FIFO or weighted average cost)."
             },
             {
               "standard": "IAS 2",
               "disclosure_id": "IAS2-D11",
-              "requirement": "Carrying amount of inventories and sub-classification",
+              "reference": "IFRS15p126(j)",
               "severity": "high",
-              "description": "The document lacks a disclosure of the carrying amount of inventories in total and sub-classified by main categories appropriate to the entity (e.g., merchandise, materials, finished goods)."
+              "requirement": "The document lacks a disclosure of the carrying amount of inventories in total and sub-classified by main categories appropriate to the entity (e.g., merchandise, materials, finished goods)."
             },
             {
               "standard": "IAS 2",
               "disclosure_id": "IAS2-D2",
-              "requirement": "Contracts with Customers - Performance obligations",
+              "reference": "IFRS15p126(k)",
               "severity": "high",
-              "description": "There is no disclosure regarding performance obligations in contracts with customers found in the document."
+              "requirement": "There is no disclosure regarding performance obligations in contracts with customers found in the document."
             },
             {
               "standard": "IAS 2",
               "disclosure_id": "IAS2-D3",
-              "requirement": "Information about performance obligations",
+              "reference": "IFRS15p126(l)",
               "severity": "medium",
-              "description": "Disclosures describing performance obligations, including when they are typically satisfied, payment terms, and the nature of goods/services promised, are missing."
+              "requirement": "Disclosures describing performance obligations, including when they are typically satisfied, payment terms, and the nature of goods/services promised, are missing."
             },
             {
               "standard": "IAS 2",
               "disclosure_id": "IAS2-D18",
-              "requirement": "Trade and other receivables",
+              "reference": "IFRS15p126(m)",
               "severity": "high",
-              "description": "No disclosure was found regarding trade and other receivables."
+              "requirement": "No disclosure was found regarding trade and other receivables."
             }
           ]
         }
@@ -311,9 +311,9 @@
             {
               "standard": "IFRS 12",
               "disclosure_id": "IFRS12-D2",
-              "requirement": "Present information separately for interests in subsidiaries, joint ventures, etc.",
+              "reference": "IFRS15p126(n)",
               "severity": "high",
-              "description": "The financial statements are titled 'Consolidated Statements of Operations', which indicates the existence of subsidiaries. However, the provided document presents no information regarding the entity's interests in subsidiaries, failing the requirement to present information separately for interests in subsidiaries."
+              "requirement": "Present information separately for interests in subsidiaries, joint ventures, etc."
             }
           ]
         }
@@ -333,23 +333,23 @@
             {
               "standard": "IAS 33",
               "disclosure_id": "IAS33-D10",
-              "requirement": "Presentation of Basic and Diluted EPS",
+              "reference": "IFRS15p126(o)",
               "severity": "high",
-              "description": "66 An entity shall present in the statement of comprehensive income basic and diluted earnings per share for profit or loss from continuing operations attributable to the ordinary equity holders of the parent entity and for profit or loss attributable to the ordinary equity holders of the parent entity for the period for each class of ordinary shares that has a different right to share in profit for the period. An entity shall present basic and diluted earnings per share with equal prominence for all periods presented."
+              "requirement": "Presentation of Basic and Diluted EPS"
             },
             {
               "standard": "IAS 33",
               "disclosure_id": "IAS33-D17",
-              "requirement": "Disclosure of Numerators for EPS",
+              "reference": "IFRS15p126(p)",
               "severity": "medium",
-              "description": "(a) the amounts used as the numerators in calculating basic and diluted earnings per share, and a reconciliation of those amounts to profit or loss attributable to the parent entity for the period. The reconciliation should include the individual effect of each class of instruments that affects earnings per share;"
+              "requirement": "Disclosure of Numerators for EPS"
             },
             {
               "standard": "IAS 33",
               "disclosure_id": "IAS33-D18",
-              "requirement": "Disclosure of Denominators (Weighted Average Shares)",
+              "reference": "IFRS15p126(q)",
               "severity": "medium",
-              "description": "(b) the weighted average number of ordinary shares used as the denominator in calculating basic and diluted earnings per share, and a reconciliation of these denominators to each other. The reconciliation should include the individual effect of each class of instruments that affects earnings per share; and"
+              "requirement": "Disclosure of Denominators (Weighted Average Shares)"
             }
           ]
         }
@@ -493,16 +493,16 @@
             {
               "standard": "IAS 19",
               "disclosure_id": "IAS19-D1",
-              "requirement": "Disclosure of employee benefits expense",
+              "reference": "IFRS15p126(l)",
               "severity": "high",
-              "description": "IAS 19 does not require specific disclosures about short-term employee benefits, but other IFRSs may require disclosures. For example, IAS 24 requires disclosures about employee benefits for key management personnel. IAS 1 requires disclosure of employee benefits expense. (see also A5.19.7)"
+              "requirement": "Disclosure of employee benefits expense"
             },
             {
               "standard": "IAS 19",
               "disclosure_id": "IAS19-D3",
-              "requirement": "Disclose expense for defined contribution plans",
+              "reference": "IFRS15p126(m)",
               "severity": "medium",
-              "description": "Disclose the amount recognised as an expense for defined contribution plans."
+              "requirement": "Disclose expense for defined contribution plans"
             }
           ]
         }
@@ -608,7 +608,22 @@
       "branch": "audit_orchestrator.disclosure_compliance",
       "state_delta": {
         "reviewer_output": {
-          "findings": []
+          "findings": [
+            {
+              "standard": "IAS 19",
+              "disclosure_id": "IAS19-D1",
+              "reference": "IFRS15p126(l)",
+              "severity": "high",
+              "requirement": "Disclosure of employee benefits expense"
+            },
+            {
+              "standard": "IAS 19",
+              "disclosure_id": "IAS19-D3",
+              "reference": "IFRS15p126(m)",
+              "severity": "medium",
+              "requirement": "Disclose expense for defined contribution plans"
+            }
+          ]
         }
       },
       "is_final": true,

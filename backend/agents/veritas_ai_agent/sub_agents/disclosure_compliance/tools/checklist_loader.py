@@ -19,16 +19,17 @@ def load_standard_checklist(standard_code: str) -> dict[str, Any]:
         standard_code: Standard identifier (e.g., "IAS 1", "IFRS 15")
 
     Returns:
-        Dictionary with standard name and list of disclosure requirements
+        Dictionary with standard name and flattened list of disclosure requirements
+        from all categories
 
     Example:
         {
             "name": "Revenue from Contracts with Customers",
             "disclosures": [
                 {
-                    "id": "IFRS15-D1",
-                    "requirement": "Contract balances",
-                    "description": "Opening and closing balances..."
+                    "id": "A1.1.1",
+                    "reference": "1p15, 1p27",
+                    "requirement": "Financial statements present fairly..."
                 }
             ]
         }
@@ -51,38 +52,12 @@ def load_standard_checklist(standard_code: str) -> dict[str, Any]:
             f"Available standards: {', '.join(sorted(available))}"
         )
 
-    return standards[standard_code]
+    # Each category has 'name' and 'disclosures' fields
+    categories = standards[standard_code]
 
+    # Flatten all disclosures from all categories
+    all_disclosures = []
+    for category in categories:
+        all_disclosures.extend(category.get("disclosures", []))
 
-def get_all_standards() -> list[str]:
-    """Get list of all available standard codes.
-
-    Returns:
-        List of standard codes (e.g., ['IAS 1', 'IFRS 15', ...])
-
-    Raises:
-        FileNotFoundError: If checklist file doesn't exist
-    """
-    if not CHECKLIST_PATH.exists():
-        raise FileNotFoundError(f"Checklist file not found at {CHECKLIST_PATH}")
-
-    with open(CHECKLIST_PATH) as f:
-        data = yaml.safe_load(f)
-
-    return list(data.get("standards", {}).keys())
-
-
-def get_disclosure_count(standard_code: str) -> int:
-    """Get count of disclosures for a standard.
-
-    Args:
-        standard_code: Standard identifier (e.g., "IAS 1")
-
-    Returns:
-        Number of disclosure requirements for the standard
-
-    Raises:
-        ValueError: If standard code is not found
-    """
-    checklist = load_standard_checklist(standard_code)
-    return len(checklist.get("disclosures", []))
+    return {"name": standard_code, "disclosures": all_disclosures}

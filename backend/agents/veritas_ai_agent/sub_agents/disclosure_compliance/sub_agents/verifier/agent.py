@@ -122,10 +122,10 @@ def create_disclosure_verifier_agent(
     disclosures_text += "Required disclosures to check:\n\n"
 
     for disclosure in checklist["disclosures"]:
-        disclosures_text += f"- **{disclosure['id']}**: {disclosure['requirement']}\n"
-        if disclosure["description"] != disclosure["requirement"]:
-            disclosures_text += f"  Details: {disclosure['description']}\n"
-        disclosures_text += "\n"
+        # Reference is now prepended in the prompt as well for consistency
+        ref = disclosure.get("reference", "")
+        req = disclosure.get("requirement", "")
+        disclosures_text += f"- **{disclosure['id']}**: {ref}: {req}\n\n"
 
     full_instruction = base_instruction + disclosures_text
 

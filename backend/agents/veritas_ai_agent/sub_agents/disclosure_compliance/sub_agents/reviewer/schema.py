@@ -8,14 +8,14 @@ class ConfirmedFinding(BaseModel):
 
     standard: str = Field(description="Standard code (e.g., 'IAS 1', 'IFRS 15')")
     disclosure_id: str = Field(
-        description="Disclosure ID from checklist (e.g., 'IAS1-D5')"
+        description="Disclosure ID from checklist (e.g., 'G.6.18')"
     )
-    requirement: str = Field(description="Short requirement title")
+    reference: str = Field(
+        description="Disclosure reference from checklist (e.g., 'IFRS15p118(c)')"
+    )
+    requirement: str = Field(description="Full disclosure requirement from checklist")
     severity: Literal["low", "medium", "high"] = Field(
-        description="Severity level from verifier"
-    )
-    description: str = Field(
-        description="Full description of the missing disclosure requirement"
+        description="Severity level based on importance"
     )
 
 

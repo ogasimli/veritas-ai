@@ -9,13 +9,13 @@ from uuid import UUID
 from google.adk.runners import InMemoryRunner
 from google.genai.types import Part, UserContent
 from sqlalchemy.ext.asyncio import AsyncSession
+from veritas_ai_agent import app
 
 from app.config import get_settings
 from app.models.finding import AgentResult as AgentResultModel
 from app.models.job import Job
 from app.services.dummy_agent.dummy_agent_service import DummyAgentService
 from app.services.websocket_manager import manager
-from veritas_ai_agent import app
 
 
 @dataclass
@@ -88,12 +88,12 @@ class DocumentProcessor:
                 ),
                 category="disclosure",
                 db_transformer=lambda f: {
-                    "description": f.get("description", ""),
+                    "description": f"{f.get('reference', '')}: {f.get('requirement', '')}",
                     "severity": f.get("severity", "medium"),
                     "source_refs": [],
                     "reasoning": f"Standard: {f.get('standard')}\n"
-                    f"ID: {f.get('disclosure_id')}\n\n"
-                    f"requirement: {f.get('requirement', '')}",
+                    f"ID: {f.get('disclosure_id')}\n"
+                    f"requirement: {f.get('reference', '')}: {f.get('requirement', '')}",
                 },
             ),
             AgentConfig(
