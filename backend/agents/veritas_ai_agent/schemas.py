@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -17,4 +19,4 @@ class AgentError(BaseModel):
 class BaseAgentOutput(BaseModel):
     """Base schema for agent outputs that might include errors."""
 
-    error: AgentError | None = None
+    error: Optional[AgentError] = None

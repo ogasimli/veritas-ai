@@ -22,11 +22,30 @@ class DeepResearchClient:
 
     def __init__(self):
         """Initialize Deep Research client."""
-        self.client = genai.Client()
+        import os
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            # Use AI Studio (Google Generative AI)
+            self.client = genai.Client(api_key=api_key)
+        else:
+            # Fallback to Vertex AI (Default)
+            self.client = genai.Client()
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
+    async def _create_interaction(self, **kwargs):
+        """Create interaction with retry logic."""
+        return await self.client.aio.interactions.create(**kwargs)
+
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    async def _get_interaction(self, interaction_id):
+        """Get interaction status with retry logic."""
+        return await self.client.aio.interactions.get(interaction_id)
+
     async def run_research(
         self,
         query: str,
@@ -49,7 +68,7 @@ class DeepResearchClient:
 
         try:
             # Create Deep Research interaction via Interactions API (Async)
-            interaction = await self.client.aio.interactions.create(
+            interaction = await self._create_interaction(
                 input=query,
                 agent="deep-research-pro-preview-12-2025",
                 background=True,
@@ -77,7 +96,7 @@ class DeepResearchClient:
                     )
 
                 # Get current status (Async)
-                interaction = await self.client.aio.interactions.get(interaction.id)
+                interaction = await self._get_interaction(interaction.id)
 
                 if interaction.status == "completed":
                     outputs = getattr(interaction, "outputs", [])

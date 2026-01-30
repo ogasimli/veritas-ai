@@ -61,6 +61,8 @@ ignore = ["E501", "C901", "B006", "E402"] # ignore line too long, too complex
                                      
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"veritas_ai_agent/schemas.py" = ["UP045"]
+"veritas_ai_agent/**/schema*.py" = ["UP045"]
 
 [tool.ty]
 # ty is Astral's Rust-based type checker (same team as ruff/uv)
