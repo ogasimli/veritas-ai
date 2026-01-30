@@ -49,6 +49,20 @@ export function AuditList() {
     },
   })
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (editingId && editName.trim()) {
+        updateMutation.mutate({ id: editingId, name: editName })
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      setEditingId(null)
+    }
+  }
+
   const handleStartEdit = (e: React.MouseEvent, audit: Audit) => {
     e.preventDefault()
     e.stopPropagation()
@@ -143,22 +157,22 @@ export function AuditList() {
         const isActive = pathname === `/audit/${audit.id}`
         const isEditing = editingId === audit.id
 
-        return (
-          <Link
-            key={audit.id}
-            href={`/audit/${audit.id}`}
-            className={`group relative block rounded-lg border-l-4 px-4 py-3 transition-all duration-200 ${isActive
-              ? 'border-blue-500 bg-blue-50 shadow-sm dark:bg-blue-900/20'
-              : 'border-transparent bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm dark:bg-slate-900 dark:hover:bg-slate-800'
-              }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              {isEditing ? (
-                <div className="flex flex-1 items-center gap-2" onClick={(e) => e.preventDefault()}>
+        if (isEditing) {
+          return (
+            <div
+              key={audit.id}
+              className={`group relative block rounded-lg border-l-4 px-4 py-3 transition-all duration-200 ${isActive
+                ? 'border-blue-500 bg-blue-50 shadow-sm dark:bg-blue-900/20'
+                : 'border-transparent bg-white shadow-sm dark:bg-slate-900'
+                }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-1 items-center gap-2">
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="h-8 w-full rounded border border-slate-300 px-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
@@ -176,31 +190,42 @@ export function AuditList() {
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-              ) : (
-                <span className="truncate font-medium text-slate-900 dark:text-white">
-                  {audit.name}
-                </span>
-              )}
+              </div>
+            </div>
+          )
+        }
 
-              {!isEditing && (
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(audit.status)}
-                  <div className="opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
-                    <button
-                      onClick={(e) => handleStartEdit(e, audit)}
-                      className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(e, audit.id)}
-                      className="rounded p-1 text-slate-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+        return (
+          <Link
+            key={audit.id}
+            href={`/audit/${audit.id}`}
+            className={`group relative block rounded-lg border-l-4 px-4 py-3 transition-all duration-200 ${isActive
+              ? 'border-blue-500 bg-blue-50 shadow-sm dark:bg-blue-900/20'
+              : 'border-transparent bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm dark:bg-slate-900 dark:hover:bg-slate-800'
+              }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate font-medium text-slate-900 dark:text-white">
+                {audit.name}
+              </span>
+
+              <div className="flex items-center gap-2">
+                {getStatusBadge(audit.status)}
+                <div className="opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
+                  <button
+                    onClick={(e) => handleStartEdit(e, audit)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteClick(e, audit.id)}
+                    className="rounded p-1 text-slate-400 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </Link>
         )

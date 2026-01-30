@@ -101,7 +101,7 @@ async def upload_document(
     count_result = await db.execute(count_stmt)
     count = count_result.scalar_one()
 
-    default_name = f"Audit #{count + 1:03d}"
+    default_name = f"Report #{count + 1}"
 
     # 2. Create a new Job
     job = Job(status="processing", name=default_name)
