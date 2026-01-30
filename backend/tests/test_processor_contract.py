@@ -93,28 +93,26 @@ async def test_processor_extraction_contract():
             }
         },
         "external_signal": {
-            "internet_to_report_findings": {
+            "external_signal_findings": {
                 "findings": [
                     {
-                        "signal_type": "news",
+                        "finding_type": "external_signal",
                         "summary": "Major lawsuit filed against company",
-                        "source_url": "https://reuters.com/news/123",
-                        "publication_date": "2025-06-15",
-                        "potential_contradiction": "Contradicts 'No pending litigation' claim",
-                    }
-                ]
-            },
-            "report_to_internet_findings": {
-                "verifications": [
+                        "severity": "medium",
+                        "source_urls": ["https://reuters.com/news/123"],
+                        "category": "litigation",
+                        "details": "Publication date: 2025-06-15\nPotential contradiction: Contradicts 'No pending litigation' claim",
+                    },
                     {
-                        "claim": "Headquartered in London",
-                        "status": "CONTRADICTED",
-                        "evidence_summary": "Registry shows HQ moved to Paris in 2024",
+                        "finding_type": "claim_contradiction",
+                        "summary": "CONTRADICTED: Headquartered in London",
+                        "severity": "high",
                         "source_urls": ["https://company-registry.gov/uk"],
-                        "discrepancy": "Location mismatch",
-                    }
+                        "category": "claim_verification",
+                        "details": "Claim: Headquartered in London\nStatus: CONTRADICTED\nEvidence: Registry shows HQ moved to Paris in 2024\nDiscrepancy: Location mismatch",
+                    },
                 ]
-            },
+            }
         },
     }
 
@@ -203,8 +201,7 @@ async def test_processor_empty_findings_contract():
         "logic_consistency": {"reviewer_output": {"findings": []}},
         "disclosure_compliance": {"reviewer_output": {"findings": []}},
         "external_signal": {
-            "internet_to_report_findings": {"findings": []},
-            "report_to_internet_findings": {"verifications": []},
+            "external_signal_findings": {"findings": []},
         },
     }
 

@@ -9,7 +9,7 @@ from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from ...deep_research_client import DeepResearchClient
 from . import prompt
-from .schema import ReportToInternetOutput
+from .schema import ReportToInternetAgentOutput
 
 # Initialize Deep Research client (singleton pattern)
 deep_research_client = DeepResearchClient()
@@ -81,7 +81,7 @@ report_to_internet_agent = LlmAgent(
     instruction=prompt.INSTRUCTION,
     tools=[FunctionTool(verify_claims_tool)],
     output_key="report_to_internet_findings",
-    output_schema=ReportToInternetOutput,
+    output_schema=ReportToInternetAgentOutput,
     on_model_error_callback=default_model_error_handler,
     generate_content_config=types.GenerateContentConfig(
         http_options=types.HttpOptions(retry_options=get_default_retry_config())

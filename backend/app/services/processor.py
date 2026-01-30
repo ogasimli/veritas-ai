@@ -98,15 +98,19 @@ class DocumentProcessor:
             ),
             AgentConfig(
                 agent_id="external_signal",
-                completion_check=lambda state: self._aggregate_external_findings(
-                    self._get_agent_namespace(state, "external_signal")
+                completion_check=lambda state: self._get_nested_findings(
+                    state, "external_signal", "external_signal_findings"
                 ),
                 error_check=lambda state: self._check_standard_error(
                     self._get_agent_namespace(state, "external_signal"),
-                    ["internet_to_report_findings", "report_to_internet_findings"],
+                    [
+                        "internet_to_report_findings",
+                        "report_to_internet_findings",
+                        "external_signal_findings",
+                    ],
                 ),
                 category="external",
-                db_transformer=lambda f: self._transform_external_finding(f),
+                db_transformer=lambda f: self._transform_unified_external_finding(f),
             ),
         ]
 
@@ -162,47 +166,18 @@ class DocumentProcessor:
                     findings.extend(findings_list)
         return findings if findings else None
 
-    def _aggregate_external_findings(self, state: dict[str, Any]) -> list[dict] | None:
-        """Aggregate external findings from both directions."""
-        i2r = state.get("internet_to_report_findings", {})
-        r2i = state.get("report_to_internet_findings", {})
-
-        if not (isinstance(i2r, dict) and isinstance(r2i, dict) and i2r and r2i):
-            return None
-
-        findings = []
-        i2r_findings = i2r.get("findings", [])
-        r2i_findings = r2i.get("verifications", [])
-
-        if isinstance(i2r_findings, list):
-            findings.extend(i2r_findings)
-        if isinstance(r2i_findings, list):
-            findings.extend(r2i_findings)
-
-        return findings
-
-    def _transform_external_finding(self, finding: dict) -> dict:
-        """Transform external finding based on its type."""
-        if finding.get("status"):  # Report→Internet verification
-            return {
-                "description": f"Report claim contradicted: {finding.get('claim', '')}",
-                "severity": "high"
-                if finding.get("status") == "CONTRADICTED"
-                else "medium",
-                "source_refs": finding.get("source_urls", []),
-                "reasoning": f"Evidence: {finding.get('evidence_summary', '')}, "
-                f"Discrepancy: {finding.get('discrepancy', 'none')}",
-            }
-        else:  # Internet→Report signal
-            source_url = finding.get("source_url", "")
-            return {
-                "description": finding.get("summary", ""),
-                "severity": "medium",
-                "source_refs": [source_url] if source_url else [],
-                "reasoning": f"Signal type: {finding.get('signal_type')}, "
-                f"Publication: {finding.get('publication_date', 'unknown')}, "
-                f"Potential contradiction: {finding.get('potential_contradiction', 'none')}",
-            }
+    def _transform_unified_external_finding(self, finding: dict) -> dict:
+        """Transform unified external finding for database storage."""
+        return {
+            "description": finding.get("summary", ""),
+            "severity": finding.get("severity", "medium"),
+            "source_refs": finding.get("source_urls", []),
+            "reasoning": (
+                f"Type: {finding.get('finding_type', '')}\n"
+                f"Category: {finding.get('category', '')}\n\n"
+                f"{finding.get('details', '')}"
+            ),
+        }
 
     async def _send_websocket_message(
         self, job_id: UUID, message_type: str, agent_id: str

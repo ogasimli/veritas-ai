@@ -25,7 +25,7 @@ class ExternalFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class InternetToReportOutput(BaseAgentOutput):
+class InternetToReportAgentOutput(BaseAgentOutput):
     """Output from internet-to-report agent - external signals that may contradict report."""
 
     findings: list[ExternalFinding] = Field(

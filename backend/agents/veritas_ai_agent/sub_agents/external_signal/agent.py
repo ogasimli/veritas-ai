@@ -1,15 +1,15 @@
 """External Signal agent - bidirectional verification with Deep Research."""
 
-from google.adk.agents import ParallelAgent
+from google.adk.agents import SequentialAgent
 
-from .sub_agents.internet_to_report import internet_to_report_agent
-from .sub_agents.report_to_internet import report_to_internet_agent
+from .sub_agents.aggregator import aggregator_agent
+from .sub_agents.verification import verification_agent
 
-external_signal_agent = ParallelAgent(
+external_signal_agent = SequentialAgent(
     name="external_signal",
-    description="Bidirectional verification using Deep Research for comprehensive external signal analysis",
+    description="Bidirectional ifnormation verification with unified output",
     sub_agents=[
-        internet_to_report_agent,  # Searches web for info contradicting report
-        report_to_internet_agent,  # Verifies report claims against web
+        verification_agent,  # Step 1: Parallel verification
+        aggregator_agent,  # Step 2: Aggregate & deduplicate
     ],
 )

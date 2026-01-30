@@ -141,13 +141,15 @@
       "branch": "audit_orchestrator.external_signal.external_signal.internet_to_report",
       "state_delta": {
         "internet_to_report_findings": {
-          "error": {
-            "is_error": true,
-            "agent_name": "internet_to_report",
-            "error_type": "rate_limit",
-            "error_message": "Deep Research tool failed due to quota exhaustion (Error code 429). Unable to retrieve external signals for Veritas Tech Inc. for fiscal year 2025."
-          },
-          "findings": []
+          "findings": [
+            {
+              "signal_type": "litigation",
+              "summary": "Former employee filed wrongful termination lawsuit against Veritas Tech Inc. in Q4 2025",
+              "source_url": "https://example.com/court-filing-2025",
+              "publication_date": "2025-11-15",
+              "potential_contradiction": "No mention of legal proceedings in financial statements"
+            }
+          ]
         }
       },
       "is_final": false,
@@ -161,21 +163,60 @@
       "branch": "audit_orchestrator.external_signal.external_signal.report_to_internet",
       "state_delta": {
         "report_to_internet_findings": {
-          "error": {
-            "is_error": true,
-            "agent_name": "report_to_internet",
-            "error_type": "rate_limit",
-            "error_message": "Deep Research tool failed with status 429: Quota exceeded for Global Deep Research Agent requests."
-          },
-          "verifications": []
+          "verifications": [
+            {
+              "claim": "Opened new manufacturing facility in Austin, Texas in March 2025",
+              "status": "CONTRADICTED",
+              "evidence_summary": "Public records show the facility address is a vacant lot. No business permits found.",
+              "source_urls": [
+                "https://example.com/austin-property-records"
+              ],
+              "discrepancy": "Address does not correspond to any commercial building"
+            }
+          ]
         }
       },
-      "is_final": true,
+      "is_final": false,
       "timestamp": 1769490440.005842,
       "delay_ms": 6204
     },
     {
-      "event_number": 14,
+      "event_number": 13.5,
+      "type": "AgentEvent",
+      "author": "external_signal_aggregator",
+      "branch": "audit_orchestrator.external_signal",
+      "state_delta": {
+        "external_signal_findings": {
+          "findings": [
+            {
+              "finding_type": "claim_contradiction",
+              "summary": "CONTRADICTED: Opened new manufacturing facility in Austin, Texas in March 2025",
+              "severity": "high",
+              "source_urls": [
+                "https://example.com/austin-property-records"
+              ],
+              "category": "claim_verification",
+              "details": "Claim: Opened new manufacturing facility in Austin, Texas in March 2025\nStatus: CONTRADICTED\nEvidence: Public records show the facility address is a vacant lot. No business permits found.\nDiscrepancy: Address does not correspond to any commercial building"
+            },
+            {
+              "finding_type": "external_signal",
+              "summary": "Former employee filed wrongful termination lawsuit against Veritas Tech Inc. in Q4 2025",
+              "severity": "medium",
+              "source_urls": [
+                "https://example.com/court-filing-2025"
+              ],
+              "category": "litigation",
+              "details": "Publication date: 2025-11-15\nPotential contradiction: No mention of legal proceedings in financial statements"
+            }
+          ]
+        }
+      },
+      "is_final": true,
+      "timestamp": 1769490442.0,
+      "delay_ms": 2000
+    },
+    {
+      "event_number": 15,
       "type": "AgentEvent",
       "author": "external_signal",
       "branch": "audit_orchestrator.external_signal",
@@ -187,7 +228,7 @@
       "delay_ms": 3311
     },
     {
-      "event_number": 18,
+      "event_number": 19,
       "type": "AgentEvent",
       "author": "verify_IAS_1",
       "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_1",
@@ -251,7 +292,7 @@
       "delay_ms": 10137
     },
     {
-      "event_number": 19,
+      "event_number": 20,
       "type": "AgentEvent",
       "author": "verify_IAS_2",
       "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_2",
@@ -301,7 +342,7 @@
       "delay_ms": 11
     },
     {
-      "event_number": 20,
+      "event_number": 21,
       "type": "AgentEvent",
       "author": "verify_IFRS_12",
       "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IFRS_12",
@@ -323,7 +364,7 @@
       "delay_ms": 17
     },
     {
-      "event_number": 21,
+      "event_number": 22,
       "type": "AgentEvent",
       "author": "verify_IAS_33",
       "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_1.verify_IAS_33",
@@ -359,7 +400,7 @@
       "delay_ms": 18
     },
     {
-      "event_number": 22,
+      "event_number": 23,
       "type": "AgentEvent",
       "author": "LogicReviewer",
       "branch": "audit_orchestrator.logic_consistency",
@@ -406,7 +447,7 @@
       "delay_ms": 4357
     },
     {
-      "event_number": 24,
+      "event_number": 25,
       "type": "AgentEvent",
       "author": "verify_Revenue",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_1.verify_Revenue",
@@ -483,7 +524,7 @@
       "delay_ms": 21090
     },
     {
-      "event_number": 25,
+      "event_number": 26,
       "type": "AgentEvent",
       "author": "verify_IAS_19",
       "branch": "audit_orchestrator.disclosure_compliance.disclosure_verifier_parallel_batch_2.verify_IAS_19",
@@ -512,7 +553,7 @@
       "delay_ms": 16510
     },
     {
-      "event_number": 26,
+      "event_number": 27,
       "type": "AgentEvent",
       "author": "logic_consistency",
       "branch": "audit_orchestrator.logic_consistency",
@@ -524,7 +565,7 @@
       "delay_ms": 1003
     },
     {
-      "event_number": 28,
+      "event_number": 29,
       "type": "AgentEvent",
       "author": "verify_Cost_of_Goods_Sold",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_2.verify_Cost_of_Goods_Sold",
@@ -563,7 +604,7 @@
       "delay_ms": 26414
     },
     {
-      "event_number": 30,
+      "event_number": 31,
       "type": "AgentEvent",
       "author": "verify_Gross_Profit",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_3.verify_Gross_Profit",
@@ -602,7 +643,7 @@
       "delay_ms": 22731
     },
     {
-      "event_number": 31,
+      "event_number": 32,
       "type": "AgentEvent",
       "author": "DisclosureReviewer",
       "branch": "audit_orchestrator.disclosure_compliance",
@@ -631,7 +672,7 @@
       "delay_ms": 40966
     },
     {
-      "event_number": 33,
+      "event_number": 34,
       "type": "AgentEvent",
       "author": "verify_Operating_Expenses",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_4.verify_Operating_Expenses",
@@ -704,7 +745,7 @@
       "delay_ms": 42183
     },
     {
-      "event_number": 34,
+      "event_number": 35,
       "type": "AgentEvent",
       "author": "disclosure_compliance",
       "branch": "audit_orchestrator.disclosure_compliance",
@@ -716,7 +757,7 @@
       "delay_ms": 5414
     },
     {
-      "event_number": 36,
+      "event_number": 37,
       "type": "AgentEvent",
       "author": "verify_Net_Income",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_5.verify_Net_Income",
@@ -779,7 +820,7 @@
       "delay_ms": 35647
     },
     {
-      "event_number": 38,
+      "event_number": 39,
       "type": "AgentEvent",
       "author": "verify_Property__plant__and_equipment",
       "branch": "audit_orchestrator.numeric_validation.verifier_parallel_batch_6.verify_Property__plant__and_equipment",
@@ -793,7 +834,7 @@
       "delay_ms": 76134
     },
     {
-      "event_number": 40,
+      "event_number": 41,
       "type": "AgentEvent",
       "author": "ReviewerAgent",
       "branch": "audit_orchestrator.numeric_validation",
@@ -1318,6 +1359,30 @@
     },
     "checks:Property, plant, and equipment": {
       "checks": []
+    },
+    "external_signal_findings": {
+      "findings": [
+        {
+          "finding_type": "claim_contradiction",
+          "summary": "CONTRADICTED: Opened new manufacturing facility in Austin, Texas in March 2025",
+          "severity": "high",
+          "source_urls": [
+            "https://example.com/austin-property-records"
+          ],
+          "category": "claim_verification",
+          "details": "Claim: Opened new manufacturing facility in Austin, Texas in March 2025\nStatus: CONTRADICTED\nEvidence: Public records show the facility address is a vacant lot. No business permits found.\nDiscrepancy: Address does not correspond to any commercial building"
+        },
+        {
+          "finding_type": "external_signal",
+          "summary": "Former employee filed wrongful termination lawsuit against Veritas Tech Inc. in Q4 2025",
+          "severity": "medium",
+          "source_urls": [
+            "https://example.com/court-filing-2025"
+          ],
+          "category": "litigation",
+          "details": "Publication date: 2025-11-15\nPotential contradiction: No mention of legal proceedings in financial statements"
+        }
+      ]
     }
   }
 }

@@ -28,12 +28,18 @@ graph TD
     NV --> NV_Ver[Verifier]
     NV --> NV_Rev[Reviewer]
 
+    LC --> LC_Det[Detector]
+    LC --> LC_Rev[Reviewer]
+
     DC --> DC_Scan[Scanner]
     DC --> DC_Ver[Verifier]
     DC --> DC_Rev[Reviewer]
 
-    ES --> ES_ITR[Internet to Report]
-    ES --> ES_RTI[Report to Internet]
+    ES --> ES_Verif[Verification Wrapper]
+    ES --> ES_Agg[Aggregator]
+
+    ES_Verif --> ES_ITR[Internet to Report]
+    ES_Verif --> ES_RTI[Report to Internet]
 ```
 
 ## 🛠️ Technology Stack

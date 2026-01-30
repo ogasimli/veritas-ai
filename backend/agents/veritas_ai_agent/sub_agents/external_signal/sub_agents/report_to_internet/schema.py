@@ -39,7 +39,7 @@ class ClaimVerification(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ReportToInternetOutput(BaseAgentOutput):
+class ReportToInternetAgentOutput(BaseAgentOutput):
     """Output from report-to-internet agent - verification results for extracted claims."""
 
     verifications: list[ClaimVerification] = Field(
