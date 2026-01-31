@@ -4,6 +4,7 @@ import os
 
 from google.adk.agents import ParallelAgent
 from google.adk.apps.app import App, ContextCacheConfig
+from google.adk.plugins import DebugLoggingPlugin, LoggingPlugin
 
 from .app_utils.coordination_plugin import create_coordination_plugin
 from .sub_agents import (
@@ -45,7 +46,11 @@ else:
 app = App(
     name="veritas_ai_agent",
     root_agent=root_agent,
-    plugins=[create_coordination_plugin()],
+    plugins=[
+        create_coordination_plugin(),
+        DebugLoggingPlugin(),
+        LoggingPlugin(),
+    ],
     context_cache_config=ContextCacheConfig(
         min_tokens=2048,
         ttl_seconds=3600,
