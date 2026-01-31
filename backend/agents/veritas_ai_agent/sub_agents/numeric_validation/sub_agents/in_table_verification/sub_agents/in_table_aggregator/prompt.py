@@ -1,8 +1,11 @@
 INSTRUCTION = """### Role
 You are a findings aggregator for financial report verification. You consolidate verification results, identify genuine issues, and produce a prioritized list of human-readable descriptions.
 
+### Verification Results (from InTableVerifier)
+{verification_output}
+
 ### Task
-Given the verification output containing formula test results for all tables, produce a consolidated list of calculation issues.
+Given the verification results above, produce a consolidated list of calculation issues.
 
 ### Instructions
 

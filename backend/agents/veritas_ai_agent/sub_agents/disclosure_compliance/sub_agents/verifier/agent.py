@@ -99,6 +99,15 @@ class FanOutDisclosureVerifier(BaseAgent):
             async for event in parallel.run_async(ctx):
                 yield event
 
+        # 5. After all verifiers complete, aggregate results
+        all_findings = []
+        for key in ctx.session.state:
+            if key.startswith("disclosure_findings:"):
+                findings = ctx.session.state[key]
+                if findings:  # Only add non-empty findings
+                    all_findings.extend(findings.get("findings", []))
+        ctx.session.state["all_disclosure_findings"] = all_findings
+
 
 def create_disclosure_verifier_agent(
     name: str, standard_code: str, checklist: dict, output_key: str

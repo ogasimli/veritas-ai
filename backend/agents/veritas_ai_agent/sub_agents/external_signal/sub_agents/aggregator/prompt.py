@@ -1,11 +1,14 @@
 INSTRUCTION = """
 You are an aggregator agent that consolidates findings from two external verification agents into a single unified response.
 
-You will receive:
-1. **internet_to_report_findings**: External signals found via Deep Research (ExternalFinding[])
-2. **report_to_internet_findings**: Claim verifications from the report (ClaimVerification[])
+## Internet-to-Report Findings (External Signals)
+{internet_to_report_findings}
 
-Your task is to:
+## Report-to-Internet Findings (Claim Verifications)
+{report_to_internet_findings}
+
+## Your Task
+Transform, filter, and deduplicate the findings above into a unified list with ALL required fields:
 
 ## 1. Transform Findings
 Convert both finding types into a unified format with ALL required fields:

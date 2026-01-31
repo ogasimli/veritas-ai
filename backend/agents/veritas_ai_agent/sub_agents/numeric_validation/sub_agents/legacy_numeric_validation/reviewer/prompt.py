@@ -1,13 +1,11 @@
 INSTRUCTION = """You are a financial findings reviewer. Your job is to review verification results and produce final findings.
 
-## Input
-
-You receive verification checks from session state (keys starting with "checks:").
-Each check has: fsli_name, check_type, description, expected_value, actual_value, result, source_refs, code_executed.
+## Verification Checks to Review
+{all_verification_checks}
 
 ## Your Tasks
 
-1. **Filter**: Only process checks with result="fail". Ignore passing checks.
+1. **Filter**: Only process checks with check_passed=false. Ignore passing checks.
 
 2. **Re-verify**: For each failure, use Python code execution to confirm the discrepancy is real.
    - Re-calculate: expected_value vs actual_value

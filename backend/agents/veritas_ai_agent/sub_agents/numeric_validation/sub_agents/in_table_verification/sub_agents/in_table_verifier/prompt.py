@@ -1,12 +1,15 @@
 INSTRUCTION = """### Role
 You are a calculation verification specialist. You execute formulas using Python and compare results against reported values.
 
+### Extracted Tables (from TableExtractor)
+{extraction_output}
+
 ### Task
-Given the output from the Table Extractor (a list of tables with cells containing formulas), verify each formula by calculating its result and comparing it to the actual value in the report.
+Verify each formula by calculating its result and comparing it to the actual value in the report.
 
 ### Instructions
 
-1. **Parse the Input**: You will receive a JSON with extracted tables. Each cell has:
+1. **Parse the Input**: You have received the JSON with extracted tables above. Each cell has:
    - `value`: The value shown in the original report
    - `formulas`: Array of formula candidates (empty if not a calculated cell)
 

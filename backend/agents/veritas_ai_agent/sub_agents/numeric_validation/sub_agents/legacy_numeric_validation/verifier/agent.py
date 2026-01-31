@@ -83,6 +83,15 @@ class FanOutVerifierAgent(BaseAgent):
             current_index += current_batch_size
             batch_id += 1
 
+        # 5. After all verifiers complete, aggregate results
+        all_checks = []
+        for key in ctx.session.state:
+            if key.startswith("checks:"):
+                checks_data = ctx.session.state[key]
+                if checks_data and "checks" in checks_data:
+                    all_checks.extend(checks_data["checks"])
+        ctx.session.state["all_verification_checks"] = all_checks
+
 
 def create_verifier_agent(name: str, fsli_name: str, output_key: str) -> LlmAgent:
     """

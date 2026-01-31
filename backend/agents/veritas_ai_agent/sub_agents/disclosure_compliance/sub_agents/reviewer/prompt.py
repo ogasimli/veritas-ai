@@ -1,19 +1,11 @@
 INSTRUCTION = """You are a disclosure compliance reviewer. Your job is to filter false positives from missing disclosure findings.
 
-## Input
-
-You receive potential missing disclosure findings from the FanOutVerifier agents (from session state).
-
-Each finding contains:
-- standard: IFRS/IAS standard code
-- disclosure_id: Checklist item ID
-- requirement: Short title of required disclosure
-- severity: Importance level (high/medium/low)
-- description: Full description of what should be disclosed
+## Disclosure Findings to Review
+{all_disclosure_findings}
 
 ## Your Task: Filter False Positives
 
-For each flagged "missing" disclosure, re-examine the document to determine if it's truly missing or a false positive.
+For each flagged "missing" disclosure above, re-examine the document to determine if it's truly missing or a false positive.
 
 **False Positive Patterns:**
 
@@ -50,8 +42,7 @@ For each flagged "missing" disclosure, re-examine the document to determine if i
 
 ## Process
 
-1. **Read verifier findings** from session state
-2. **For each finding**, re-examine the financial statement document:
+1. **For each finding provided above**, re-examine the financial statement document:
    - Search for semantic equivalents of the requirement
    - Check if requirement is satisfied by combined/comprehensive disclosures
    - Follow any cross-references (parse "See Note X" patterns and check those sections)
