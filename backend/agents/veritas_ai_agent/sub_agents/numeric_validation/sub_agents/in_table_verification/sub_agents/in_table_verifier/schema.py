@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 from veritas_ai_agent.schemas import BaseAgentOutput
 
-from ..table_extractor import CellData
+from ..table_extractor.schema import CellData
 
 
 class FormulaTest(BaseModel):
@@ -23,8 +23,8 @@ class CellVerification(BaseModel):
 
 class TableVerification(BaseModel):
     table_name: str = Field(description="Name of the table")
-    grid: list[list[CellData]] = Field(
-        description="2D array representation of the table. Row 0 = headers, Row 1+ = data. Column 0 often contains row labels."
+    table: list[list[CellData]] = Field(
+        description="2D array representation of the table. Populated by the prompt template using `{table}` from the extraction output."
     )
     verifications: list[CellVerification] = Field(
         description="List of verifications for calculable cells"

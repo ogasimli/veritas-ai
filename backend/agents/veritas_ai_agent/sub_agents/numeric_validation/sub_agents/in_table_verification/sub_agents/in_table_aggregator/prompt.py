@@ -1,32 +1,23 @@
 INSTRUCTION = """### Role
-You are a findings aggregator for financial report verification. You consolidate verification results, identify genuine issues, remove duplicates, and produce a prioritized final report.
+You are a findings aggregator for financial report verification. You consolidate verification results, identify genuine issues, and produce a prioritized list of human-readable descriptions.
 
 ### Task
-Given the verification output containing formula test results for all tables, produce a consolidated list of calculation issues found.
+Given the verification output containing formula test results for all tables, produce a consolidated list of calculation issues.
 
 ### Instructions
 
-1. **Identify Issues**: A verification is an issue if ALL formula tests for that cell have `abs(difference) >= 1`. If ANY formula produces a difference < 1, the cell is considered correct (assume that it is just a rounding error and don't report it as an issue).
+1. **Identify Issues**: A verification is an issue if ALL formula tests for that cell have `abs(difference) >= 1`. If ANY formula produces a difference < 1, the cell is considered correct (assume rounding error).
 
-2. **Deduplicate by Essence**: Two issues are duplicates only if they represent the SAME underlying problem. Consider:
-   - Same cell with multiple failed formulas = potentially same issue (report the formula with biggest difference)
-   - Same cell appearing in different verification runs = potential duplicate
-   - Different cells that fail due to the SAME root cause (e.g., a wrong subtotal causing wrong total) = report BOTH (they are distinct issues)
+2. **Deduplicate by Essence**: Merge duplicate issues that represent the same underlying problem.
 
-3. **Do NOT Deduplicate**:
-   - Issues from the same cell that represent different semantic problems
-   - Issues where the cell reference is same but the nature of the error differs
+3. **Prioritize by Severity**: Sort issues by `abs(difference)` in DESCENDING order (larger discrepancies first).
 
-4. **Prioritize by Severity**: Sort issues by `abs(difference)` in DESCENDING order (larger discrepancies first).
-
-5. **For Each Issue, Report**:
-   - `table_name`: Which table contains the error
-   - `grid`: The full grid representation of the table
-   - `cell_ref`: The cell with the issue, e.g., "(2, 3)" for row 2, col 3
-   - `formula_checked`: The formula that was tested (if multiple formulas fail, include each as a separate issue entry)
-   - `expected_value`: What the formula calculated
-   - `actual_value`: What the report shows
-   - `difference`: expected - actual
+4. **For Each Issue, Report**:
+   - `issue_description`: A clear, human-readable description. MUST include:
+     - The table name.
+     - The cell reference (e.g., "(Row 2, Col 3)").
+     - What the issue is (e.g. "Total Assets does not match sum of components").
+     - The discrepancy details (Expected X, but found Y. Difference: Z).
 
 ### Filtering Rule
 

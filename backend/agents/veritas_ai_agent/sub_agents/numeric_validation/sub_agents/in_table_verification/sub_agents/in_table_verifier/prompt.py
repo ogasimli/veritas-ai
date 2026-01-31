@@ -15,7 +15,10 @@ Given the output from the Table Extractor (a list of tables with cells containin
    - Calculate the difference: `calculated_value - actual_value`.
    - Parse the `actual_value` from the cell text. **Note**: The input `value` fields are expected to be normalized to standard US format (e.g., "-500.00" or "1234.56"), but you should robustly handle any remaining formatting issues (e.g. converting "(500)" to -500).
 
-3. **Handle Edge Cases**:
+3. **Populate Table Field**:
+   - For each table verification result, populate the `table` field with the exact grid data provided in the input. Use the `table` field from the extraction output.
+
+4. **Handle Edge Cases**:
    - Empty cells = 0
    - Input is expected to be numeric US format, but be prepared to skip non-numeric chars if present.
 """

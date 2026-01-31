@@ -13,7 +13,7 @@ class CellData(BaseModel):
 
 class ExtractedTable(BaseModel):
     table_name: str = Field(description="Explicit or inferred name of the table")
-    grid: list[list[CellData]] = Field(
+    table: list[list[CellData]] = Field(
         description="2D array representation of the table. Row 0 = headers, Row 1+ = data. Column 0 often contains row labels."
     )
 

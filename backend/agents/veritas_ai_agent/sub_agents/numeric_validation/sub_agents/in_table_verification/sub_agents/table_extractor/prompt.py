@@ -80,7 +80,7 @@ row 3   Total     300     330     630
   "tables": [
     {
       "table_name": "Quarterly Revenue",
-      "grid": [
+      "table": [
         [{"value": "Region", "formulas": []}, {"value": "Q1", "formulas": []}, {"value": "Q2", "formulas": []}, {"value": "Total", "formulas": []}],
         [{"value": "North", "formulas": []}, {"value": "100", "formulas": []}, {"value": "150", "formulas": []}, {"value": "250", "formulas": ["sum_row(1, 1, 2)"]}],
         [{"value": "South", "formulas": []}, {"value": "200", "formulas": []}, {"value": "180", "formulas": []}, {"value": "380", "formulas": ["sum_row(2, 1, 2)"]}],
