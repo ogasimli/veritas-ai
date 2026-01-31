@@ -15,10 +15,14 @@ def load_env():
 def test_agent_structure():
     """Verify the agent structure and sub-agents."""
     assert root_agent.name == "numeric_validation"
-    assert len(root_agent.sub_agents) == 3
-    assert root_agent.sub_agents[0].name == "ExtractorAgent"
-    assert root_agent.sub_agents[1].name == "FanOutVerifierAgent"
-    assert root_agent.sub_agents[2].name == "ReviewerAgent"
+    assert len(root_agent.sub_agents) == 2
+
+    legacy_pipeline = root_agent.sub_agents[0]
+    assert legacy_pipeline.name == "LegacyNumericValidationPipeline"
+    assert len(legacy_pipeline.sub_agents) == 3
+
+    in_table_pipeline = root_agent.sub_agents[1]
+    assert in_table_pipeline.name == "InTableVerificationPipeline"
 
 
 @pytest.mark.asyncio

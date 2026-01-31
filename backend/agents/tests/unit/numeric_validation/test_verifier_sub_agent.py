@@ -3,7 +3,7 @@
 import dotenv
 import pytest
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.verifier import (
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.legacy_numeric_validation.verifier import (
     CheckType,
     FanOutVerifierAgent,
     VerificationCheck,

@@ -3,10 +3,10 @@
 import dotenv
 import pytest
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.extractor import (
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.legacy_numeric_validation.extractor import (
     extractor_agent,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.extractor.schema import (
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.legacy_numeric_validation.extractor.schema import (
     ExtractorAgentOutput,
 )
 

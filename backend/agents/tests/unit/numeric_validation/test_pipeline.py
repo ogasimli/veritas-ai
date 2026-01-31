@@ -17,12 +17,22 @@ def load_env():
 def test_root_agent_structure():
     """Verify complete pipeline structure."""
     assert root_agent.name == "numeric_validation"
-    assert len(root_agent.sub_agents) == 3
+    # Now has 2 sub-pipelines: Legacy and In-Table
+    assert len(root_agent.sub_agents) == 2
 
-    agent_names = [a.name for a in root_agent.sub_agents]
-    assert "ExtractorAgent" in agent_names
-    assert "FanOutVerifierAgent" in agent_names
-    assert "ReviewerAgent" in agent_names
+    # Check Legacy Pipeline sub-agents
+    legacy_pipeline = root_agent.sub_agents[0]
+    assert legacy_pipeline.name == "LegacyNumericValidationPipeline"
+    assert len(legacy_pipeline.sub_agents) == 3
+
+    legacy_names = [a.name for a in legacy_pipeline.sub_agents]
+    assert "ExtractorAgent" in legacy_names
+    assert "FanOutVerifierAgent" in legacy_names
+    assert "ReviewerAgent" in legacy_names
+
+    # Check In-Table Pipeline
+    in_table_pipeline = root_agent.sub_agents[1]
+    assert in_table_pipeline.name == "InTableVerificationPipeline"
 
 
 def test_pipeline_can_initialize():

@@ -1,15 +1,15 @@
 """Root agent definition."""
 
-from google.adk.agents import SequentialAgent
+from google.adk.agents import ParallelAgent
 
-from .sub_agents import extractor_agent, reviewer_agent, verifier_agent
+from .sub_agents.in_table_verification.agent import in_table_pipeline
+from .sub_agents.legacy_numeric_validation.agent import legacy_pipeline
 
-numeric_validation_agent = SequentialAgent(
+numeric_validation_agent = ParallelAgent(
     name="numeric_validation",
-    description="Pipeline for financial statement numeric validation",
+    description="Parallel pipeline for financial statement numeric validation (In-Table & Legacy Cross-Check)",
     sub_agents=[
-        extractor_agent,  # Extract FSLI names
-        verifier_agent,  # Parallel verification per FSLI
-        reviewer_agent,  # Filter, re-verify, output findings
+        legacy_pipeline,
+        in_table_pipeline,
     ],
 )
