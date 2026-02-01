@@ -11,6 +11,14 @@ CHECKLIST_PATH = (
     / "ifrs_disclosure_checklist.yaml"
 )
 
+# Module-level cache for checklist data
+_CHECKLIST_CACHE: dict[str, Any] | None = None
+
+
+def _normalize_code(code: str) -> str:
+    """Normalize standard code for comparison (uppercase, no whitespace)."""
+    return "".join(code.upper().split())
+
 
 def load_standard_checklist(standard_code: str) -> dict[str, Any]:
     """Load disclosure checklist for a specific IFRS/IAS standard.
@@ -38,26 +46,43 @@ def load_standard_checklist(standard_code: str) -> dict[str, Any]:
         ValueError: If standard code is not found in checklist
         FileNotFoundError: If checklist file doesn't exist
     """
-    if not CHECKLIST_PATH.exists():
-        raise FileNotFoundError(f"Checklist file not found at {CHECKLIST_PATH}")
+    global _CHECKLIST_CACHE
+    if _CHECKLIST_CACHE is None:
+        if not CHECKLIST_PATH.exists():
+            raise FileNotFoundError(f"Checklist file not found at {CHECKLIST_PATH}")
 
-    with open(CHECKLIST_PATH) as f:
-        data = yaml.safe_load(f)
+        with open(CHECKLIST_PATH) as f:
+            data = yaml.safe_load(f) or {}
+            _CHECKLIST_CACHE = data.get("standards") or {}
 
-    standards = data.get("standards", {})
-    if standard_code not in standards:
-        available = list(standards.keys())
-        raise ValueError(
-            f"Standard '{standard_code}' not found in checklist. "
-            f"Available standards: {', '.join(sorted(available))}"
-        )
+    standards = _CHECKLIST_CACHE
+
+    # try exact match first
+    if standard_code in standards:
+        target_key = standard_code
+    else:
+        # short-circuiting search with normalization
+        normalized_input = _normalize_code(standard_code)
+        target_key = None
+        for k in standards.keys():
+            if _normalize_code(k) == normalized_input:
+                target_key = k
+                break
+
+        if not target_key:
+            available = list(standards.keys())
+            raise ValueError(
+                f"Standard '{standard_code}' not found in checklist. "
+                f"Available standards: {', '.join(sorted(available))}"
+            )
 
     # Each category has 'name' and 'disclosures' fields
-    categories = standards[standard_code]
+    categories = standards.get(target_key) or []
 
     # Flatten all disclosures from all categories
     all_disclosures = []
     for category in categories:
-        all_disclosures.extend(category.get("disclosures", []))
+        if isinstance(category, dict):
+            all_disclosures.extend(category.get("disclosures", []) or [])
 
-    return {"name": standard_code, "disclosures": all_disclosures}
+    return {"name": target_key, "disclosures": all_disclosures}
