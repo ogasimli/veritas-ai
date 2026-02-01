@@ -1,43 +1,42 @@
-"""Tools for in-table verifier agent."""
+"""Tools for in-table formula evaluation."""
 
 import logging
 import re
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 
-def evaluate_formula(formula: str, grid: list[list[dict]]) -> float:
-    """Evaluate formula with safe namespace using restricted eval.
+def parse_number(value_str: str) -> float:
+    """Handle number formats. Expects US format, but robust to common variations."""
+    if not value_str or not isinstance(value_str, str) or value_str.strip() == "":
+        return 0.0
+
+    # Remove currency symbols and whitespace
+    cleaned = re.sub(r"[^\d.,()-]", "", value_str)
+
+    # Handle parentheses as negative: (500) -> -500
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        cleaned = "-" + cleaned[1:-1]
+
+    # Remove thousands separators (assumed comma)
+    cleaned = cleaned.replace(",", "")
+
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
+
+def evaluate_single_formula(formula: str, grid: list[list[Any]]) -> float:
+    """Evaluate a single formula against a grid.
 
     Args:
         formula: The formula string to evaluate (e.g., "sum_row(1, 1, 3)")
-        grid: The table grid as a list of lists of dicts/objects.
-              Each cell expected to have a "value" key.
-
-    Returns:
-        float: The calculated result.
+        grid: The table grid as a list of lists of objects or dicts.
+              Each cell expected to have a "value" attribute or key.
     """
-
-    def parse_number(value_str: str) -> float:
-        """Handle number formats. Expects US format, but robust to common variations."""
-        if not value_str or not isinstance(value_str, str) or value_str.strip() == "":
-            return 0.0
-
-        # Remove currency symbols and whitespace
-        cleaned = re.sub(r"[^\d.,()-]", "", value_str)
-
-        # Handle parentheses as negative: (500) -> -500
-        if cleaned.startswith("(") and cleaned.endswith(")"):
-            cleaned = "-" + cleaned[1:-1]
-
-        # Remove thousands separators (assumed comma)
-        cleaned = cleaned.replace(",", "")
-
-        try:
-            return float(cleaned)
-        except ValueError:
-            return 0.0
 
     def cell(row: int, col: int) -> float:
         """Get numeric value at (row, col)."""
@@ -48,7 +47,7 @@ def evaluate_formula(formula: str, grid: list[list[dict]]) -> float:
                 val = item.get("value", "")
             else:
                 val = getattr(item, "value", "")
-            return parse_number(val)
+            return parse_number(str(val))
         except (IndexError, KeyError, TypeError, AttributeError):
             return 0.0
 
@@ -78,7 +77,6 @@ def evaluate_formula(formula: str, grid: list[list[dict]]) -> float:
 
     try:
         # Evaluate formula safely using restricted eval
-        # Restrict globals to empty dict to prevent import or built-in abuse
         return float(eval(formula, {"__builtins__": {}}, namespace))
     except Exception as e:
         logger.warning(f"Formula evaluation failed: {formula}. Error: {e}")

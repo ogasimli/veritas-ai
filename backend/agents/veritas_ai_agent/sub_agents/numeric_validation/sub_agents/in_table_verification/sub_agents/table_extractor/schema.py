@@ -25,3 +25,27 @@ class ExtractionOutput(BaseAgentOutput):
         default_factory=list,
         description="List of financial tables extracted from the document",
     )
+
+
+class FormulaTest(BaseModel):
+    formula: str
+    calculated_value: float
+    difference: float
+
+
+class CellVerification(BaseModel):
+    cell_ref: str
+    actual_value: float
+    formula_tests: list[FormulaTest]
+
+
+class TableVerification(BaseModel):
+    table_name: str
+    table: list[list[CellData]]
+    verifications: list[CellVerification]
+
+
+class VerificationOutput(BaseModel):
+    """Internal verification results."""
+
+    tables: list[TableVerification] = Field(default_factory=list)
