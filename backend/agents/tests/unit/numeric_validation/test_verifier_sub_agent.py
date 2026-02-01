@@ -4,10 +4,10 @@ import dotenv
 import pytest
 
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.legacy_numeric_validation.verifier import (
-    CheckType,
-    FanOutVerifierAgent,
-    VerificationCheck,
-    VerifierAgentOutput,
+    LegacyNumericCheckType,
+    LegacyNumericVerificationCheck,
+    LegacyNumericVerifier,
+    LegacyNumericVerifierOutput,
     create_verifier_agent,
     verifier_agent,
 )
@@ -22,14 +22,16 @@ def load_env():
 
 def test_fan_out_verifier_agent_structure():
     """Verify FanOutVerifierAgent is a CustomAgent."""
-    assert verifier_agent.name == "FanOutVerifierAgent"
-    assert isinstance(verifier_agent, FanOutVerifierAgent)
+    assert verifier_agent.name == "LegacyNumericVerifier"
+    assert isinstance(verifier_agent, LegacyNumericVerifier)
 
 
 def test_create_verifier_agent():
     """Verify verifier factory creates valid agents."""
     agent = create_verifier_agent(
-        name="test_verifier", fsli_name="Revenue", output_key="checks:Revenue"
+        name="test_verifier",
+        fsli_name="Revenue",
+        output_key="legacy_numeric_checks:Revenue",
     )
     assert agent.name == "test_verifier"
     assert agent.model == "gemini-3-pro-preview"
@@ -38,9 +40,9 @@ def test_create_verifier_agent():
 
 def test_verification_check_schema():
     """Verify VerificationCheck schema."""
-    check = VerificationCheck(
+    check = LegacyNumericVerificationCheck(
         fsli_name="Revenue",
-        check_type=CheckType.IN_TABLE_SUM,
+        check_type=LegacyNumericCheckType.IN_TABLE_SUM,
         description="Product + Service = Total Revenue",
         expected_value=1500000.0,
         actual_value=1500000.0,
@@ -53,5 +55,5 @@ def test_verification_check_schema():
 
 def test_verifier_agent_output_schema():
     """Verify VerifierAgentOutput schema."""
-    output = VerifierAgentOutput(checks=[])
+    output = LegacyNumericVerifierOutput(checks=[])
     assert output.checks == []

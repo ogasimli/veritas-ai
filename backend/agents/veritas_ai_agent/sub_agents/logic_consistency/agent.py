@@ -5,7 +5,7 @@ from google.adk.agents import SequentialAgent
 from .sub_agents import detector_agent, reviewer_agent
 
 logic_consistency_agent = SequentialAgent(
-    name="logic_consistency",
+    name="LogicConsistency",
     description="Detects and refines semantic contradictions in financial statements",
     sub_agents=[detector_agent, reviewer_agent],
 )

@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class LogicFinding(BaseModel):
+class LogicConsistencyFinding(BaseModel):
     """A logic consistency finding - a claim that is logically inconsistent or contradictory."""
 
     fsli_name: str = Field(
@@ -29,10 +29,10 @@ class LogicFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class DetectorAgentOutput(BaseAgentOutput):
+class LogicConsistencyDetectorOutput(BaseAgentOutput):
     """Output from logic detector agent - list of potential logic inconsistencies found."""
 
-    findings: list[LogicFinding] = Field(
+    findings: list[LogicConsistencyFinding] = Field(
         default_factory=list,
         description="List of logic consistency findings (claims that are logically contradictory)",
     )

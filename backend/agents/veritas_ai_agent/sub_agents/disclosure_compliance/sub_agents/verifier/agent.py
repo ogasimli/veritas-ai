@@ -13,25 +13,25 @@ from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from ...tools.checklist_loader import load_standard_checklist
 from .prompt import get_verifier_instruction
-from .schema import VerifierAgentOutput
+from .schema import DisclosureVerifierOutput
 
 
-class FanOutDisclosureVerifier(BaseAgent):
+class DisclosureVerifier(BaseAgent):
     """
     Custom agent that dynamically spawns parallel disclosure verifiers,
-    one per applicable standard identified by ScannerAgent.
+    one per applicable standard identified by DisclosureScanner.
 
     Maintains ADK observability by using ParallelAgent internally.
     """
 
-    name: str = "FanOutDisclosureVerifier"
+    name: str = "DisclosureVerifier"
     description: str = "Spawns parallel verifiers for each applicable IFRS/IAS standard"
 
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
-        # 1. Read applicable standards from session state (set by ScannerAgent)
-        scanner_output = ctx.session.state.get("scanner_output", {})
+        # 1. Read applicable standards from session state (set by DisclosureScanner)
+        scanner_output = ctx.session.state.get("disclosure_scanner_output", {})
         applicable_standards = scanner_output.get("applicable_standards", [])
 
         if not applicable_standards:
@@ -106,7 +106,7 @@ class FanOutDisclosureVerifier(BaseAgent):
                 findings = ctx.session.state[key]
                 if findings:  # Only add non-empty findings
                     all_findings.extend(findings.get("findings", []))
-        ctx.session.state["all_disclosure_findings"] = all_findings
+        ctx.session.state["disclosure_all_findings"] = all_findings
 
 
 def create_disclosure_verifier_agent(
@@ -143,7 +143,7 @@ def create_disclosure_verifier_agent(
         model="gemini-3-pro-preview",
         instruction=full_instruction,
         output_key=output_key,
-        output_schema=VerifierAgentOutput,
+        output_schema=DisclosureVerifierOutput,
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(retry_options=get_default_retry_config())
         ),
@@ -152,4 +152,4 @@ def create_disclosure_verifier_agent(
 
 
 # Singleton instance for import
-disclosure_verifier_agent = FanOutDisclosureVerifier()
+disclosure_verifier_agent = DisclosureVerifier()

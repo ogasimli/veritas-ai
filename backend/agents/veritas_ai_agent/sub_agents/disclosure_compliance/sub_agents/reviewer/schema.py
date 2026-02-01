@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class ConfirmedFinding(BaseModel):
+class ConfirmedDisclosureFinding(BaseModel):
     """A confirmed missing disclosure (passed false-positive filter)."""
 
     standard: str = Field(description="Standard code (e.g., 'IAS 1', 'IFRS 15')")
@@ -22,10 +22,10 @@ class ConfirmedFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ReviewerAgentOutput(BaseAgentOutput):
+class DisclosureReviewerOutput(BaseAgentOutput):
     """Output from disclosure Reviewer - findings that passed false-positive filter."""
 
-    findings: list[ConfirmedFinding] = Field(
+    findings: list[ConfirmedDisclosureFinding] = Field(
         default_factory=list,
         description="Confirmed missing disclosures (false positives removed)",
     )

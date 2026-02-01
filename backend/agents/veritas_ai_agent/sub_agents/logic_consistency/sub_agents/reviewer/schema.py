@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class RefinedFinding(BaseModel):
+class RefinedLogicConsistencyFinding(BaseModel):
     """A confirmed logic inconsistency that passed the false-positive filter."""
 
     fsli_name: str = Field(
@@ -29,10 +29,10 @@ class RefinedFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ReviewerAgentOutput(BaseAgentOutput):
+class LogicConsistencyReviewerOutput(BaseAgentOutput):
     """Output from logic reviewer agent - confirmed findings that passed false-positive filter."""
 
-    findings: list[RefinedFinding] = Field(
+    findings: list[RefinedLogicConsistencyFinding] = Field(
         default_factory=list,
         description="List of confirmed logic inconsistencies (false positives removed)",
     )

@@ -43,31 +43,42 @@ class DocumentProcessor:
         return [
             AgentConfig(
                 agent_id="numeric_validation",
-                completion_check=lambda state: self._get_nested_findings(
-                    state, "numeric_validation", "reviewer_output"
-                ),
+                completion_check=lambda state: self._get_numeric_findings(state),
                 error_check=lambda state: self._check_standard_error(
                     self._get_agent_namespace(state, "numeric_validation"),
-                    ["extractor_output", "reviewer_output"],
+                    [
+                        "legacy_numeric_fsli_extractor_output",
+                        "legacy_numeric_issue_reviewer_output",
+                        "table_extractor_output",
+                        "in_table_issue_aggregator_output",
+                    ],
                 ),
                 category="numeric",
                 db_transformer=lambda f: {
-                    "description": f.get("summary", ""),
+                    "description": f.get("summary", "")
+                    or f.get("issue_description", ""),
                     "severity": f.get("severity", "medium"),
                     "source_refs": f.get("source_refs", []),
-                    "reasoning": f"Expected: {f.get('expected_value')}, "
-                    f"Actual: {f.get('actual_value')}, "
-                    f"Discrepancy: {f.get('discrepancy')}",
+                    "reasoning": (
+                        f"Expected: {f.get('expected_value')}, "
+                        f"Actual: {f.get('actual_value')}, "
+                        f"Discrepancy: {f.get('discrepancy')}"
+                        if f.get("expected_value")
+                        else f.get("issue_description", "")
+                    ),
                 },
             ),
             AgentConfig(
                 agent_id="logic_consistency",
                 completion_check=lambda state: self._get_nested_findings(
-                    state, "logic_consistency", "reviewer_output"
+                    state, "logic_consistency", "logic_consistency_reviewer_output"
                 ),
                 error_check=lambda state: self._check_standard_error(
                     self._get_agent_namespace(state, "logic_consistency"),
-                    ["detector_output", "reviewer_output"],
+                    [
+                        "logic_consistency_detector_output",
+                        "logic_consistency_reviewer_output",
+                    ],
                 ),
                 category="logic",
                 db_transformer=lambda f: {
@@ -80,11 +91,11 @@ class DocumentProcessor:
             AgentConfig(
                 agent_id="disclosure_compliance",
                 completion_check=lambda state: self._get_nested_findings(
-                    state, "disclosure_compliance", "reviewer_output"
+                    state, "disclosure_compliance", "disclosure_reviewer_output"
                 ),
                 error_check=lambda state: self._check_standard_error(
                     self._get_agent_namespace(state, "disclosure_compliance"),
-                    ["scanner_output", "reviewer_output"],
+                    ["disclosure_scanner_output", "disclosure_reviewer_output"],
                 ),
                 category="disclosure",
                 db_transformer=lambda f: {
@@ -99,14 +110,16 @@ class DocumentProcessor:
             AgentConfig(
                 agent_id="external_signal",
                 completion_check=lambda state: self._get_nested_findings(
-                    state, "external_signal", "external_signal_findings"
+                    state,
+                    "external_signal",
+                    "external_signal_findings_aggregator_output",
                 ),
                 error_check=lambda state: self._check_standard_error(
                     self._get_agent_namespace(state, "external_signal"),
                     [
-                        "internet_to_report_findings",
-                        "report_to_internet_findings",
-                        "external_signal_findings",
+                        "external_signal_internet_to_report_output",
+                        "external_signal_report_to_internet_output",
+                        "external_signal_findings_aggregator_output",
                     ],
                 ),
                 category="external",
@@ -129,7 +142,39 @@ class DocumentProcessor:
         ns = self._get_agent_namespace(state, agent_id)
         output = ns.get(output_key)
         if isinstance(output, dict):
+            # General case: findings list in "findings" key
             return output.get("findings")
+        return None
+
+    def _get_numeric_findings(self, state: dict[str, Any]) -> list[dict] | None:
+        """Aggregate numeric findings from both legacy and in-table pipelines."""
+        ns = self._get_agent_namespace(state, "numeric_validation")
+        findings = []
+
+        # Legacy findings
+        legacy_output = ns.get("legacy_numeric_issue_reviewer_output")
+        if isinstance(legacy_output, dict):
+            legacy_findings = legacy_output.get("findings", [])
+            if legacy_findings:
+                findings.extend(legacy_findings)
+
+        # In-table findings
+        in_table_output = ns.get("in_table_issue_aggregator_output")
+        if isinstance(in_table_output, dict):
+            in_table_issues = in_table_output.get("issues", [])
+            if in_table_issues:
+                findings.extend(in_table_issues)
+
+        if findings:
+            return findings
+
+        # Check if we at least saw the output keys, implying the agent ran but found nothing
+        if (
+            ns.get("legacy_numeric_issue_reviewer_output") is not None
+            or ns.get("in_table_issue_aggregator_output") is not None
+        ):
+            return []
+
         return None
 
     def _check_standard_error(

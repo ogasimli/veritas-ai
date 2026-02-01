@@ -4,11 +4,11 @@ from google.adk.agents.callback_context import CallbackContext
 
 from . import formula_engine
 from .schema import (
-    CellVerification,
-    ExtractionOutput,
-    FormulaTest,
-    TableVerification,
-    VerificationOutput,
+    TableCalcVerification,
+    TableCellVerification,
+    TableExtractorOutput,
+    TableFormulaTest,
+    TableVerificationOutput,
 )
 
 logger = logging.getLogger(__name__)
@@ -22,14 +22,16 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
     logger.info("Starting deterministic formula verification callback.")
 
     # 1. Get extraction data from state
-    raw_extraction = callback_context.state.get("extraction_output")
+    raw_extraction = callback_context.state.get("table_extractor_output")
     if not raw_extraction:
-        logger.warning("No extraction_output found in state. Skipping verification.")
+        logger.warning(
+            "No table_extractor_output found in state. Skipping verification."
+        )
         return
 
     try:
         if isinstance(raw_extraction, dict):
-            extraction = ExtractionOutput.model_validate(raw_extraction)
+            extraction = TableExtractorOutput.model_validate(raw_extraction)
         else:
             extraction = raw_extraction
     except Exception as e:
@@ -56,14 +58,14 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
                 for formula in cell_data.formulas:
                     calc_val = formula_engine.evaluate_single_formula(formula, grid)
                     formula_tests.append(
-                        FormulaTest(
+                        TableFormulaTest(
                             formula=formula,
                             calculated_value=calc_val,
                             difference=calc_val - actual_val,
                         )
                     )
 
-                cell_verif = CellVerification(
+                cell_verif = TableCellVerification(
                     cell_ref=f"({r_idx}, {c_idx})",
                     actual_value=actual_val,
                     formula_tests=formula_tests,
@@ -77,7 +79,7 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
 
         if current_table_verifs:
             table_verifications.append(
-                TableVerification(
+                TableCalcVerification(
                     table_name=extracted_table.table_name,
                     table=grid,
                     verifications=current_table_verifs,
@@ -86,7 +88,7 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
 
         if current_table_issues:
             table_issues.append(
-                TableVerification(
+                TableCalcVerification(
                     table_name=extracted_table.table_name,
                     table=grid,
                     verifications=current_table_issues,
@@ -94,10 +96,8 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
             )
 
     # 3. Store result in state
-    full_output = VerificationOutput(tables=table_verifications)
-    callback_context.state["in_table_calc_verification_output"] = (
-        full_output.model_dump()
-    )
+    full_output = TableVerificationOutput(tables=table_verifications)
+    callback_context.state["table_calc_verification_output"] = full_output.model_dump()
 
     # Sort issues by severity (descending by absolute difference)
     for tv in table_issues:
@@ -113,8 +113,8 @@ async def resolve_and_verify_formulas(callback_context: CallbackContext) -> None
         reverse=True,
     )
 
-    issues_output = VerificationOutput(tables=table_issues)
-    callback_context.state["in_table_calc_issues"] = issues_output.model_dump()
+    issues_output = TableVerificationOutput(tables=table_issues)
+    callback_context.state["table_calc_issues"] = issues_output.model_dump()
 
     logger.info(
         f"Formula verification complete. "

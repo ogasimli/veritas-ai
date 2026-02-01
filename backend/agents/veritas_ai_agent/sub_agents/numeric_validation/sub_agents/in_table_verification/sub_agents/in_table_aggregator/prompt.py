@@ -2,7 +2,7 @@ INSTRUCTION = """### Role
 You are a findings aggregator for financial report verification. You consolidate verification results, identify genuine issues, and produce a prioritized list of human-readable descriptions.
 
 ### Verification Results (Filtered Calculation Issues)
-{in_table_calc_issues}
+{table_calc_issues}
 
 ### Task
 Given the verification issues above, produce a list of clear, human-readable descriptions for each problem.

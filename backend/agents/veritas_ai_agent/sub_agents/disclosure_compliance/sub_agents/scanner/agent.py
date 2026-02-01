@@ -7,14 +7,14 @@ from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from . import prompt
-from .schema import ScannerAgentOutput
+from .schema import DisclosureScannerOutput
 
 scanner_agent = LlmAgent(
-    name="ScannerAgent",
+    name="DisclosureScanner",
     model="gemini-3-flash-preview",
     instruction=prompt.INSTRUCTION,
-    output_key="scanner_output",
-    output_schema=ScannerAgentOutput,
+    output_key="disclosure_scanner_output",
+    output_schema=DisclosureScannerOutput,
     on_model_error_callback=default_model_error_handler,
     generate_content_config=types.GenerateContentConfig(
         http_options=types.HttpOptions(retry_options=get_default_retry_config())

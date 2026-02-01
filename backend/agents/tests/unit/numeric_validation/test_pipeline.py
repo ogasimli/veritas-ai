@@ -18,7 +18,7 @@ def load_env():
 
 def test_root_agent_structure():
     """Verify complete pipeline structure."""
-    assert root_agent.name == "numeric_validation"
+    assert root_agent.name == "NumericValidation"
     # Number of sub-pipelines depends on env vars
     agent_mode = os.getenv("NUMERIC_VALIDATION_AGENT_MODE", "all")
 
@@ -39,21 +39,19 @@ def test_root_agent_structure():
 
     if enable_legacy:
         legacy_pipeline = next(
-            a
-            for a in root_agent.sub_agents
-            if a.name == "LegacyNumericValidationPipeline"
+            a for a in root_agent.sub_agents if a.name == "LegacyNumericValidation"
         )
         assert len(legacy_pipeline.sub_agents) == 3
         legacy_names = [a.name for a in legacy_pipeline.sub_agents]
-        assert "ExtractorAgent" in legacy_names
-        assert "FanOutVerifierAgent" in legacy_names
-        assert "ReviewerAgent" in legacy_names
+        assert "LegacyNumericFsliExtractor" in legacy_names
+        assert "LegacyNumericVerifier" in legacy_names
+        assert "LegacyNumericIssueReviewer" in legacy_names
 
     if enable_in_table:
         in_table_pipeline = next(
-            a for a in root_agent.sub_agents if a.name == "InTableVerificationPipeline"
+            a for a in root_agent.sub_agents if a.name == "InTableVerification"
         )
-        assert in_table_pipeline.name == "InTableVerificationPipeline"
+        assert in_table_pipeline.name == "InTableVerification"
         # TableExtractor + Aggregator
         assert len(in_table_pipeline.sub_agents) == 2
 
@@ -61,4 +59,4 @@ def test_root_agent_structure():
 def test_pipeline_can_initialize():
     """Verify pipeline can be loaded into a runner."""
     runner = InMemoryRunner(agent=root_agent, app_name="test")
-    assert runner.agent.name == "numeric_validation"
+    assert runner.agent.name == "NumericValidation"

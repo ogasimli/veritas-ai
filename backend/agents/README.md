@@ -27,19 +27,19 @@ graph TD
     NV --> NV_Legacy[Legacy Pipeline]
     NV --> NV_InTable[In-Table Pipeline]
 
-    NV_Legacy --> NV_Ext[Extractor]
-    NV_Legacy --> NV_Ver[Verifier]
-    NV_Legacy --> NV_Rev[Reviewer]
+    NV_Legacy --> NV_Ext[FSLI Extractor]
+    NV_Legacy --> NV_Ver[Legacy Verifier]
+    NV_Legacy --> NV_Rev[Legacy Reviewer]
 
     NV_InTable --> NV_TabExt[Table Extractor]
-    NV_InTable --> NV_TabAgg[In-Table Aggregator]
+    NV_InTable --> NV_TabAgg[In-Table Issue Aggregator]
 
     LC --> LC_Det[Detector]
-    LC --> LC_Rev[Reviewer]
+    LC --> LC_Rev[Logic Reviewer]
 
     DC --> DC_Scan[Scanner]
     DC --> DC_Ver[Verifier]
-    DC --> DC_Rev[Reviewer]
+    DC --> DC_Rev[Disclosure Reviewer]
 
     ES --> ES_Verif[Verification Wrapper]
     ES --> ES_Agg[Aggregator]

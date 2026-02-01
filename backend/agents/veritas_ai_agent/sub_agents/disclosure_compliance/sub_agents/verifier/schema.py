@@ -22,7 +22,7 @@ class DisclosureFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class VerifierAgentOutput(BaseAgentOutput):
+class DisclosureVerifierOutput(BaseAgentOutput):
     """Output schema for disclosure VerifierAgent."""
 
     findings: list[DisclosureFinding] = Field(

@@ -2,10 +2,10 @@ INSTRUCTION = """
 You are an aggregator agent that consolidates findings from two external verification agents into a single unified response.
 
 ## Internet-to-Report Findings (External Signals)
-{internet_to_report_findings}
+{external_signal_internet_to_report_output}
 
 ## Report-to-Internet Findings (Claim Verifications)
-{report_to_internet_findings}
+{external_signal_report_to_internet_output}
 
 ## Your Task
 Transform, filter, and deduplicate the findings above into a unified list with ALL required fields:

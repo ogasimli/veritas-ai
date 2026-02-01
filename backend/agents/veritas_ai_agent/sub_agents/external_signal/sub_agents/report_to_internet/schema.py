@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class VerifiableClaim(BaseModel):
+class ExternalSignalVerifiableClaim(BaseModel):
     """A publicly verifiable claim extracted from financial statement."""
 
     claim_text: str = Field(description="Exact quote from report")
@@ -21,7 +21,7 @@ class VerifiableClaim(BaseModel):
     verification_query: str = Field(description="Search query to validate this claim")
 
 
-class ClaimVerification(BaseModel):
+class ExternalSignalClaimVerification(BaseModel):
     """Result of verifying a claim against internet sources."""
 
     claim: str = Field(description="The claim being verified")
@@ -39,10 +39,10 @@ class ClaimVerification(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ReportToInternetAgentOutput(BaseAgentOutput):
+class ExternalSignalReportToInternetOutput(BaseAgentOutput):
     """Output from report-to-internet agent - verification results for extracted claims."""
 
-    verifications: list[ClaimVerification] = Field(
+    verifications: list[ExternalSignalClaimVerification] = Field(
         default_factory=list,
         description="Verification results for publicly verifiable claims",
     )

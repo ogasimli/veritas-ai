@@ -17,7 +17,7 @@ else:
     sub_agents = [legacy_pipeline, in_table_pipeline]
 
 numeric_validation_agent = ParallelAgent(
-    name="numeric_validation",
+    name="NumericValidation",
     description="Parallel pipeline for financial statement numeric validation (In-Table & Legacy Cross-Check)",
     sub_agents=sub_agents,
 )

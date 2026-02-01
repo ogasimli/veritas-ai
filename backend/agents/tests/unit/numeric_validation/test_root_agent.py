@@ -16,7 +16,7 @@ def load_env():
 
 def test_agent_structure():
     """Verify the agent structure and sub-agents."""
-    assert root_agent.name == "numeric_validation"
+    assert root_agent.name == "NumericValidation"
     agent_mode = os.getenv("NUMERIC_VALIDATION_AGENT_MODE", "all")
 
     if agent_mode == "legacy_pipeline":
@@ -36,21 +36,19 @@ def test_agent_structure():
 
     if enable_legacy:
         legacy_pipeline = next(
-            a
-            for a in root_agent.sub_agents
-            if a.name == "LegacyNumericValidationPipeline"
+            a for a in root_agent.sub_agents if a.name == "LegacyNumericValidation"
         )
         assert len(legacy_pipeline.sub_agents) == 3
 
     if enable_in_table:
         in_table_pipeline = next(
-            a for a in root_agent.sub_agents if a.name == "InTableVerificationPipeline"
+            a for a in root_agent.sub_agents if a.name == "InTableVerification"
         )
-        assert in_table_pipeline.name == "InTableVerificationPipeline"
+        assert in_table_pipeline.name == "InTableVerification"
 
 
 @pytest.mark.asyncio
 async def test_extractor_basic_run():
     """Verify the agent can be initialized in a runner."""
     runner = InMemoryRunner(agent=root_agent)
-    assert runner.agent.name == "numeric_validation"
+    assert runner.agent.name == "NumericValidation"

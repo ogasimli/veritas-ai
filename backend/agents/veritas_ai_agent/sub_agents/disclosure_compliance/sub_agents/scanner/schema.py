@@ -3,7 +3,7 @@ from pydantic import Field
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ScannerAgentOutput(BaseAgentOutput):
+class DisclosureScannerOutput(BaseAgentOutput):
     """Output schema for Scanner agent."""
 
     applicable_standards: list[str] = Field(

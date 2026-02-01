@@ -4,8 +4,8 @@ import dotenv
 import pytest
 
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.legacy_numeric_validation.reviewer import (
-    Finding,
-    ReviewerAgentOutput,
+    LegacyNumericFinding,
+    LegacyNumericReviewerOutput,
     reviewer_agent,
 )
 
@@ -19,15 +19,15 @@ def load_env():
 
 def test_reviewer_agent_structure():
     """Verify ReviewerAgent configuration."""
-    assert reviewer_agent.name == "ReviewerAgent"
+    assert reviewer_agent.name == "LegacyNumericIssueReviewer"
     assert reviewer_agent.model == "gemini-3-pro-preview"
     assert reviewer_agent.code_executor is not None
-    assert reviewer_agent.output_key == "reviewer_output"
+    assert reviewer_agent.output_key == "legacy_numeric_issue_reviewer_output"
 
 
 def test_finding_schema():
     """Verify Finding schema."""
-    finding = Finding(
+    finding = LegacyNumericFinding(
         fsli_name="Revenue",
         summary="Revenue components do not sum to total. Discrepancy: $100K.",
         severity="high",
@@ -42,7 +42,7 @@ def test_finding_schema():
 
 def test_reviewer_agent_output_schema():
     """Verify ReviewerAgentOutput schema."""
-    output = ReviewerAgentOutput(findings=[])
+    output = LegacyNumericReviewerOutput(findings=[])
     assert output.findings == []
 
 

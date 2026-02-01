@@ -6,7 +6,7 @@ from .sub_agents.aggregator import aggregator_agent
 from .sub_agents.verification import verification_agent
 
 external_signal_agent = SequentialAgent(
-    name="external_signal",
+    name="ExternalSignal",
     description="Bidirectional ifnormation verification with unified output",
     sub_agents=[
         verification_agent,  # Step 1: Parallel verification

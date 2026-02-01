@@ -51,7 +51,7 @@ async def test_processor_extraction_contract():
     # expected from all sub-agents in the orchestrator.
     contract_final_state = {
         "numeric_validation": {
-            "reviewer_output": {
+            "legacy_numeric_issue_reviewer_output": {
                 "findings": [
                     {
                         "fsli_name": "Cash",
@@ -63,10 +63,21 @@ async def test_processor_extraction_contract():
                         "source_refs": ["Note 5, Page 12"],
                     }
                 ]
-            }
+            },
+            "in_table_issue_aggregator_output": {
+                "issues": [
+                    {
+                        "table_name": "Balance Sheet",
+                        "issue_description": "Total Assets does not match sum",
+                        "severity": "medium",
+                        "discrepancy": 10.0,
+                        "source_refs": ["Table 1"],
+                    }
+                ]
+            },
         },
         "logic_consistency": {
-            "reviewer_output": {
+            "logic_consistency_reviewer_output": {
                 "findings": [
                     {
                         "fsli_name": "Revenue",
@@ -80,7 +91,7 @@ async def test_processor_extraction_contract():
             }
         },
         "disclosure_compliance": {
-            "reviewer_output": {
+            "disclosure_reviewer_output": {
                 "findings": [
                     {
                         "standard": "IAS 1",
@@ -93,7 +104,7 @@ async def test_processor_extraction_contract():
             }
         },
         "external_signal": {
-            "external_signal_findings": {
+            "external_signal_findings_aggregator_output": {
                 "findings": [
                     {
                         "finding_type": "external_signal",
@@ -152,9 +163,9 @@ async def test_processor_extraction_contract():
     assert "disclosure" in categories
     assert "external" in categories
 
-    # We expect EXACTLY 5 results. If fallback logic is buggy, we'd get 10.
-    assert len(added_results) == 5, (
-        f"Expected 5 results, got {len(added_results)}. Check for duplicates!"
+    # We expect EXACTLY 6 results. If fallback logic is buggy, we'd get 10.
+    assert len(added_results) == 6, (
+        f"Expected 6 results, got {len(added_results)}. Check for duplicates!"
     )
 
     print("\n✅ Processor Contract Test Passed!")
@@ -197,11 +208,14 @@ async def test_processor_empty_findings_contract():
 
     # 3. Define State with EMPTY findings
     contract_empty_state = {
-        "numeric_validation": {"reviewer_output": {"findings": []}},
-        "logic_consistency": {"reviewer_output": {"findings": []}},
-        "disclosure_compliance": {"reviewer_output": {"findings": []}},
+        "numeric_validation": {
+            "legacy_numeric_issue_reviewer_output": {"findings": []},
+            "in_table_issue_aggregator_output": {"issues": []},
+        },
+        "logic_consistency": {"logic_consistency_reviewer_output": {"findings": []}},
+        "disclosure_compliance": {"disclosure_reviewer_output": {"findings": []}},
         "external_signal": {
-            "external_signal_findings": {"findings": []},
+            "external_signal_findings_aggregator_output": {"findings": []},
         },
     }
 

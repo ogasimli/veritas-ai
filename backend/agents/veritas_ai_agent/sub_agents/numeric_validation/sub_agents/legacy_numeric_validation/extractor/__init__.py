@@ -1,3 +1,3 @@
 """Extractor sub-agent exports."""
 
-from .agent import extractor_agent
+from .agent import fsli_extractor_agent

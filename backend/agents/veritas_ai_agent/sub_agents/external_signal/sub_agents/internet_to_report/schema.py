@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class ExternalFinding(BaseModel):
+class ExternalSignalFinding(BaseModel):
     """A risk signal found through external search."""
 
     signal_type: Literal["news", "litigation", "financial_distress"] = Field(
@@ -25,10 +25,10 @@ class ExternalFinding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class InternetToReportAgentOutput(BaseAgentOutput):
+class ExternalSignalInternetToReportOutput(BaseAgentOutput):
     """Output from internet-to-report agent - external signals that may contradict report."""
 
-    findings: list[ExternalFinding] = Field(
+    findings: list[ExternalSignalFinding] = Field(
         default_factory=list,
         description="External risk signals discovered through Deep Research",
     )

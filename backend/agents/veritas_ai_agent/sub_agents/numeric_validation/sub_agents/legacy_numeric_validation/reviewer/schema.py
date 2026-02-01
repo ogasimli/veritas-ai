@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class Finding(BaseModel):
+class LegacyNumericFinding(BaseModel):
     """A confirmed numeric discrepancy that failed verification and was confirmed by re-verification."""
 
     fsli_name: str = Field(
@@ -32,10 +32,10 @@ class Finding(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ReviewerAgentOutput(BaseAgentOutput):
+class LegacyNumericReviewerOutput(BaseAgentOutput):
     """Output from numeric reviewer agent - confirmed discrepancies that failed re-verification."""
 
-    findings: list[Finding] = Field(
+    findings: list[LegacyNumericFinding] = Field(
         default_factory=list,
         description="List of confirmed numeric discrepancies (duplicates removed, re-verification failed)",
     )

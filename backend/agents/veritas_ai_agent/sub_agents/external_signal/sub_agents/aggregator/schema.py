@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class UnifiedFinding(BaseModel):
+class ExternalSignalUnifiedFinding(BaseModel):
     """
     Unified finding that combines both external signal and claim verification types.
 
@@ -32,10 +32,10 @@ class UnifiedFinding(BaseModel):
     )
 
 
-class AggregatorAgentOutput(BaseAgentOutput):
+class ExternalSignalFindingsAggregatorOutput(BaseAgentOutput):
     """Output schema for the external signal aggregator agent."""
 
-    findings: list[UnifiedFinding] = Field(
+    findings: list[ExternalSignalUnifiedFinding] = Field(
         default_factory=list,
         description="Unified and deduplicated findings from both verification directions",
     )

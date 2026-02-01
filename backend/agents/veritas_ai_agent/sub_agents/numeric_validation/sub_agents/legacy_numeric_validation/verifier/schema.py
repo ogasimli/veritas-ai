@@ -3,16 +3,18 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 
-class CheckType(str, Enum):
+class LegacyNumericCheckType(str, Enum):
     IN_TABLE_SUM = "in_table_sum"
     CROSS_TABLE_CONSISTENCY = "cross_table_consistency"
 
 
-class VerificationCheck(BaseModel):
+class LegacyNumericVerificationCheck(BaseModel):
     fsli_name: str = Field(
         description="Name of the Financial Statement Line Item being verified"
     )
-    check_type: CheckType = Field(description="Type of mathematical check performed")
+    check_type: LegacyNumericCheckType = Field(
+        description="Type of mathematical check performed"
+    )
     description: str = Field(
         description="Human-readable description of what specifically was checked"
     )
@@ -36,8 +38,8 @@ class VerificationCheck(BaseModel):
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class VerifierAgentOutput(BaseAgentOutput):
-    checks: list[VerificationCheck] = Field(
+class LegacyNumericVerifierOutput(BaseAgentOutput):
+    checks: list[LegacyNumericVerificationCheck] = Field(
         default_factory=list,
         description="List of mathematical verification checks performed for this FSLI",
     )

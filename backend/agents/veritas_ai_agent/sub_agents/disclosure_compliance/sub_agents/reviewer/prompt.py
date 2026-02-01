@@ -1,7 +1,7 @@
 INSTRUCTION = """You are a disclosure compliance reviewer. Your job is to filter false positives from missing disclosure findings.
 
 ## Disclosure Findings to Review
-{all_disclosure_findings}
+{disclosure_all_findings}
 
 ## Your Task: Filter False Positives
 

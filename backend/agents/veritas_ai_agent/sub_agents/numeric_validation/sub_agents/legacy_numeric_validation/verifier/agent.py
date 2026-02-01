@@ -13,29 +13,31 @@ from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from .prompt import get_verifier_instruction
-from .schema import VerifierAgentOutput
+from .schema import LegacyNumericVerifierOutput
 
 
-class FanOutVerifierAgent(BaseAgent):
+class LegacyNumericVerifier(BaseAgent):
     """
     CustomAgent that dynamically spawns parallel VerifierAgents,
-    one per FSLI extracted by ExtractorAgent.
+    one per FSLI extracted by LegacyNumericFsliExtractor.
 
     Maintains ADK observability by using ParallelAgent internally.
     """
 
-    name: str = "FanOutVerifierAgent"
+    name: str = "LegacyNumericVerifier"
     description: str = "Spawns parallel verifiers for each FSLI"
 
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
-        # 1. Read FSLI names from session state (set by ExtractorAgent)
-        extractor_output = ctx.session.state.get("extractor_output", {})
+        # 1. Read FSLI names from session state (set by LegacyNumericFsliExtractor)
+        extractor_output = ctx.session.state.get(
+            "legacy_numeric_fsli_extractor_output", {}
+        )
         fsli_names = extractor_output.get("fsli_names", [])
 
         if not fsli_names:
-            ctx.session.state["all_verification_checks"] = []
+            ctx.session.state["legacy_numeric_all_checks"] = []
             yield Event(
                 author=self.name,
                 content=types.Content(
@@ -49,7 +51,7 @@ class FanOutVerifierAgent(BaseAgent):
             create_verifier_agent(
                 name=f"verify_{re.sub(r'[^a-zA-Z0-9_]', '_', fsli_name)}",
                 fsli_name=fsli_name,
-                output_key=f"checks:{fsli_name}",
+                output_key=f"legacy_numeric_checks:{fsli_name}",
             )
             for fsli_name in fsli_names
         ]
@@ -87,11 +89,11 @@ class FanOutVerifierAgent(BaseAgent):
         # 5. After all verifiers complete, aggregate results
         all_checks = []
         for key in ctx.session.state:
-            if key.startswith("checks:"):
+            if key.startswith("legacy_numeric_checks:"):
                 checks_data = ctx.session.state[key]
                 if checks_data and "checks" in checks_data:
                     all_checks.extend(checks_data["checks"])
-        ctx.session.state["all_verification_checks"] = all_checks
+        ctx.session.state["legacy_numeric_all_checks"] = all_checks
 
 
 def create_verifier_agent(name: str, fsli_name: str, output_key: str) -> LlmAgent:
@@ -104,7 +106,7 @@ def create_verifier_agent(name: str, fsli_name: str, output_key: str) -> LlmAgen
         model="gemini-3-pro-preview",
         instruction=get_verifier_instruction(fsli_name),
         output_key=output_key,
-        output_schema=VerifierAgentOutput,
+        output_schema=LegacyNumericVerifierOutput,
         code_executor=BuiltInCodeExecutor(),
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(retry_options=get_default_retry_config())
@@ -114,4 +116,4 @@ def create_verifier_agent(name: str, fsli_name: str, output_key: str) -> LlmAgen
 
 
 # Singleton instance for import
-verifier_agent = FanOutVerifierAgent()
+verifier_agent = LegacyNumericVerifier()

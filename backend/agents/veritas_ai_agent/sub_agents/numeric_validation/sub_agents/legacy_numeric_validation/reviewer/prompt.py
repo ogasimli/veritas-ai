@@ -1,7 +1,7 @@
 INSTRUCTION = """You are a financial findings reviewer. Your job is to review verification results and produce final findings.
 
 ## Verification Checks to Review
-{all_verification_checks}
+{legacy_numeric_all_checks}
 
 ## Your Tasks
 

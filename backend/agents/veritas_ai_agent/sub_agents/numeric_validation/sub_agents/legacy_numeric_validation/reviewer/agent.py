@@ -8,14 +8,14 @@ from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from . import prompt
-from .schema import ReviewerAgentOutput
+from .schema import LegacyNumericReviewerOutput
 
 reviewer_agent = LlmAgent(
-    name="ReviewerAgent",
+    name="LegacyNumericIssueReviewer",
     model="gemini-3-pro-preview",
     instruction=prompt.INSTRUCTION,
-    output_key="reviewer_output",
-    output_schema=ReviewerAgentOutput,
+    output_key="legacy_numeric_issue_reviewer_output",
+    output_schema=LegacyNumericReviewerOutput,
     code_executor=BuiltInCodeExecutor(),  # For re-verification
     on_model_error_callback=default_model_error_handler,
     generate_content_config=types.GenerateContentConfig(

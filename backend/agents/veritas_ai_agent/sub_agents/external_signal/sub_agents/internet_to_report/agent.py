@@ -9,7 +9,7 @@ from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from ...deep_research_client import DeepResearchClient
 from . import prompt
-from .schema import InternetToReportAgentOutput
+from .schema import ExternalSignalInternetToReportOutput
 
 # Initialize Deep Research client (singleton pattern)
 deep_research_client = DeepResearchClient()
@@ -64,12 +64,12 @@ If no significant signals are found, explicitly state that.
 
 # Create LlmAgent with Deep Research tool integration
 internet_to_report_agent = LlmAgent(
-    name="internet_to_report",
+    name="ExternalSignalInternetToReport",
     model="gemini-3-flash-preview",  # Lightweight coordinator
     instruction=prompt.INSTRUCTION,
     tools=[FunctionTool(search_external_signals_tool)],
-    output_key="internet_to_report_findings",
-    output_schema=InternetToReportAgentOutput,
+    output_key="external_signal_internet_to_report_output",
+    output_schema=ExternalSignalInternetToReportOutput,
     on_model_error_callback=default_model_error_handler,
     generate_content_config=types.GenerateContentConfig(
         http_options=types.HttpOptions(retry_options=get_default_retry_config())

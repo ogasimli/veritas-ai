@@ -7,14 +7,14 @@ from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from . import prompt
-from .schema import ExtractorAgentOutput
+from .schema import LegacyNumericFsliExtractorOutput
 
-extractor_agent = LlmAgent(
-    name="ExtractorAgent",
+fsli_extractor_agent = LlmAgent(
+    name="LegacyNumericFsliExtractor",
     model="gemini-3-flash-preview",
     instruction=prompt.INSTRUCTION,
-    output_key="extractor_output",
-    output_schema=ExtractorAgentOutput,
+    output_key="legacy_numeric_fsli_extractor_output",
+    output_schema=LegacyNumericFsliExtractorOutput,
     on_model_error_callback=default_model_error_handler,
     generate_content_config=types.GenerateContentConfig(
         http_options=types.HttpOptions(retry_options=get_default_retry_config())

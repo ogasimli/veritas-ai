@@ -32,7 +32,7 @@ elif agent_mode == "external_signal":
 else:
     # Default behavior: create the main parallel orchestrator
     root_agent = ParallelAgent(
-        name="audit_orchestrator",
+        name="AuditOrchestrator",
         description="Coordinates parallel validation agents for financial statement audit",
         sub_agents=[
             numeric_validation_agent,  # Numeric validation pipeline (adaptive batching)

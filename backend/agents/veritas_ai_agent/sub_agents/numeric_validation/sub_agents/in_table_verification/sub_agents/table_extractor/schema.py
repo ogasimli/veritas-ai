@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class CellData(BaseModel):
+class TableCellData(BaseModel):
     value: str = Field(description="The value shown in the original report")
     formulas: list[str] = Field(
         default_factory=list,
@@ -13,12 +13,12 @@ class CellData(BaseModel):
 
 class ExtractedTable(BaseModel):
     table_name: str = Field(description="Explicit or inferred name of the table")
-    table: list[list[CellData]] = Field(
+    table: list[list[TableCellData]] = Field(
         description="2D array representation of the table. Row 0 = headers, Row 1+ = data. Column 0 often contains row labels."
     )
 
 
-class ExtractionOutput(BaseAgentOutput):
+class TableExtractorOutput(BaseAgentOutput):
     """Output schema for TableExtractorAgent."""
 
     tables: list[ExtractedTable] = Field(
@@ -27,25 +27,25 @@ class ExtractionOutput(BaseAgentOutput):
     )
 
 
-class FormulaTest(BaseModel):
+class TableFormulaTest(BaseModel):
     formula: str
     calculated_value: float
     difference: float
 
 
-class CellVerification(BaseModel):
+class TableCellVerification(BaseModel):
     cell_ref: str
     actual_value: float
-    formula_tests: list[FormulaTest]
+    formula_tests: list[TableFormulaTest]
 
 
-class TableVerification(BaseModel):
+class TableCalcVerification(BaseModel):
     table_name: str
-    table: list[list[CellData]]
-    verifications: list[CellVerification]
+    table: list[list[TableCellData]]
+    verifications: list[TableCellVerification]
 
 
-class VerificationOutput(BaseModel):
+class TableVerificationOutput(BaseModel):
     """Internal verification results."""
 
-    tables: list[TableVerification] = Field(default_factory=list)
+    tables: list[TableCalcVerification] = Field(default_factory=list)

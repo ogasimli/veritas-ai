@@ -3,7 +3,7 @@ from pydantic import Field
 from veritas_ai_agent.schemas import BaseAgentOutput
 
 
-class ExtractorAgentOutput(BaseAgentOutput):
+class LegacyNumericFsliExtractorOutput(BaseAgentOutput):
     """Output schema for ExtractorAgent."""
 
     fsli_names: list[str] = Field(
