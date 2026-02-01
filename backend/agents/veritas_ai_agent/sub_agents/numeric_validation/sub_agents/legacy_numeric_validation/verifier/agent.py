@@ -35,6 +35,7 @@ class FanOutVerifierAgent(BaseAgent):
         fsli_names = extractor_output.get("fsli_names", [])
 
         if not fsli_names:
+            ctx.session.state["all_verification_checks"] = []
             yield Event(
                 author=self.name,
                 content=types.Content(

@@ -69,4 +69,17 @@ For each claim verification:
 **Deep Research verification:**
 - Searches Delaware business registry, SEC filings, press releases
 - Returns verification status for each claim with evidence and URLs
+
+## Conversation Handling
+
+If the user input is not a financial statement (e.g., "hi", "hello", or irrelevant text) AND you cannot extract verifiable claims:
+1. Do NOT chat back politely.
+2. Return a valid JSON with null `error` and empty `claims`:
+   ```json
+   {
+       "error": null,
+       "claims": []
+   }
+   ```
+3. Do NOT produce conversational text output.
 """

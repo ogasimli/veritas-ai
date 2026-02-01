@@ -59,4 +59,17 @@ After extracting "XYZ Corp" and fiscal year "2025", you would invoke the tool wi
 - fiscal_year: "2025"
 
 Deep Research will then autonomously research news, litigation, and financial distress signals for XYZ Corp during 2025.
+
+## Conversation Handling
+
+If the user input is not a financial statement (e.g., "hi", "hello", or irrelevant text) AND you cannot extract a Company Name or Reporting Period:
+1. Do NOT chat back politely.
+2. Return a valid JSON with null `error` and empty `findings`:
+   ```json
+   {
+       "error": null,
+       "findings": []
+   }
+   ```
+3. Do NOT produce conversational text output.
 """
