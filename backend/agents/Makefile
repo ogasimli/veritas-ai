@@ -33,7 +33,9 @@ deploy-all: deploy-root-agent deploy-numeric-agent deploy-logic-agent deploy-dis
 	@echo ""
 	@echo "Deployed services:"
 	@echo "  - veritas-ai-agent (root orchestrator)"
-	@echo "  - veritas-numeric-validation"
+	@echo "  - veritas-numeric-validation (In-Table & Legacy Cross-Check)"
+	@echo "  - veritas-numeric-validation-legacy (Legacy Only)"
+	@echo "  - veritas-numeric-validation-table (In-Table Only)"
 	@echo "  - veritas-logic-consistency"
 	@echo "  - veritas-disclosure-compliance"
 	@echo "  - veritas-external-signal"
@@ -41,7 +43,8 @@ deploy-all: deploy-root-agent deploy-numeric-agent deploy-logic-agent deploy-dis
 # Common deployment variables
 PROJECT_ID = $(shell gcloud config get-value project)
 REGION = us-central1
-ENV_VARS = $(shell grep -v '^\#' .env | xargs | sed 's/ /,/g')
+# Get env vars from .env, commenting out and excluding the ones we set explicitly
+ENV_VARS = $(shell grep -vE '^(VERITAS_AGENT_MODE|NUMERIC_VALIDATION_AGENT_MODE)=' .env | grep -v '^\#' | xargs | sed 's/ /,/g')
 
 # Helper macro for deploying agents to Cloud Run
 define deploy_agent
@@ -53,16 +56,24 @@ define deploy_agent
 		"./veritas_ai_agent" \
 		-- --allow-unauthenticated \
 		--timeout=3600 \
-		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2)
+		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2),NUMERIC_VALIDATION_AGENT_MODE=$(if $(3),$(3),all)
 endef
 
 # Deploy root orchestrator agent
 deploy-root-agent:
 	$(call deploy_agent,veritas-orchestrator-agent,orchestrator)
 
-# Deploy numeric validation sub-agent
-deploy-numeric-agent:
-	$(call deploy_agent,veritas-numeric-validation,numeric_validation)
+# Deploy numeric validation sub-agents (3 versions)
+deploy-numeric-agent: deploy-numeric-legacy deploy-numeric-in-table deploy-numeric-all
+
+deploy-numeric-legacy:
+	$(call deploy_agent,veritas-numeric-validation-legacy,numeric_validation,legacy_pipeline)
+
+deploy-numeric-in-table:
+	$(call deploy_agent,veritas-numeric-validation-table,numeric_validation,in_table_pipeline)
+
+deploy-numeric-all:
+	$(call deploy_agent,veritas-numeric-validation,numeric_validation,all)
 
 # Deploy logic consistency sub-agent
 deploy-logic-agent:
