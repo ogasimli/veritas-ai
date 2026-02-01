@@ -8,7 +8,7 @@ The agent operates as a specialized "Audit Orchestrator" that coordinates severa
 
 ### Key Capabilities
 
-*   **🔢 Numeric Validation**: Extracts Financial Statement Line Items (FSLIs) and performs mathematical checks (sums, cross-table consistency) using code execution.
+*   **🔢 Numeric Validation**: Performs parallel validation using a **Legacy Pipeline** (extracting FSLIs for checks) and an **In-Table Pipeline** (verifying internal calculations within tables).
 *   **⚖️ Logic Consistency**: Detects contradictions between different sections of a report (e.g., Narrative vs. Data).
 *   **📋 Disclosure Compliance**: Scans reports against IFRS/IAS standards to identify missing or non-compliant disclosures.
 *   **🌐 External Signal Verification**: Uses **Gemini Deep Research** to cross-verify report claims against internet sources and historical data.
@@ -24,9 +24,15 @@ graph TD
     Root --> DC[Disclosure Compliance]
     Root --> ES[External Signal]
 
-    NV --> NV_Ext[Extractor]
-    NV --> NV_Ver[Verifier]
-    NV --> NV_Rev[Reviewer]
+    NV --> NV_Legacy[Legacy Pipeline]
+    NV --> NV_InTable[In-Table Pipeline]
+
+    NV_Legacy --> NV_Ext[Extractor]
+    NV_Legacy --> NV_Ver[Verifier]
+    NV_Legacy --> NV_Rev[Reviewer]
+
+    NV_InTable --> NV_TabExt[Table Extractor]
+    NV_InTable --> NV_TabAgg[In-Table Aggregator]
 
     LC --> LC_Det[Detector]
     LC --> LC_Rev[Reviewer]
