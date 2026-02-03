@@ -14,14 +14,6 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 
-class TargetCell(BaseModel):
-    """Pointer to a single cell inside a table grid."""
-
-    table_index: int
-    row: int
-    col: int
-
-
 class InferredFormula(BaseModel):
     """One candidate formula for a calculable cell."""
 
@@ -39,12 +31,10 @@ class ReconstructedFormula(BaseModel):
     """
     Unified schema stored in state["reconstructed_formulas"].
 
-    ``check_type`` differentiates the two pipelines.  Both pipelines use the
-    same set of fields; ``target_cells`` holds one entry for in-table checks
-    and multiple entries for cross-table relationship checks.
+    ``check_type`` differentiates the two pipelines.  Fields prefixed with
+    *in-table* are populated only when check_type=="in_table"; the *cross-table*
+    fields are populated only when check_type=="cross_table".
     """
 
     check_type: Literal["in_table", "cross_table"]
-    target_cells: list[TargetCell] = Field(default_factory=list)
-    actual_value: Optional[float] = None
-    inferred_formulas: list[InferredFormula] = Field(default_factory=list)
+    inferred_formulas: Optional[list[InferredFormula]] = None

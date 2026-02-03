@@ -103,7 +103,7 @@ backend/agents/veritas_ai_agent/sub_agents/numeric_validation/
 │   │   ├── prompt.py
 │   │   ├── schema.py
 │   │   └── callbacks.py                  # Merge names with extracted_tables_raw
-│   ├── in_table_formula_fan_out/         # NEW: In-table formula reconstruction
+│   ├── in_table_pipeline/         # NEW: In-table formula reconstruction
 │   │   ├── __init__.py
 │   │   ├── agent.py                      # CustomAgent with intelligent batching
 │   │   ├── prompt.py
@@ -453,11 +453,11 @@ class ReconstructedFormula(BaseModel):
 **Goal**: Create fan-out agent with intelligent batching
 **Testable**: Run with mock tables, verify batching logic
 **Files**:
-- `sub_agents/in_table_formula_fan_out/__init__.py`
-- `sub_agents/in_table_formula_fan_out/agent.py`
-- `sub_agents/in_table_formula_fan_out/prompt.py`
-- `sub_agents/in_table_formula_fan_out/schema.py`
-- `sub_agents/in_table_formula_fan_out/callbacks.py`
+- `sub_agents/in_table_pipeline/__init__.py`
+- `sub_agents/in_table_pipeline/agent.py`
+- `sub_agents/in_table_pipeline/prompt.py`
+- `sub_agents/in_table_pipeline/schema.py`
+- `sub_agents/in_table_pipeline/callbacks.py`
 
 **Callback Logic** (writes to shared state):
 ```python
@@ -581,7 +581,7 @@ numeric_validation_agent = SequentialAgent(
         ParallelAgent(
             name="FormulaReconstruction",
             sub_agents=[
-                in_table_formula_fan_out,
+                in_table_pipeline,
                 cross_table_pipeline
             ]
         ),
