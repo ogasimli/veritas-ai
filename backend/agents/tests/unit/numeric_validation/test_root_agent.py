@@ -1,7 +1,5 @@
 """Test cases for the numeric validation agent."""
 
-import os
-
 import dotenv
 import pytest
 from google.adk.runners import InMemoryRunner
@@ -15,36 +13,31 @@ def load_env():
 
 
 def test_agent_structure():
-    """Verify the agent structure and sub-agents."""
+    """Verify the top-level agent is a SequentialAgent with the expected shape:
+
+    TableNamer  ->  ParallelAgent(InTable, CrossTable)  ->  Aggregator
+    """
     assert root_agent.name == "NumericValidation"
-    agent_mode = os.getenv("NUMERIC_VALIDATION_AGENT_MODE", "all")
 
-    if agent_mode == "legacy_pipeline":
-        expected_count = 1
-        enable_legacy = True
-        enable_in_table = False
-    elif agent_mode == "in_table_pipeline":
-        expected_count = 1
-        enable_legacy = False
-        enable_in_table = True
-    else:
-        expected_count = 2
-        enable_legacy = True
-        enable_in_table = True
+    # Three sequential stages
+    assert len(root_agent.sub_agents) == 3
 
-    assert len(root_agent.sub_agents) == expected_count
+    table_namer = root_agent.sub_agents[0]
+    parallel = root_agent.sub_agents[1]
+    aggregator = root_agent.sub_agents[2]
 
-    if enable_legacy:
-        legacy_pipeline = next(
-            a for a in root_agent.sub_agents if a.name == "LegacyNumericValidation"
-        )
-        assert len(legacy_pipeline.sub_agents) == 3
+    # Stage 1: table namer
+    assert table_namer.name == "TableNamer"
 
-    if enable_in_table:
-        in_table_pipeline = next(
-            a for a in root_agent.sub_agents if a.name == "InTableVerification"
-        )
-        assert in_table_pipeline.name == "InTableVerification"
+    # Stage 2: parallel fan-out containing in-table and cross-table pipelines
+    assert parallel.name == "NumericValidationParallel"
+    assert len(parallel.sub_agents) == 2
+    parallel_names = {a.name for a in parallel.sub_agents}
+    assert "InTableFormulaFanOut" in parallel_names
+    assert "CrossTablePipeline" in parallel_names
+
+    # Stage 3: aggregator
+    assert aggregator.name == "Aggregator"
 
 
 @pytest.mark.asyncio
