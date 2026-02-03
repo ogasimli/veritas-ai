@@ -285,7 +285,7 @@ state["reconstructed_formulas"] = [
 # Step 1: Programmatic extraction
 state["extracted_tables_raw"] = {
     "tables": [
-        {"table_index": 0, "grid": [[...]], "source_lines": "10-25"},
+        {"table_index": 0, "grid": [[...]]},
         ...
     ]
 }
@@ -332,6 +332,23 @@ MAX_BATCH_COMPLEXITY=80              # Max combined complexity per batch
 
 ---
 
+## Design Conventions
+
+### Prompt templating
+Every LLM agent's prompt is a static string constant (`INSTRUCTION`) in its
+`prompt.py`.  ADK automatically substitutes `{key}` placeholders with the
+value of `state["key"]` before sending the request — no builder function or
+manual formatting needed.  Prefer referencing state keys directly rather than
+constructing intermediate summaries.
+
+### Callbacks live in `callbacks.py`
+Each agent directory owns a `callbacks.py` that exports its `before_agent_callback`
+and/or `after_agent_callback`.  `agent.py` imports them by name.  This keeps
+the agent definition file minimal and makes callback logic independently
+testable.
+
+---
+
 ## Implementation Tasks
 
 ### Task 1: Table Extraction Module
@@ -359,26 +376,16 @@ python -c "from table_extraction import extract_tables_from_markdown; print(extr
 - `sub_agents/table_namer/schema.py`
 - `sub_agents/table_namer/callbacks.py`
 
-**Callback Logic**:
-```python
-async def merge_table_names_callback(callback_context: CallbackContext) -> None:
-    """Merge table names with extracted_tables_raw to create extracted_tables."""
-    state = callback_context.state
-    raw_tables = state.get("extracted_tables_raw", {}).get("tables", [])
-    namer_output = state.get("table_namer_output", {})
-    table_names = namer_output.get("table_names", [])
-
-    merged_tables = []
-    for i, table in enumerate(raw_tables):
-        name = table_names[i] if i < len(table_names) else f"Table {i+1}"
-        merged_tables.append({
-            "table_index": table["table_index"],
-            "table_name": name,
-            "grid": table["grid"]
-        })
-
-    state["extracted_tables"] = {"tables": merged_tables}
-```
+**Callback flow** (`callbacks.py`):
+- `before_agent_callback` — runs programmatic extraction, writes
+  `state["extracted_tables_raw"]`.  No summary or preview is built; the
+  full payload is injected into the prompt via `{extracted_tables_raw}`
+  template substitution.
+- `after_agent_callback` — reads `state["table_namer_output"]` (the
+  `TableNamerOutput` written by ADK's `output_schema` machinery), builds
+  a `{table_index -> table_name}` map, and merges it with the raw grids.
+  Falls back to `"Table {idx}"` for any index the LLM did not name.
+  Writes `state["extracted_tables"]`.
 
 ---
 

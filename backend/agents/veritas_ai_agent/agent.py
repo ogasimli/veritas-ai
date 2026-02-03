@@ -7,6 +7,7 @@ from google.adk.apps.app import App, ContextCacheConfig
 from google.adk.plugins import DebugLoggingPlugin, LoggingPlugin
 
 from .app_utils.coordination_plugin import create_coordination_plugin
+from .app_utils.document_markdown_plugin import create_document_markdown_plugin
 from .sub_agents import (
     disclosure_compliance_agent,
     external_signal_agent,
@@ -47,6 +48,7 @@ app = App(
     name="veritas_ai_agent",
     root_agent=root_agent,
     plugins=[
+        create_document_markdown_plugin(),  # Capture markdown from user message first
         create_coordination_plugin(),
         DebugLoggingPlugin(),
         LoggingPlugin(),
