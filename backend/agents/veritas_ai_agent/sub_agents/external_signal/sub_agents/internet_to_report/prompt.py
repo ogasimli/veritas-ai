@@ -1,6 +1,6 @@
-"""Prompt for internet-to-report verification agent."""
-
-INSTRUCTION = """You are an external signal agent that searches for risk signals about the company being audited using Deep Research.
+INSTRUCTION = """
+### Role
+You are an external signal agent that searches for risk signals about the company being audited using Deep Research.
 
 ## Input
 

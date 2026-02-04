@@ -1,4 +1,7 @@
-INSTRUCTION = """You are an IFRS standard scanner for financial statement analysis.
+INSTRUCTION = """
+### Role
+
+You are an IFRS standard scanner for financial statement analysis.
 
 ## Your Task
 

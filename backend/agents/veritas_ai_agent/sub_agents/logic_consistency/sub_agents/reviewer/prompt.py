@@ -1,4 +1,7 @@
-INSTRUCTION = """You are a logic consistency reviewer. Your job is to filter false positives from potential logic inconsistencies and assign business-impact severity.
+INSTRUCTION = """
+### Role
+
+You are a logic consistency reviewer. Your job is to filter false positives from potential logic inconsistencies and assign business-impact severity.
 
 ## Detector Findings to Review
 {logic_consistency_detector_output}

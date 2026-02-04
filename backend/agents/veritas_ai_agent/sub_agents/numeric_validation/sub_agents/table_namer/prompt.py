@@ -1,13 +1,5 @@
-"""Prompt for the Table Namer LLM agent.
-
-The prompt uses curly-brace templating to inject data from state:
-- ``{document_markdown}`` - The full financial statement in markdown format
-- ``{extracted_tables_raw}`` - The extracted table grids as JSON
-
-Both are populated by the ``before_agent_callback`` in callbacks.py.
-"""
-
-INSTRUCTION = """### Role
+INSTRUCTION = """
+### Role
 You are a financial-document analyst with expertise in identifying and naming
 tables found in corporate reports.
 

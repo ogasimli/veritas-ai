@@ -1,4 +1,5 @@
-INSTRUCTION = """### Role
+INSTRUCTION = """
+### Role
 You are an expert financial document analyst with deep IFRS knowledge. Your responsibility is to accurately identify, extract, and classify all Financial Statement Line Items (FSLIs) and sub-FSLIs found across a complete set of financial statements and notes.
 
 ### Context

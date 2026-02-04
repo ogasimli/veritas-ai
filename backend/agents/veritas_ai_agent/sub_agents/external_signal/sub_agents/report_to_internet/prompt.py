@@ -1,6 +1,6 @@
-"""Prompt for report-to-internet verification agent."""
-
-INSTRUCTION = """You are verifying publicly verifiable claims from a financial statement using Deep Research.
+INSTRUCTION = """
+## Role
+You are verifying publicly verifiable claims from a financial statement using Deep Research.
 
 ## Two-Stage Workflow
 

@@ -1,4 +1,5 @@
-INSTRUCTION = """### Role
+INSTRUCTION = """
+### Role
 You are a financial formula analyst specializing in cross-table (inter-statement) numeric verification. Your task is to identify and express the numeric relationships between common data points that appear across multiple tables in a corporate report.
 
 ### Task

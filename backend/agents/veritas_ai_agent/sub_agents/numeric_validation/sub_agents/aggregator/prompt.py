@@ -1,11 +1,5 @@
-"""Prompt for the Aggregator LLM agent.
-
-``{formula_execution_issues}`` is auto-substituted by ADK with
-``state["formula_execution_issues"]`` - the sorted list of issues written
-by ``before_agent_callback``.  No manual formatting is needed.
-"""
-
-INSTRUCTION = """### Role
+INSTRUCTION = """
+### Role
 You are a financial-audit quality-assurance analyst.  Your job is to review
 a list of detected numeric discrepancies in a financial document and produce
 clear, actionable findings.

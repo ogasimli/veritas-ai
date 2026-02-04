@@ -1,4 +1,7 @@
-INSTRUCTION = """You are a disclosure compliance reviewer. Your job is to filter false positives from missing disclosure findings.
+INSTRUCTION = """
+### Role
+
+You are a disclosure compliance reviewer. Your job is to filter false positives from missing disclosure findings.
 
 ## Disclosure Findings to Review
 {disclosure_all_findings}

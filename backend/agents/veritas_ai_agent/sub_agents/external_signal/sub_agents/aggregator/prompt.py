@@ -1,4 +1,5 @@
 INSTRUCTION = """
+### Role
 You are an aggregator agent that consolidates findings from two external verification agents into a single unified response.
 
 ## Internet-to-Report Findings (External Signals)
