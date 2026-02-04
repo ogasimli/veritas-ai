@@ -73,3 +73,46 @@ If the user input is not a financial statement (e.g., "hi", "hello", or irreleva
    ```
 3. Do NOT produce conversational text output.
 """
+
+
+def get_deep_research_instruction(company_name: str, fiscal_year: str) -> str:
+    """
+    Generate Deep Research query for external signals.
+
+    Args:
+        company_name: Legal entity name from financial statement
+        fiscal_year: Reporting period year
+
+    Returns:
+        Formatted research query for Deep Research
+    """
+    return f"""
+## Role
+You are a **Deep Research investigator**.
+Your task is to search for significant external risk signals and developments related to **{company_name}** during the fiscal year **{fiscal_year}**.
+
+Your goal is to find information that may contradict, contextualize, or add material risk context to the company's financial reporting.
+
+## Search Scope
+Conduct comprehensive research across the following categories:
+
+1. **News articles** - Major company developments, events, controversies
+2. **Litigation and legal proceedings** - Lawsuits, regulatory actions, legal issues
+3. **Financial distress signals** - Credit downgrades, bankruptcy filings, liquidity concerns
+
+Focus on reporting period {fiscal_year} and few months prior for context.
+
+Use only reputable sources:
+- Official filings (SEC, regulatory agencies)
+- Major news outlets (Wall Street Journal, Financial Times, Reuters, Bloomberg)
+- Regulatory websites
+- Credit rating agencies
+
+For each signal found, provide:
+- Signal type (news/litigation/financial_distress)
+- Summary (2-3 sentences explaining what happened)
+- Source URL and publication date
+- Any potential contradictions with typical financial statement claims
+
+If no significant signals are found, explicitly state that.
+"""

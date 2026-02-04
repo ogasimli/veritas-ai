@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from veritas_ai_agent.schemas import BaseAgentOutput
+
 
 class ExternalSignalFinding(BaseModel):
     """A risk signal found through external search."""
@@ -20,9 +22,6 @@ class ExternalSignalFinding(BaseModel):
         default="",
         description="What financial statement claim this might contradict (empty if no contradiction)",
     )
-
-
-from veritas_ai_agent.schemas import BaseAgentOutput
 
 
 class ExternalSignalInternetToReportOutput(BaseAgentOutput):
