@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
+from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
@@ -146,6 +147,11 @@ def create_disclosure_verifier_agent(
         output_schema=DisclosureVerifierOutput,
         generate_content_config=types.GenerateContentConfig(
             http_options=types.HttpOptions(retry_options=get_default_retry_config())
+        ),
+        planner=BuiltInPlanner(
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=False, thinking_level="high"
+            )
         ),
         on_model_error_callback=default_model_error_handler,
     )

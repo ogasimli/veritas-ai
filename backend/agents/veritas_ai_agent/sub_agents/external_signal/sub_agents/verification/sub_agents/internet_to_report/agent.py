@@ -14,7 +14,7 @@ from .tools import search_external_signals_tool
 # Create LlmAgent with Deep Research tool integration
 internet_to_report_agent = LlmAgent(
     name="ExternalSignalInternetToReport",
-    model="gemini-3-flash-preview",  # Lightweight coordinator
+    model="gemini-3-pro-preview",
     instruction=prompt.INSTRUCTION,
     tools=[FunctionTool(search_external_signals_tool)],
     output_key="external_signal_internet_to_report_output",

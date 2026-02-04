@@ -14,7 +14,7 @@ from .tools import verify_claims_tool
 # Create LlmAgent with Deep Research verification tool
 report_to_internet_agent = LlmAgent(
     name="ExternalSignalReportToInternet",
-    model="gemini-3-flash-preview",  # Lightweight coordinator
+    model="gemini-3-pro-preview",
     instruction=prompt.INSTRUCTION,
     tools=[FunctionTool(verify_claims_tool)],
     output_key="external_signal_report_to_internet_output",
