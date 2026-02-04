@@ -7,9 +7,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /app
 
 # Install dependencies
-# Copy pyproject.toml and agents directory first (since agents is a dependency)
-COPY pyproject.toml .
-# We need to copy the agents directory because it's a path dependency in pyproject.toml
+# Copy pyproject.toml files and lock files for both backend and agents
+COPY pyproject.toml uv.lock ./
+COPY agents/pyproject.toml ./agents/
+COPY agents/uv.lock ./agents/
+
+# Copy the full agents directory (needed as a path dependency)
 COPY agents/ ./agents/
 
 # Install dependencies using uv

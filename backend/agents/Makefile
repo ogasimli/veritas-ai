@@ -48,6 +48,8 @@ ENV_VARS = $(shell grep -vE '^(VERITAS_AGENT_MODE|NUMERIC_VALIDATION_AGENT_MODE)
 
 # Helper macro for deploying agents to Cloud Run
 define deploy_agent
+	@echo "📦 Generating requirements.txt for ADK deployment..."
+	uv pip compile pyproject.toml --output-file veritas_ai_agent/requirements.txt
 	uv run adk deploy cloud_run \
 		--project=$(PROJECT_ID) \
 		--region=$(REGION) \

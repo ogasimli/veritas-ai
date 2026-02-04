@@ -1,4 +1,7 @@
 [project]
+# NOTE: When deploying via `adk deploy cloud_run`, these dependencies MUST be synced to 
+# `veritas_ai_agent/requirements.txt` as ADK does not install from pyproject.toml.
+# The Makefile handles this automatically via `make generate-requirements`.
 name = "veritas-ai-agent"
 version = "0.1.0"
 description = "The Veritas AI Agent evaluates financial reports."
