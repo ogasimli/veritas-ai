@@ -1,5 +1,7 @@
 """Tools for internet-to-report verification agent."""
 
+import json
+
 from ...deep_research_client import DeepResearchClient
 from . import prompt
 
@@ -8,38 +10,29 @@ deep_research_client = DeepResearchClient()
 
 
 async def search_external_signals_tool(
-    company_profile: dict, research_window: dict
+    company_profile_json: str, research_window_json: str
 ) -> str:
     """
     Tool that uses Deep Research to find external signals about company.
 
-    This tool accepts the full company profile and research window extracted
-    from the financial statement, allowing Deep Research to conduct more
-    targeted and comprehensive research.
-
     Args:
-        company_profile: Dictionary containing company identification and scope:
-            - legal_name: str
-            - alternative_names: list[str]
-            - jurisdiction: str
-            - subsidiaries: list[str]
-            - key_management: list[str]
-            - material_counterparties: list[str]
-            - industry_sector: str
-            - business_context: str
-            (and other fields from CompanyProfile schema)
-
-        research_window: Dictionary containing temporal scope:
-            - fiscal_year: str
-            - reporting_date: str
-            - fs_issue_date: str | None
-            - subsequent_period_start: str
-            - subsequent_period_end: str
-            - assumption_used: bool
+        company_profile_json: JSON string with company identification (legal_name, jurisdiction, subsidiaries, key_management, etc.)
+        research_window_json: JSON string with temporal scope (fiscal_year, reporting_date, subsequent_period_end, etc.)
 
     Returns:
         Deep Research findings about external risk signals in JSON format
     """
+    # Parse JSON strings
+    try:
+        company_profile = json.loads(company_profile_json)
+    except json.JSONDecodeError as e:
+        return f"ERROR: Invalid JSON for company_profile: {e}"
+
+    try:
+        research_window = json.loads(research_window_json)
+    except json.JSONDecodeError as e:
+        return f"ERROR: Invalid JSON for research_window: {e}"
+
     research_query = prompt.get_deep_research_instruction(
         company_profile, research_window
     )

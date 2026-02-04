@@ -1,10 +1,22 @@
 """Schema for internet-to-report verification output."""
 
-from typing import Literal
+import json
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
-from veritas_ai_agent.schemas import BaseAgentOutput
+
+def serialize_to_json(v: Any) -> str | None:
+    """Serialize dictionary or list to JSON string if needed."""
+    if v is None:
+        return None
+    if isinstance(v, (dict, list)):
+        return json.dumps(v)
+    return v
+
+
+JsonString = Annotated[str, BeforeValidator(serialize_to_json)]
+JsonStringOptional = Annotated[str | None, BeforeValidator(serialize_to_json)]
 
 
 class CompanyProfile(BaseModel):
@@ -108,16 +120,19 @@ class ExternalSignalFinding(BaseModel):
     )
 
 
-class ExternalSignalInternetToReportOutput(BaseAgentOutput):
+class ExternalSignalInternetToReportOutput(BaseModel):
     """Output from internet-to-report agent - external signals that may contradict report."""
 
-    company_profile: CompanyProfile | None = Field(
-        default=None, description="Extracted company identification and scope"
+    company_profile: JsonStringOptional = Field(
+        default=None,
+        description="JSON string of extracted company identification and scope (CompanyProfile)",
     )
-    research_window: ResearchWindow | None = Field(
-        default=None, description="Temporal scope for research"
+    research_window: JsonStringOptional = Field(
+        default=None,
+        description="JSON string of temporal scope for research (ResearchWindow)",
     )
-    findings: list[ExternalSignalFinding] = Field(
-        default_factory=list,
-        description="External risk signals discovered through Deep Research",
+    findings: JsonString = Field(
+        default="[]",
+        description="JSON string of external risk signals discovered through Deep Research (list of ExternalSignalFinding)",
     )
+    error: str | None = Field(default=None, description="Error message if agent failed")

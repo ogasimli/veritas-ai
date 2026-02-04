@@ -1,11 +1,10 @@
 """Callbacks for the aggregator agent."""
 
+import json
+
 from google.adk.agents.callback_context import CallbackContext
 
-from .schema import (
-    ExternalSignalFindingsAggregatorOutput,
-    ReconciledClaimVerification,
-)
+from .schema import ExternalSignalFindingsAggregatorOutput
 
 
 async def after_aggregator_callback(callback_context: CallbackContext) -> None:
@@ -36,25 +35,59 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
     if not aggregator_output:
         return
 
+    # Parse external signals from JSON string
+    try:
+        if isinstance(aggregator_output, dict):
+            signals_json = aggregator_output.get("external_signals")
+        else:
+            signals_json = aggregator_output.external_signals
+
+        external_signals = json.loads(signals_json or "[]")
+    except (json.JSONDecodeError, AttributeError):
+        external_signals = []
+
     # Step 1: Pull claim verifications directly from report_to_internet output
     report_to_internet_output = state.get("external_signal_report_to_internet_output")
     claim_verifications = []
 
-    if report_to_internet_output and hasattr(
-        report_to_internet_output, "verifications"
-    ):
-        # Convert ExternalSignalClaimVerification to ReconciledClaimVerification
-        for verification in report_to_internet_output.verifications:
+    if report_to_internet_output:
+        # Parse verifications from JSON string
+        if isinstance(report_to_internet_output, dict):
+            verifications_str = report_to_internet_output.get("verifications", "[]")
+        else:
+            verifications_str = getattr(
+                report_to_internet_output, "verifications", "[]"
+            )
+        try:
+            raw_verifications = json.loads(verifications_str or "[]")
+        except json.JSONDecodeError:
+            raw_verifications = []
+
+        # Normalize if it's a dict wrapper (e.g. {"claims": [...]})
+        if isinstance(raw_verifications, dict):
+            raw_verifications = (
+                raw_verifications.get("claims")
+                or raw_verifications.get("verifications")
+                or []
+            )
+
+        if not isinstance(raw_verifications, list):
+            raw_verifications = []
+
+        # Convert to ReconciledClaimVerification format (as dicts)
+        for verification in raw_verifications:
             claim_verifications.append(
-                ReconciledClaimVerification(
-                    claim_text=verification.claim_text,
-                    claim_category=verification.claim_category,
-                    verification_status=verification.verification_status,
-                    evidence_summary=verification.evidence_summary,
-                    source_urls=verification.source_urls,
-                    discrepancy=verification.discrepancy,
-                    severity="medium",  # Will be set below
-                )
+                {
+                    "claim_text": verification.get("claim_text", ""),
+                    "claim_category": verification.get("claim_category", ""),
+                    "verification_status": verification.get(
+                        "verification_status", "CANNOT_VERIFY"
+                    ),
+                    "evidence_summary": verification.get("evidence_summary", ""),
+                    "source_urls": verification.get("source_urls", []),
+                    "discrepancy": verification.get("discrepancy", ""),
+                    "severity": "medium",  # Will be set below
+                }
             )
 
     # Step 2: Assign severity to claim verifications
@@ -65,15 +98,15 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
     }
 
     for verification in claim_verifications:
-        verification.severity = severity_map.get(
-            verification.verification_status, "medium"
+        verification["severity"] = severity_map.get(
+            verification["verification_status"], "medium"
         )
 
     # Step 3: Filter external signals: remove those reflected in FS
     filtered_signals = [
         signal
-        for signal in aggregator_output.external_signals
-        if signal.evidence_in_fs.reflected_in_fs != "Yes"
+        for signal in external_signals
+        if signal.get("evidence_reflected_in_fs") != "Yes"
     ]
 
     # Step 4: Filter claim verifications: remove clean verifications
@@ -81,8 +114,8 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
         verification
         for verification in claim_verifications
         if not (
-            verification.verification_status == "VERIFIED"
-            and not verification.discrepancy
+            verification["verification_status"] == "VERIFIED"
+            and not verification.get("discrepancy")
         )
     ]
 
@@ -90,15 +123,22 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
     severity_order = {"high": 0, "medium": 1, "low": 2}
 
     sorted_signals = sorted(
-        filtered_signals, key=lambda x: severity_order.get(x.severity, 3)
+        filtered_signals, key=lambda x: severity_order.get(x.get("severity", "low"), 3)
     )
     sorted_verifications = sorted(
-        filtered_verifications, key=lambda x: severity_order.get(x.severity, 3)
+        filtered_verifications,
+        key=lambda x: severity_order.get(x.get("severity", "low"), 3),
     )
 
     # Step 6: Update the output with both external signals and claim verifications
-    state[output_key] = ExternalSignalFindingsAggregatorOutput(
-        error=aggregator_output.error,
-        external_signals=sorted_signals,
-        claim_verifications=sorted_verifications,
+    existing_error = (
+        aggregator_output.get("error")
+        if isinstance(aggregator_output, dict)
+        else getattr(aggregator_output, "error", None)
     )
+
+    state[output_key] = ExternalSignalFindingsAggregatorOutput(
+        error=existing_error,
+        external_signals=json.dumps(sorted_signals),
+        claim_verifications=json.dumps(sorted_verifications),
+    ).model_dump()

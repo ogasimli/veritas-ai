@@ -25,18 +25,18 @@ State where this signal should normally appear IF relevant:
 - **Disclosure**: e.g., contingencies, subsequent events, related parties, going concern, commitments
 - **Which FS area**: Balance Sheet (BS) / Income Statement (P&L) / Cash Flow (CF) / Equity / specific note type
 
-Populate the `expected_fs_impact` field with:
-- `area`: List of FS areas (e.g., ["BS", "Notes"])
-- `notes_expected`: List of note types (e.g., ["Contingencies", "Subsequent events"])
-- `rationale`: Explanation of why this should appear
+Populate the expected FS impact fields:
+- `expected_fs_impact_area`: List of FS areas (e.g., ["BS", "Notes"])
+- `expected_fs_impact_notes_expected`: List of note types (e.g., ["Contingencies", "Subsequent events"])
+- `expected_fs_impact_rationale`: Explanation of why this should appear
 
 #### 1B. Search Financial Statements for Evidence
-Search the financial statement markdown text for corroboration of each external signal and document your findings in `evidence_in_fs`:
+Search the financial statement markdown text for corroboration of each external signal and document your findings in the evidence fields:
 
-- **"Reflected in FS?"** = Yes / No / Unclear
-- **If Yes**: The signal is properly disclosed/recognized → Mark as "Yes" and explain where found
-- **If No**: Could not find any mention → Mark as "No" and list search terms used
-- **If Unclear**: Found partial/ambiguous mention → Mark as "Unclear" and explain what's missing
+- **`evidence_reflected_in_fs`** = "Yes" / "No" / "Unclear"
+- **If Yes**: The signal is properly disclosed/recognized → Set to "Yes" and explain in `evidence_not_found_statement` where found
+- **If No**: Could not find any mention → Set to "No" and list search terms in `evidence_search_terms_used`
+- **If Unclear**: Found partial/ambiguous mention → Set to "Unclear" and explain what's missing in `evidence_not_found_statement`
 
 Important: Use targeted search terms like:
 - Company name variants
@@ -45,7 +45,7 @@ Important: Use targeted search terms like:
 - Specific keywords from signal ("lawsuit", "covenant", "acquisition", dollar amounts, dates)
 
 #### 1C. Classify Gap
-For findings where `reflected_in_fs` is "No" or "Unclear", assign exactly one:
+For findings where `evidence_reflected_in_fs` is "No" or "Unclear", assign exactly one:
 - **POTENTIAL_OMISSION**: Expected disclosure/impact not found
 - **POTENTIAL_CONTRADICTION**: FS says X but public sources indicate Y
 - **NEEDS_JUDGMENT**: Unclear materiality or impact
@@ -58,11 +58,11 @@ Map severity based on gap classification and signal type:
 
 ## Output Schema
 
-Return a list of reconciled external signals:
-
-**external_signals**: List of `ReconciledExternalSignal` objects with:
-- All original signal fields (signal_title, signal_type, entities_involved, event_date, sources, summary)
-- Plus reconciliation fields: expected_fs_impact, evidence_in_fs, gap_classification, severity
+Return a JSON string in the `external_signals` field containing a list of reconciled external signals. Each signal should have:
+- All original signal fields: signal_title, signal_type, entities_involved, event_date, sources (as JSON string), summary
+- FS impact fields: expected_fs_impact_area, expected_fs_impact_notes_expected, expected_fs_impact_rationale
+- Evidence fields: evidence_reflected_in_fs, evidence_search_terms_used, evidence_not_found_statement
+- Classification fields: gap_classification, severity
 
 **Note**: Claim verifications from report-to-internet will be added programmatically in post-processing.
 

@@ -1,13 +1,13 @@
 """Unit tests for the aggregator callback."""
 
+import json
+
 import pytest
 
 from veritas_ai_agent.sub_agents.external_signal.sub_agents.aggregator.callbacks import (
     after_aggregator_callback,
 )
 from veritas_ai_agent.sub_agents.external_signal.sub_agents.aggregator.schema import (
-    EvidenceInFS,
-    ExpectedFSImpact,
     ExternalSignalFindingsAggregatorOutput,
     ReconciledExternalSignal,
 )
@@ -37,16 +37,14 @@ async def test_callback_with_full_data(mock_callback_context):
         signal_type=["legal_regulatory"],
         entities_involved=["Company A"],
         event_date="2025-01-15",
-        sources=[{"url": "http://example.com", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com", "publisher": "Reuters"}]),
         summary="Major lawsuit filed",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Contingencies"], rationale="Legal matter"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="No",
-            search_terms_used=["lawsuit", "litigation"],
-            not_found_statement="No mention found",
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Contingencies"],
+        expected_fs_impact_rationale="Legal matter",
+        evidence_reflected_in_fs="No",
+        evidence_search_terms_used=["lawsuit", "litigation"],
+        evidence_not_found_statement="No mention found",
         gap_classification="POTENTIAL_OMISSION",
         severity="high",
     )
@@ -56,23 +54,21 @@ async def test_callback_with_full_data(mock_callback_context):
         signal_type=["news"],
         entities_involved=["Company A"],
         event_date="2025-02-01",
-        sources=[{"url": "http://example.com/2", "publisher": "Bloomberg"}],
+        sources=json.dumps([{"url": "http://example.com/2", "publisher": "Bloomberg"}]),
         summary="Event already in FS",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Events"], rationale="Disclosed"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="Yes",
-            search_terms_used=["event"],
-            not_found_statement="",
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Events"],
+        expected_fs_impact_rationale="Disclosed",
+        evidence_reflected_in_fs="Yes",
+        evidence_search_terms_used=["event"],
+        evidence_not_found_statement="",
         gap_classification="POTENTIAL_OMISSION",
         severity="low",
     )
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[signal1, signal2],
-        claim_verifications=[],  # Will be populated from state
+        external_signals=json.dumps([signal1.model_dump(), signal2.model_dump()]),
+        claim_verifications="[]",  # Will be populated from state
     )
 
     # Setup claim verifications (from report_to_internet output)
@@ -104,7 +100,13 @@ async def test_callback_with_full_data(mock_callback_context):
     )
 
     report_to_internet_output = ExternalSignalReportToInternetOutput(
-        verifications=[verification1, verification2, verification3]
+        verifications=json.dumps(
+            [
+                verification1.model_dump(),
+                verification2.model_dump(),
+                verification3.model_dump(),
+            ]
+        )
     )
 
     # Setup state
@@ -116,32 +118,36 @@ async def test_callback_with_full_data(mock_callback_context):
     # Execute callback
     await after_aggregator_callback(mock_callback_context)
 
-    # Verify results
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    # Verify results (raw dictionary since .model_dump() is used in callback)
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+
+    # Parse back the JSON string fields to verify contents
+    result_signals = json.loads(result_dict["external_signals"])
+    result_verifications = json.loads(result_dict["claim_verifications"])
 
     # Should have 1 external signal (signal2 filtered because reflected_in_fs="Yes")
-    assert len(result.external_signals) == 1
-    assert result.external_signals[0].signal_title == "Lawsuit filed"
+    assert len(result_signals) == 1
+    assert result_signals[0]["signal_title"] == "Lawsuit filed"
 
     # Should have 2 claim verifications (verification2 filtered because VERIFIED + no discrepancy)
-    assert len(result.claim_verifications) == 2
+    assert len(result_verifications) == 2
 
     # Check severity assignments
     contradicted = next(
-        v for v in result.claim_verifications if v.verification_status == "CONTRADICTED"
+        v for v in result_verifications if v["verification_status"] == "CONTRADICTED"
     )
-    assert contradicted.severity == "high"
+    assert contradicted["severity"] == "high"
 
     cannot_verify = next(
-        v
-        for v in result.claim_verifications
-        if v.verification_status == "CANNOT_VERIFY"
+        v for v in result_verifications if v["verification_status"] == "CANNOT_VERIFY"
     )
-    assert cannot_verify.severity == "medium"
+    assert cannot_verify["severity"] == "medium"
 
     # Check sorting (high before medium)
-    assert result.claim_verifications[0].severity == "high"
-    assert result.claim_verifications[1].severity == "medium"
+    assert result_verifications[0]["severity"] == "high"
+    assert result_verifications[1]["severity"] == "medium"
 
 
 @pytest.mark.asyncio
@@ -157,11 +163,11 @@ async def test_callback_filters_verified_with_discrepancy(mock_callback_context)
     )
 
     report_to_internet_output = ExternalSignalReportToInternetOutput(
-        verifications=[verification]
+        verifications=json.dumps([verification.model_dump()])
     )
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[], claim_verifications=[]
+        external_signals="[]", claim_verifications="[]"
     )
 
     mock_callback_context.state = {
@@ -171,11 +177,14 @@ async def test_callback_filters_verified_with_discrepancy(mock_callback_context)
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_verifications = json.loads(result_dict["claim_verifications"])
 
     # Should keep the verification because it has a discrepancy
-    assert len(result.claim_verifications) == 1
-    assert result.claim_verifications[0].severity == "low"  # VERIFIED → low
+    assert len(result_verifications) == 1
+    assert result_verifications[0]["severity"] == "low"  # VERIFIED → low
 
 
 @pytest.mark.asyncio
@@ -186,22 +195,20 @@ async def test_callback_filters_unclear_external_signals(mock_callback_context):
         signal_type=["news"],
         entities_involved=["Company A"],
         event_date="2025-03-01",
-        sources=[{"url": "http://example.com", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com", "publisher": "Reuters"}]),
         summary="Event with unclear disclosure",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Events"], rationale="May be relevant"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="Unclear",
-            search_terms_used=["event"],
-            not_found_statement="Ambiguous mention",
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Events"],
+        expected_fs_impact_rationale="May be relevant",
+        evidence_reflected_in_fs="Unclear",
+        evidence_search_terms_used=["event"],
+        evidence_not_found_statement="Ambiguous mention",
         gap_classification="NEEDS_JUDGMENT",
         severity="medium",
     )
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[signal], claim_verifications=[]
+        external_signals=json.dumps([signal.model_dump()]), claim_verifications="[]"
     )
 
     mock_callback_context.state = {
@@ -211,11 +218,14 @@ async def test_callback_filters_unclear_external_signals(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_signals = json.loads(result_dict["external_signals"])
 
     # Should keep signal with "Unclear" status
-    assert len(result.external_signals) == 1
-    assert result.external_signals[0].evidence_in_fs.reflected_in_fs == "Unclear"
+    assert len(result_signals) == 1
+    assert result_signals[0]["evidence_reflected_in_fs"] == "Unclear"
 
 
 @pytest.mark.asyncio
@@ -227,14 +237,14 @@ async def test_callback_sorting_by_severity(mock_callback_context):
         signal_type=["news"],
         entities_involved=["Company A"],
         event_date="2025-01-01",
-        sources=[{"url": "http://example.com/1", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com/1", "publisher": "Reuters"}]),
         summary="Minor news",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Events"], rationale="Minor"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="No", search_terms_used=["news"], not_found_statement=""
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Events"],
+        expected_fs_impact_rationale="Minor",
+        evidence_reflected_in_fs="No",
+        evidence_search_terms_used=["news"],
+        evidence_not_found_statement="",
         gap_classification="NEEDS_JUDGMENT",
         severity="low",
     )
@@ -244,14 +254,14 @@ async def test_callback_sorting_by_severity(mock_callback_context):
         signal_type=["legal_regulatory"],
         entities_involved=["Company A"],
         event_date="2025-02-01",
-        sources=[{"url": "http://example.com/2", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com/2", "publisher": "Reuters"}]),
         summary="Major lawsuit",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Contingencies"], rationale="Material"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="No", search_terms_used=["lawsuit"], not_found_statement=""
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Contingencies"],
+        expected_fs_impact_rationale="Material",
+        evidence_reflected_in_fs="No",
+        evidence_search_terms_used=["lawsuit"],
+        evidence_not_found_statement="",
         gap_classification="POTENTIAL_CONTRADICTION",
         severity="high",
     )
@@ -261,22 +271,28 @@ async def test_callback_sorting_by_severity(mock_callback_context):
         signal_type=["financing_distress"],
         entities_involved=["Company A"],
         event_date="2025-03-01",
-        sources=[{"url": "http://example.com/3", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com/3", "publisher": "Reuters"}]),
         summary="Rating downgrade",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Debt"], rationale="Relevant"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="No", search_terms_used=["rating"], not_found_statement=""
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Debt"],
+        expected_fs_impact_rationale="Relevant",
+        evidence_reflected_in_fs="No",
+        evidence_search_terms_used=["rating"],
+        evidence_not_found_statement="",
         gap_classification="POTENTIAL_OMISSION",
         severity="medium",
     )
 
     # Add in random order
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[signal_low, signal_high, signal_medium],
-        claim_verifications=[],
+        external_signals=json.dumps(
+            [
+                signal_low.model_dump(),
+                signal_high.model_dump(),
+                signal_medium.model_dump(),
+            ]
+        ),
+        claim_verifications="[]",
     )
 
     mock_callback_context.state = {
@@ -286,13 +302,16 @@ async def test_callback_sorting_by_severity(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_signals = json.loads(result_dict["external_signals"])
 
     # Should be sorted: high, medium, low
-    assert len(result.external_signals) == 3
-    assert result.external_signals[0].severity == "high"
-    assert result.external_signals[1].severity == "medium"
-    assert result.external_signals[2].severity == "low"
+    assert len(result_signals) == 3
+    assert result_signals[0]["severity"] == "high"
+    assert result_signals[1]["severity"] == "medium"
+    assert result_signals[2]["severity"] == "low"
 
 
 @pytest.mark.asyncio
@@ -317,20 +336,20 @@ async def test_callback_handles_missing_report_to_internet(mock_callback_context
         signal_type=["news"],
         entities_involved=["Company A"],
         event_date="2025-01-01",
-        sources=[{"url": "http://example.com", "publisher": "Reuters"}],
+        sources=json.dumps([{"url": "http://example.com", "publisher": "Reuters"}]),
         summary="Test",
-        expected_fs_impact=ExpectedFSImpact(
-            area=["Notes"], notes_expected=["Events"], rationale="Test"
-        ),
-        evidence_in_fs=EvidenceInFS(
-            reflected_in_fs="No", search_terms_used=["test"], not_found_statement=""
-        ),
+        expected_fs_impact_area=["Notes"],
+        expected_fs_impact_notes_expected=["Events"],
+        expected_fs_impact_rationale="Test",
+        evidence_reflected_in_fs="No",
+        evidence_search_terms_used=["test"],
+        evidence_not_found_statement="",
         gap_classification="POTENTIAL_OMISSION",
         severity="medium",
     )
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[signal], claim_verifications=[]
+        external_signals=json.dumps([signal.model_dump()]), claim_verifications="[]"
     )
 
     mock_callback_context.state = {
@@ -340,21 +359,25 @@ async def test_callback_handles_missing_report_to_internet(mock_callback_context
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_signals = json.loads(result_dict["external_signals"])
+    result_verifications = json.loads(result_dict["claim_verifications"])
 
     # Should have external signals but no claim verifications
-    assert len(result.external_signals) == 1
-    assert len(result.claim_verifications) == 0
+    assert len(result_signals) == 1
+    assert len(result_verifications) == 0
 
 
 @pytest.mark.asyncio
 async def test_callback_with_empty_lists(mock_callback_context):
     """Test callback with empty external signals and verifications."""
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[], claim_verifications=[]
+        external_signals="[]", claim_verifications="[]"
     )
 
-    report_to_internet_output = ExternalSignalReportToInternetOutput(verifications=[])
+    report_to_internet_output = ExternalSignalReportToInternetOutput(verifications="[]")
 
     mock_callback_context.state = {
         "external_signal_findings_aggregator_output": aggregator_output,
@@ -363,26 +386,26 @@ async def test_callback_with_empty_lists(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_signals = json.loads(result_dict["external_signals"])
+    result_verifications = json.loads(result_dict["claim_verifications"])
 
     # Should have empty lists
-    assert len(result.external_signals) == 0
-    assert len(result.claim_verifications) == 0
+    assert len(result_signals) == 0
+    assert len(result_verifications) == 0
 
 
 @pytest.mark.asyncio
 async def test_callback_preserves_error_field(mock_callback_context):
     """Test that callback preserves the error field from aggregator output."""
-    from veritas_ai_agent.schemas import AgentError
+    error_msg = "test_error: Test error message"
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        error=AgentError(
-            agent_name="ExternalSignalFindingsAggregator",
-            error_type="test_error",
-            error_message="Test error message",
-        ),
-        external_signals=[],
-        claim_verifications=[],
+        error=error_msg,
+        external_signals="[]",
+        claim_verifications="[]",
     )
 
     mock_callback_context.state = {
@@ -391,11 +414,13 @@ async def test_callback_preserves_error_field(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
 
     # Should preserve error field
-    assert result.error is not None
-    assert result.error.error_message == "Test error message"
+    assert result_dict["error"] is not None
+    assert result_dict["error"] == error_msg
 
 
 @pytest.mark.asyncio
@@ -410,7 +435,7 @@ async def test_callback_handles_report_output_without_verifications_attr(
         pass
 
     aggregator_output = ExternalSignalFindingsAggregatorOutput(
-        external_signals=[], claim_verifications=[]
+        external_signals="[]", claim_verifications="[]"
     )
 
     mock_callback_context.state = {
@@ -421,5 +446,9 @@ async def test_callback_handles_report_output_without_verifications_attr(
     # Should not raise an exception
     await after_aggregator_callback(mock_callback_context)
 
-    result = mock_callback_context.state["external_signal_findings_aggregator_output"]
-    assert len(result.claim_verifications) == 0
+    result_dict = mock_callback_context.state[
+        "external_signal_findings_aggregator_output"
+    ]
+    result_verifications = json.loads(result_dict["claim_verifications"])
+
+    assert len(result_verifications) == 0

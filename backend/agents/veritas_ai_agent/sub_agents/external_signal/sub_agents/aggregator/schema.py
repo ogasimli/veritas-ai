@@ -1,37 +1,19 @@
-from typing import Literal
+import json
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
-
-from veritas_ai_agent.schemas import BaseAgentOutput
-
-
-class ExpectedFSImpact(BaseModel):
-    """Expected financial statement impact for an external signal."""
-
-    area: list[str] = Field(
-        description="FS areas where impact expected (e.g., 'BS', 'P&L', 'CF', 'Notes')"
-    )
-    notes_expected: list[str] = Field(
-        description="Specific note types expected (e.g., 'Contingencies', 'Subsequent events', 'Related parties')"
-    )
-    rationale: str = Field(
-        description="Explanation of why this signal should appear in FS"
-    )
+from pydantic import BaseModel, BeforeValidator, Field
 
 
-class EvidenceInFS(BaseModel):
-    """Evidence of signal reflection in financial statements."""
+def serialize_to_json(v: Any) -> str | None:
+    """Serialize dictionary or list to JSON string if needed."""
+    if v is None:
+        return None
+    if isinstance(v, (dict, list)):
+        return json.dumps(v)
+    return v
 
-    reflected_in_fs: Literal["Yes", "No", "Unclear"] = Field(
-        description="Whether the signal is reflected in the financial statements"
-    )
-    search_terms_used: list[str] = Field(
-        description="Terms used to search FS for corroboration"
-    )
-    not_found_statement: str = Field(
-        default="",
-        description="Explanation if not found or unclear (empty if reflected)",
-    )
+
+JsonString = Annotated[str, BeforeValidator(serialize_to_json)]
 
 
 class ReconciledExternalSignal(BaseModel):
@@ -51,23 +33,38 @@ class ReconciledExternalSignal(BaseModel):
         description="Company, subsidiary, JV, or counterparty names involved"
     )
     event_date: str = Field(description="Event date (YYYY-MM-DD, empty if unknown)")
-    sources: list[dict[str, str]] = Field(
-        description="List of sources with url and publisher"
+    sources: str = Field(
+        description="JSON string of list of sources, each with 'url' and 'publisher' keys"
     )
     summary: str = Field(description="Factual summary (2-3 sentences)")
 
     # Reconciliation fields (populated by aggregator)
-    expected_fs_impact: ExpectedFSImpact = Field(
-        description="Expected FS impact for this signal"
+    expected_fs_impact_area: list[str] = Field(
+        description="FS areas where impact expected (e.g., 'BS', 'P&L', 'CF', 'Notes')"
     )
-    evidence_in_fs: EvidenceInFS = Field(description="Evidence of reflection in FS")
-    gap_classification: Literal[
-        "POTENTIAL_OMISSION", "POTENTIAL_CONTRADICTION", "NEEDS_JUDGMENT"
-    ] = Field(description="Gap classification after FS reconciliation")
+    expected_fs_impact_notes_expected: list[str] = Field(
+        description="Specific note types expected (e.g., 'Contingencies', 'Subsequent events', 'Related parties')"
+    )
+    expected_fs_impact_rationale: str = Field(
+        description="Explanation of why this signal should appear in FS"
+    )
+    evidence_reflected_in_fs: str = Field(
+        description="Whether reflected in FS: 'Yes', 'No', or 'Unclear'"
+    )
+    evidence_search_terms_used: list[str] = Field(
+        description="Terms used to search FS for corroboration"
+    )
+    evidence_not_found_statement: str = Field(
+        default="",
+        description="Explanation if not found or unclear (empty if reflected)",
+    )
+    gap_classification: str = Field(
+        description="Gap classification: 'POTENTIAL_OMISSION', 'POTENTIAL_CONTRADICTION', or 'NEEDS_JUDGMENT'"
+    )
 
     # Severity (set by aggregator based on gap classification)
-    severity: Literal["high", "medium", "low"] = Field(
-        description="Severity level based on materiality and risk"
+    severity: str = Field(
+        description="Severity level: 'high', 'medium', or 'low' based on materiality and risk"
     )
 
 
@@ -81,8 +78,8 @@ class ReconciledClaimVerification(BaseModel):
 
     claim_text: str = Field(description="The claim from the financial statement")
     claim_category: str = Field(description="Classification of the claim")
-    verification_status: Literal["VERIFIED", "CONTRADICTED", "CANNOT_VERIFY"] = Field(
-        description="Verification result from Deep Research"
+    verification_status: str = Field(
+        description="Verification result: 'VERIFIED', 'CONTRADICTED', or 'CANNOT_VERIFY'"
     )
     evidence_summary: str = Field(description="What was found online")
     source_urls: list[str] = Field(description="Supporting URLs")
@@ -91,12 +88,12 @@ class ReconciledClaimVerification(BaseModel):
     )
 
     # Severity (set by aggregator based on verification status)
-    severity: Literal["high", "medium", "low"] = Field(
-        description="Severity level: high=CONTRADICTED, medium=CANNOT_VERIFY, low=VERIFIED"
+    severity: str = Field(
+        description="Severity level: 'high' for CONTRADICTED, 'medium' for CANNOT_VERIFY, 'low' for VERIFIED"
     )
 
 
-class ExternalSignalFindingsAggregatorOutput(BaseAgentOutput):
+class ExternalSignalFindingsAggregatorOutput(BaseModel):
     """
     Output schema for the external signal aggregator agent.
 
@@ -105,11 +102,12 @@ class ExternalSignalFindingsAggregatorOutput(BaseAgentOutput):
     - claim_verifications: FS claims verified against internet sources
     """
 
-    external_signals: list[ReconciledExternalSignal] = Field(
-        default_factory=list,
-        description="External signals found via internet research, reconciled with FS (from internet_to_report)",
+    external_signals: JsonString = Field(
+        default="[]",
+        description="JSON string of external signals found via internet research, reconciled with FS (list of ReconciledExternalSignal)",
     )
-    claim_verifications: list[ReconciledClaimVerification] = Field(
-        default_factory=list,
-        description="Financial statement claims verified against internet (from report_to_internet)",
+    claim_verifications: JsonString = Field(
+        default="[]",
+        description="JSON string of financial statement claims verified against internet (list of ReconciledClaimVerification)",
     )
+    error: str | None = Field(default=None, description="Error message if agent failed")

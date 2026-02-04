@@ -1,10 +1,21 @@
 """Schema for report-to-internet verification output."""
 
-from typing import Literal
+import json
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
-from veritas_ai_agent.schemas import BaseAgentOutput
+
+def serialize_to_json(v: Any) -> str | None:
+    """Serialize dictionary or list to JSON string if needed."""
+    if v is None:
+        return None
+    if isinstance(v, (dict, list)):
+        return json.dumps(v)
+    return v
+
+
+JsonString = Annotated[str, BeforeValidator(serialize_to_json)]
 
 
 class ExternalSignalVerifiableClaim(BaseModel):
@@ -38,10 +49,11 @@ class ExternalSignalClaimVerification(BaseModel):
     )
 
 
-class ExternalSignalReportToInternetOutput(BaseAgentOutput):
+class ExternalSignalReportToInternetOutput(BaseModel):
     """Output from report-to-internet agent - verification results for extracted claims."""
 
-    verifications: list[ExternalSignalClaimVerification] = Field(
-        default_factory=list,
-        description="Verification results for publicly verifiable claims",
+    verifications: JsonString = Field(
+        default="[]",
+        description="JSON string containing list of verification results (ExternalSignalClaimVerification objects)",
     )
+    error: str | None = Field(default=None, description="Error message if agent failed")
