@@ -4,6 +4,10 @@
 
 .PHONY: install dev test lint deploy
 
+#  Run Google ADK Web Playground
+playground:
+	$(MAKE) -C backend playground
+
 # Install dependencies for both backend and frontend
 install:
 	@echo "Installing backend dependencies..."

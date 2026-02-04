@@ -62,3 +62,10 @@ deploy:
 	./scripts/deploy_infra.sh
 # 	agent deployment is optional, shouldn't run always
 # 	$(MAKE) -C agents deploy-all
+
+# ==============================================================================
+# Run Google ADK Web Playground
+# ==============================================================================
+
+playground:
+	$(MAKE) -C agents playground
