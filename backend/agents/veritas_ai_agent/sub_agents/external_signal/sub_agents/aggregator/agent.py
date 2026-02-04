@@ -5,6 +5,7 @@ from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
 from . import prompt
+from .callbacks import after_aggregator_callback
 from .schema import ExternalSignalFindingsAggregatorOutput
 
 aggregator_agent = LlmAgent(
@@ -14,6 +15,7 @@ aggregator_agent = LlmAgent(
     output_key="external_signal_findings_aggregator_output",
     output_schema=ExternalSignalFindingsAggregatorOutput,
     on_model_error_callback=default_model_error_handler,
+    after_agent_callback=after_aggregator_callback,
     generate_content_config=types.GenerateContentConfig(
         http_options=types.HttpOptions(retry_options=get_default_retry_config())
     ),
