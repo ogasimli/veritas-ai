@@ -46,8 +46,7 @@ async def test_plugin_captures_text_message():
     user_message = SimpleNamespace()
     user_message.parts = [text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -72,8 +71,7 @@ async def test_plugin_captures_multiple_text_parts():
     user_message = SimpleNamespace()
     user_message.parts = [part1, part2]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -96,8 +94,7 @@ async def test_plugin_only_runs_once():
     user_message = SimpleNamespace()
     user_message.parts = [text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -128,8 +125,7 @@ async def test_plugin_prioritizes_markdown_artifact_over_text():
     user_message = SimpleNamespace()
     user_message.parts = [artifact_part, text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -161,8 +157,7 @@ async def test_plugin_accepts_txt_artifact():
     user_message = SimpleNamespace()
     user_message.parts = [artifact_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -191,8 +186,7 @@ async def test_plugin_ignores_non_text_artifacts():
     user_message = SimpleNamespace()
     user_message.parts = [pdf_part, text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -224,8 +218,7 @@ async def test_plugin_handles_artifact_without_content():
     user_message = SimpleNamespace()
     user_message.parts = [artifact_part, text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -243,7 +236,7 @@ async def test_plugin_handles_no_user_message():
 
     ctx = MagicMock()
     ctx.state = {}
-    ctx.llm_input = None
+    ctx.user_content = None
 
     agent = MagicMock()
 
@@ -264,8 +257,7 @@ async def test_plugin_handles_empty_parts():
     user_message = SimpleNamespace()
     user_message.parts = []
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 
@@ -288,8 +280,7 @@ async def test_plugin_uses_custom_state_key():
     user_message = SimpleNamespace()
     user_message.parts = [text_part]
 
-    ctx.llm_input = SimpleNamespace()
-    ctx.llm_input.user_message = user_message
+    ctx.user_content = user_message
 
     agent = MagicMock()
 

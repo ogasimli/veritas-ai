@@ -56,7 +56,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 3, 1),
                         formula="sum_col(0, 1, 1, 2)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -69,9 +68,9 @@ class TestAfterInTableParallelCallback:
         assert len(formulas) >= 2
 
         # Check all are vertical and in-table
+        # Check check_type is in-table
         for f in formulas:
             assert f["check_type"] == "in_table"
-            assert f["sub_check_type"] == "vertical"
 
     def test_collect_horizontal_formulas(self):
         """Should collect formulas from horizontal check agent."""
@@ -89,7 +88,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 1, 3),
                         formula="sum_row(0, 1, 1, 2)",
-                        check_type="horizontal",
                     )
                 ]
             ),
@@ -103,7 +101,6 @@ class TestAfterInTableParallelCallback:
 
         for f in formulas:
             assert f["check_type"] == "in_table"
-            assert f["sub_check_type"] == "horizontal"
 
     def test_actual_value_lookup(self):
         """Should populate actual_value from target_cell."""
@@ -122,7 +119,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 3, 1),
                         formula="sum_col(0, 1, 1, 2)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -154,7 +150,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 3, 1),
                         formula="sum_col(0, 1, 1, 2)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -184,7 +179,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 3, 1),
                         formula="sum_col(0, 1, 1, 2)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -214,7 +208,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 3, 1),
                         formula="sum_col(0, 1, 1, 2)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -223,7 +216,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 1, 3),
                         formula="sum_row(0, 1, 1, 2)",
-                        check_type="horizontal",
                     )
                 ]
             ),
@@ -233,9 +225,11 @@ class TestAfterInTableParallelCallback:
 
         formulas = ctx.state["reconstructed_formulas"]
 
-        vertical_formulas = [f for f in formulas if f["sub_check_type"] == "vertical"]
+        vertical_formulas = [
+            f for f in formulas if "sum_col" in f["inferred_formulas"][0]["formula"]
+        ]
         horizontal_formulas = [
-            f for f in formulas if f["sub_check_type"] == "horizontal"
+            f for f in formulas if "sum_row" in f["inferred_formulas"][0]["formula"]
         ]
 
         assert len(vertical_formulas) > 0
@@ -276,7 +270,6 @@ class TestAfterInTableParallelCallback:
                     InferredFormula(
                         target_cell=(0, 2, 1),
                         formula="sum_col(0, 1, 1, 1)",
-                        check_type="vertical",
                     )
                 ]
             ),
@@ -290,7 +283,6 @@ class TestAfterInTableParallelCallback:
         # Check schema of first formula
         f = formulas[0]
         assert f["check_type"] == "in_table"
-        assert "sub_check_type" in f
         assert "table_index" in f
         assert "target_cells" in f
         assert isinstance(f["target_cells"], list)

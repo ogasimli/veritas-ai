@@ -64,10 +64,12 @@ def replicate_formulas(
             replicated_results.append(item)
             seen_keys.add(key)
 
-        # Then replicate
-        if item.check_type == "vertical":
+        # Infer check_type from formula pattern
+        # Vertical: sum_col(...) or sum_cells with same column
+        # Horizontal: sum_row(...) or sum_cells with same row
+        if _is_vertical_formula(item.formula):
             new_formulas = _replicate_vertical(item, table_grids)
-        elif item.check_type == "horizontal":
+        elif _is_horizontal_formula(item.formula):
             new_formulas = _replicate_horizontal(item, table_grids)
         else:
             new_formulas = []
@@ -79,6 +81,34 @@ def replicate_formulas(
                 seen_keys.add(key)
 
     return replicated_results
+
+
+def _is_vertical_formula(formula: str) -> bool:
+    """Check if formula is vertical (column-based)."""
+    return "sum_col" in formula or _is_vertical_sum_cells(formula)
+
+
+def _is_horizontal_formula(formula: str) -> bool:
+    """Check if formula is horizontal (row-based)."""
+    return "sum_row" in formula or _is_horizontal_sum_cells(formula)
+
+
+def _is_vertical_sum_cells(formula: str) -> bool:
+    """Check if sum_cells formula has all cells in same column."""
+    cells = CELL_REF_PATTERN.findall(formula)
+    if not cells or len(cells) < 2:
+        return False
+    cols = {int(c[2]) for c in cells}
+    return len(cols) == 1
+
+
+def _is_horizontal_sum_cells(formula: str) -> bool:
+    """Check if sum_cells formula has all cells in same row."""
+    cells = CELL_REF_PATTERN.findall(formula)
+    if not cells or len(cells) < 2:
+        return False
+    rows = {int(c[1]) for c in cells}
+    return len(rows) == 1
 
 
 def _replicate_vertical(
@@ -99,21 +129,18 @@ def _replicate_vertical(
         results = []
         num_cols = len(grid[0]) if grid else 0
 
-        for c in range(num_cols):
-            if c == anchor_col:
-                continue
+        for c in range(anchor_col + 1, num_cols):
             if _is_column_numeric_in_range(grid, c, r1, r2):
                 new_formula = f"sum_col({t_idx}, {c}, {r1}, {r2})"
-                new_target = (
+                new_target = [
                     target[0],
                     target[1],
                     c,
-                )  # Same table, same row, different col
+                ]  # Same table, same row, different col
                 results.append(
                     InferredFormula(
                         target_cell=new_target,
                         formula=new_formula,
-                        check_type="vertical",
                     )
                 )
         return results
@@ -140,21 +167,18 @@ def _replicate_horizontal(
         results = []
         num_rows = len(grid)
 
-        for r in range(num_rows):
-            if r == anchor_row:
-                continue
+        for r in range(anchor_row + 1, num_rows):
             if _is_row_numeric_in_range(grid, r, c1, c2):
                 new_formula = f"sum_row({t_idx}, {r}, {c1}, {c2})"
-                new_target = (
+                new_target = [
                     target[0],
                     r,
                     target[2],
-                )  # Same table, different row, same col
+                ]  # Same table, different row, same col
                 results.append(
                     InferredFormula(
                         target_cell=new_target,
                         formula=new_formula,
-                        check_type="horizontal",
                     )
                 )
         return results
@@ -188,18 +212,12 @@ def _replicate_vertical_sum_cells(
     results = []
     num_cols = len(grid[0]) if grid else 0
 
-    for c in range(num_cols):
-        if c == anchor_col:
-            continue
+    for c in range(anchor_col + 1, num_cols):
         if _are_rows_valid_for_col(grid, c, rows):
             parts = [f"({t_idx}, {r}, {c})" for r in rows]
             new_formula = f"sum_cells({', '.join(parts)})"
-            new_target = (target[0], target[1], c)
-            results.append(
-                InferredFormula(
-                    target_cell=new_target, formula=new_formula, check_type="vertical"
-                )
-            )
+            new_target = [target[0], target[1], c]
+            results.append(InferredFormula(target_cell=new_target, formula=new_formula))
 
     return results
 
@@ -230,18 +248,12 @@ def _replicate_horizontal_sum_cells(
     results = []
     num_rows = len(grid)
 
-    for r in range(num_rows):
-        if r == anchor_row:
-            continue
+    for r in range(anchor_row + 1, num_rows):
         if _are_cols_valid_for_row(grid, r, cols):
             parts = [f"({t_idx}, {r}, {c})" for c in cols]
             new_formula = f"sum_cells({', '.join(parts)})"
-            new_target = (target[0], r, target[2])
-            results.append(
-                InferredFormula(
-                    target_cell=new_target, formula=new_formula, check_type="horizontal"
-                )
-            )
+            new_target = [target[0], r, target[2]]
+            results.append(InferredFormula(target_cell=new_target, formula=new_formula))
 
     return results
 

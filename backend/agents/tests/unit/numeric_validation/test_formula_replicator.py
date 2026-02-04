@@ -31,7 +31,6 @@ class TestVerticalReplication:
         anchor = InferredFormula(
             target_cell=(0, 3, 1),  # Row 3, Col 1 (2024 total)
             formula="sum_col(0, 1, 1, 2)",
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -61,7 +60,6 @@ class TestVerticalReplication:
         anchor = InferredFormula(
             target_cell=(0, 3, 1),
             formula="sum_col(0, 1, 1, 2)",
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -84,7 +82,6 @@ class TestVerticalReplication:
         anchor = InferredFormula(
             target_cell=(0, 3, 1),
             formula="sum_col(0, 1, 1, 2)",
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -93,6 +90,29 @@ class TestVerticalReplication:
         cols = [r.target_cell[2] for r in result]
         assert 1 in cols
         assert 2 not in cols
+
+    def test_sum_col_no_backward_replication(self):
+        """Should NOT replicate to numeric columns before the anchor column."""
+        grid = [
+            ["Item", "2022", "2023", "2024"],
+            ["Revenue", 80, 90, 100],
+            ["Cost", 32, 36, 40],
+            ["Profit", 48, 54, 60],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor at col 2 — col 1 is numeric but comes before anchor
+        anchor = InferredFormula(
+            target_cell=(0, 3, 2),
+            formula="sum_col(0, 2, 1, 2)",
+        )
+
+        result = replicate_formulas([anchor], table_grids)
+
+        cols = [r.target_cell[2] for r in result]
+        assert 2 in cols  # Original
+        assert 3 in cols  # Forward replication
+        assert 1 not in cols  # No backward replication
 
     def test_sum_cells_vertical(self):
         """Replicate vertical sum_cells formula."""
@@ -109,7 +129,6 @@ class TestVerticalReplication:
         anchor = InferredFormula(
             target_cell=(0, 5, 1),
             formula="sum_cells((0, 2, 1), (0, 4, 1))",
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -117,6 +136,31 @@ class TestVerticalReplication:
         formulas_by_col = {r.target_cell[2]: r.formula for r in result}
         assert formulas_by_col[1] == "sum_cells((0, 2, 1), (0, 4, 1))"
         assert formulas_by_col[2] == "sum_cells((0, 2, 2), (0, 4, 2))"
+
+    def test_sum_cells_vertical_no_backward_replication(self):
+        """Vertical sum_cells should NOT replicate to columns before anchor."""
+        grid = [
+            ["Item", "2022", "2023", "2024"],
+            ["A", 10, 20, 30],
+            ["Sub A", 10, 20, 30],
+            ["B", 5, 8, 12],
+            ["Sub B", 5, 8, 12],
+            ["Total", 15, 28, 42],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor at col 2 — col 1 is numeric but comes before anchor
+        anchor = InferredFormula(
+            target_cell=(0, 5, 2),
+            formula="sum_cells((0, 2, 2), (0, 4, 2))",
+        )
+
+        result = replicate_formulas([anchor], table_grids)
+
+        cols = [r.target_cell[2] for r in result]
+        assert 2 in cols  # Original
+        assert 3 in cols  # Forward replication
+        assert 1 not in cols  # No backward replication
 
 
 class TestHorizontalReplication:
@@ -134,7 +178,6 @@ class TestHorizontalReplication:
         anchor = InferredFormula(
             target_cell=(0, 1, 4),  # Row 1, Col 4 (Revenue total)
             formula="sum_row(0, 1, 1, 3)",
-            check_type="horizontal",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -158,7 +201,6 @@ class TestHorizontalReplication:
         anchor = InferredFormula(
             target_cell=(0, 1, 3),
             formula="sum_row(0, 1, 1, 2)",
-            check_type="horizontal",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -179,7 +221,6 @@ class TestHorizontalReplication:
         anchor = InferredFormula(
             target_cell=(0, 1, 3),
             formula="sum_row(0, 1, 1, 2)",
-            check_type="horizontal",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -187,6 +228,29 @@ class TestHorizontalReplication:
         rows = [r.target_cell[1] for r in result]
         assert 1 in rows
         assert 2 not in rows  # Row 2 has non-numeric sources
+
+    def test_sum_row_no_backward_replication(self):
+        """Should NOT replicate to numeric rows before the anchor row."""
+        grid = [
+            ["Item", "Q1", "Q2", "Total"],
+            ["Revenue", 25, 30, 55],
+            ["Cost", 10, 12, 22],
+            ["Tax", 5, 6, 11],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor at row 2 — row 1 is numeric but comes before anchor
+        anchor = InferredFormula(
+            target_cell=(0, 2, 3),
+            formula="sum_row(0, 2, 1, 2)",
+        )
+
+        result = replicate_formulas([anchor], table_grids)
+
+        rows = [r.target_cell[1] for r in result]
+        assert 2 in rows  # Original
+        assert 3 in rows  # Forward replication
+        assert 1 not in rows  # No backward replication
 
     def test_sum_cells_horizontal(self):
         """Replicate horizontal sum_cells formula."""
@@ -200,7 +264,6 @@ class TestHorizontalReplication:
         anchor = InferredFormula(
             target_cell=(0, 1, 3),
             formula="sum_cells((0, 1, 1), (0, 1, 2))",
-            check_type="horizontal",
         )
 
         result = replicate_formulas([anchor], table_grids)
@@ -208,6 +271,29 @@ class TestHorizontalReplication:
         formulas_by_row = {r.target_cell[1]: r.formula for r in result}
         assert formulas_by_row[1] == "sum_cells((0, 1, 1), (0, 1, 2))"
         assert formulas_by_row[2] == "sum_cells((0, 2, 1), (0, 2, 2))"
+
+    def test_sum_cells_horizontal_no_backward_replication(self):
+        """Horizontal sum_cells should NOT replicate to rows before anchor."""
+        grid = [
+            ["Item", "Base", "Adjust", "Total"],
+            ["Revenue", 100, 10, 110],
+            ["Cost", 40, 5, 45],
+            ["Tax", 20, 3, 23],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor at row 2 — row 1 is numeric but comes before anchor
+        anchor = InferredFormula(
+            target_cell=(0, 2, 3),
+            formula="sum_cells((0, 2, 1), (0, 2, 2))",
+        )
+
+        result = replicate_formulas([anchor], table_grids)
+
+        rows = [r.target_cell[1] for r in result]
+        assert 2 in rows  # Original
+        assert 3 in rows  # Forward replication
+        assert 1 not in rows  # No backward replication
 
 
 class TestEdgeCases:
@@ -223,7 +309,6 @@ class TestEdgeCases:
         anchor = InferredFormula(
             target_cell=(99, 1, 1),  # Table 99 doesn't exist
             formula="sum_col(99, 1, 0, 1)",
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], {0: [[1, 2]]})
@@ -238,17 +323,15 @@ class TestEdgeCases:
         table_grids = {0: grid}
 
         # Two identical anchors
-        anchor1 = InferredFormula(
-            target_cell=(0, 1, 1), formula="sum_col(0, 1, 0, 0)", check_type="vertical"
-        )
-        anchor2 = InferredFormula(
-            target_cell=(0, 1, 1), formula="sum_col(0, 1, 0, 0)", check_type="vertical"
-        )
+        anchor1 = InferredFormula(target_cell=(0, 1, 1), formula="sum_col(0, 1, 0, 0)")
+        anchor2 = InferredFormula(target_cell=(0, 1, 1), formula="sum_col(0, 1, 0, 0)")
 
         result = replicate_formulas([anchor1, anchor2], table_grids)
 
         # Should only have unique formulas
-        unique_formulas = [(r.target_cell, r.formula) for r in result]
+        # Should only have unique formulas
+        # target_cell is a list (unhashable), so convert to tuple for set
+        unique_formulas = [(tuple(r.target_cell), r.formula) for r in result]
         assert len(unique_formulas) == len(set(unique_formulas))
 
     def test_mixed_vertical_and_horizontal(self):
@@ -264,20 +347,19 @@ class TestEdgeCases:
         vertical_anchor = InferredFormula(
             target_cell=(0, 3, 1),
             formula="sum_col(0, 1, 1, 2)",
-            check_type="vertical",
         )
 
         horizontal_anchor = InferredFormula(
             target_cell=(0, 1, 3),
             formula="sum_row(0, 1, 1, 2)",
-            check_type="horizontal",
         )
 
         result = replicate_formulas([vertical_anchor, horizontal_anchor], table_grids)
 
         # Should have both types replicated
-        vertical_formulas = [r for r in result if r.check_type == "vertical"]
-        horizontal_formulas = [r for r in result if r.check_type == "horizontal"]
+        # Should have both types replicated
+        vertical_formulas = [r for r in result if "sum_col" in r.formula]
+        horizontal_formulas = [r for r in result if "sum_row" in r.formula]
 
         assert len(vertical_formulas) > 1
         assert len(horizontal_formulas) > 1
@@ -295,7 +377,6 @@ class TestEdgeCases:
         anchor = InferredFormula(
             target_cell=(0, 3, 1),
             formula="sum_col(0, 1, 1, 2)",  # Rows 1-2
-            check_type="vertical",
         )
 
         result = replicate_formulas([anchor], table_grids)

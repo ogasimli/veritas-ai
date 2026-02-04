@@ -17,7 +17,6 @@ State keys written
 ------------------
 * reconstructed_formulas - list of dicts with:
     - check_type: "in_table"
-    - sub_check_type: "vertical" | "horizontal" | "logical"
     - table_index: int
     - target_cells: list of [table, row, col]
     - actual_value: float | None
@@ -30,9 +29,9 @@ from .formula_replicator import replicate_formulas
 from .schema import InferredFormula
 
 
-def after_in_table_parallel_callback(ctx: CallbackContext) -> None:
+def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
     """Collect sub-agent outputs, replicate formulas, populate actual_value."""
-    state = ctx.state
+    state = callback_context.state
     tables = state.get("extracted_tables", {}).get("tables", [])
 
     if not tables:
@@ -53,17 +52,16 @@ def after_in_table_parallel_callback(ctx: CallbackContext) -> None:
             if hasattr(item, "model_dump"):
                 item = item.model_dump()
             try:
-                raw_formulas.append(
-                    InferredFormula(
-                        target_cell=tuple(item["target_cell"]),
-                        formula=item["formula"],
-                        check_type=item["check_type"],
-                    )
+                formula = InferredFormula(
+                    target_cell=item["target_cell"],
+                    formula=item["formula"],
                 )
+                raw_formulas.append(formula)
             except (KeyError, TypeError):
                 pass
 
     # 2. Replicate formulas across columns/rows
+
     table_grids = {t["table_index"]: t["grid"] for t in tables}
     replicated = replicate_formulas(raw_formulas, table_grids)
 
@@ -80,7 +78,6 @@ def after_in_table_parallel_callback(ctx: CallbackContext) -> None:
                 actual_value = float(cell_val)
         except (KeyError, IndexError, TypeError):
             pass
-
         state["reconstructed_formulas"].append(
             {
                 "check_type": "in_table",
@@ -88,6 +85,5 @@ def after_in_table_parallel_callback(ctx: CallbackContext) -> None:
                 "target_cells": [list(item.target_cell)],
                 "actual_value": actual_value,
                 "inferred_formulas": [{"formula": item.formula}],
-                "sub_check_type": item.check_type,
             }
         )

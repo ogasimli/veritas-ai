@@ -15,7 +15,7 @@ numeric_validation_agent = SequentialAgent(
         table_namer_agent,
         ParallelAgent(
             name="NumericValidationParallel",
-            description="Fan-out: in-table and cross-table checks run concurrently.",
+            description="In-table and cross-table checks run concurrently.",
             sub_agents=[in_table_pipeline_agent, cross_table_pipeline_agent],
         ),
         aggregator_agent,

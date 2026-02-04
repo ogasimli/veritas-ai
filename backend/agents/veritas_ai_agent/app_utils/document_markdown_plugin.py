@@ -42,11 +42,37 @@ class DocumentMarkdownPlugin(BasePlugin):
             return None
 
         # Extract text from the user's message in the current turn
-        if callback_context.llm_input and callback_context.llm_input.user_message:
-            user_message = callback_context.llm_input.user_message
+        if callback_context.user_content:
+            user_message = callback_context.user_content
 
-            # Priority 1: Check for markdown/text artifacts first
-            for part in user_message.parts:
+            import logging
+
+            logger = logging.getLogger(__name__)
+
+            # Priority 1: Check for inline_data (uploaded files come as Blob)
+            for part in user_message.parts or []:
+                if hasattr(part, "inline_data") and part.inline_data:
+                    blob = part.inline_data
+                    mime_type = getattr(blob, "mime_type", "")
+
+                    # Check if it's a markdown or text file
+                    if mime_type in ["text/markdown", "text/plain"]:
+                        # Extract the binary data and decode it
+                        data = getattr(blob, "data", None)
+                        if data:
+                            try:
+                                # Decode the bytes to string
+                                content = data.decode("utf-8")
+                                callback_context.state[self.state_key] = content
+                                logger.info(
+                                    f"Successfully extracted {len(content)} chars from inline_data"
+                                )
+                                return None
+                            except Exception as e:
+                                logger.warning(f"Failed to decode inline_data: {e}")
+
+            # Priority 2: Check for file_data (older artifact format)
+            for part in user_message.parts or []:
                 if hasattr(part, "file_data") and part.file_data:
                     file_data = part.file_data
 
@@ -62,7 +88,6 @@ class DocumentMarkdownPlugin(BasePlugin):
 
                     if is_markdown:
                         # Extract the actual text content from the artifact
-                        # ADK may expose this as file_data.text or we may need to fetch it
                         content = None
 
                         # Try to get text content directly from file_data
@@ -77,17 +102,14 @@ class DocumentMarkdownPlugin(BasePlugin):
                             return None
 
                         # If we can't get content, log a warning and fall through to text parts
-                        # In production, we might want to fetch from file_uri here
-                        import logging
-
-                        logging.warning(
+                        logger.warning(
                             f"Found markdown artifact at {file_uri} but couldn't "
                             f"extract text content. Falling back to message text."
                         )
 
-            # Priority 2: Fall back to text message parts if no suitable artifact found
+            # Priority 3: Fall back to text message parts if no suitable artifact found
             text_parts = []
-            for part in user_message.parts:
+            for part in user_message.parts or []:
                 if hasattr(part, "text") and part.text:
                     text_parts.append(part.text)
 

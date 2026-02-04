@@ -118,15 +118,18 @@ def process_dataframe(df: pd.DataFrame) -> list[list[str | float]]:
         ]
 
         if not sample:
-            df[col] = df[col].apply(
-                lambda v: _clean_text(str(v)) if pd.notna(v) else ""
-            )
+            # Clean text for non-numeric columns
+            df[col] = df[col].fillna("").astype(str).apply(_clean_text)
             continue
 
         locale = detect_column_locale(sample)
-        df[col] = df[col].apply(
-            lambda v, _loc=locale: parse_cell_value(str(v), _loc) if pd.notna(v) else ""
-        )
+
+        def parse_with_locale(v, locale=locale):
+            if pd.isna(v):
+                return ""
+            return parse_cell_value(str(v), locale)
+
+        df[col] = df[col].apply(parse_with_locale)
 
     # Header row + data rows
     rows: list[list[str | float]] = [list(df.columns)]
