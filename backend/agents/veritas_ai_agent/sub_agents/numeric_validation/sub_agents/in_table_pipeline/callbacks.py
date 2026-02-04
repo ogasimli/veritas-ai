@@ -1,0 +1,93 @@
+"""Post-processing callback for in-table pipeline.
+
+Callback responsibilities
+--------------------------
+1. Collect outputs from VerticalCheckAgent and HorizontalCheckAgent (vertical_check_output, horizontal_check_output)
+2. Replicate anchor formulas across applicable columns/rows using formula_replicator
+3. Look up actual_value for each target_cell from table grids
+4. Write complete entries to state["reconstructed_formulas"]
+
+State keys read
+---------------
+* vertical_check_output   - vertical check formulas
+* horizontal_check_output  - horizontal check formulas
+* extracted_tables             - table grids for actual_value lookup
+
+State keys written
+------------------
+* reconstructed_formulas - list of dicts with:
+    - check_type: "in_table"
+    - sub_check_type: "vertical" | "horizontal" | "logical"
+    - table_index: int
+    - target_cells: list of [table, row, col]
+    - actual_value: float | None
+    - inferred_formulas: list of {"formula": str}
+"""
+
+from google.adk.agents.callback_context import CallbackContext
+
+from .formula_replicator import replicate_formulas
+from .schema import InferredFormula
+
+
+def after_in_table_parallel_callback(ctx: CallbackContext) -> None:
+    """Collect sub-agent outputs, replicate formulas, populate actual_value."""
+    state = ctx.state
+    tables = state.get("extracted_tables", {}).get("tables", [])
+
+    if not tables:
+        state.setdefault("reconstructed_formulas", [])
+        return
+
+    # 1. Collect raw formulas from sub-agent outputs
+    raw_formulas: list[InferredFormula] = []
+
+    for key in ["vertical_check_output", "horizontal_check_output"]:
+        output = state.get(key)
+        if not output:
+            continue
+        if hasattr(output, "model_dump"):
+            output = output.model_dump()
+
+        for item in output.get("formulas", []):
+            if hasattr(item, "model_dump"):
+                item = item.model_dump()
+            try:
+                raw_formulas.append(
+                    InferredFormula(
+                        target_cell=tuple(item["target_cell"]),
+                        formula=item["formula"],
+                        check_type=item["check_type"],
+                    )
+                )
+            except (KeyError, TypeError):
+                pass
+
+    # 2. Replicate formulas across columns/rows
+    table_grids = {t["table_index"]: t["grid"] for t in tables}
+    replicated = replicate_formulas(raw_formulas, table_grids)
+
+    # 3. Look up actual values and write to shared state
+    state.setdefault("reconstructed_formulas", [])
+
+    for item in replicated:
+        t_idx, row, col = item.target_cell
+
+        actual_value = None
+        try:
+            cell_val = table_grids[t_idx][row][col]
+            if isinstance(cell_val, (int, float)):
+                actual_value = float(cell_val)
+        except (KeyError, IndexError, TypeError):
+            pass
+
+        state["reconstructed_formulas"].append(
+            {
+                "check_type": "in_table",
+                "table_index": t_idx,
+                "target_cells": [list(item.target_cell)],
+                "actual_value": actual_value,
+                "inferred_formulas": [{"formula": item.formula}],
+                "sub_check_type": item.check_type,
+            }
+        )

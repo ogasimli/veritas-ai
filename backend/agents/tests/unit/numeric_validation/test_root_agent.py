@@ -33,7 +33,7 @@ def test_agent_structure():
     assert parallel.name == "NumericValidationParallel"
     assert len(parallel.sub_agents) == 2
     parallel_names = {a.name for a in parallel.sub_agents}
-    assert "InTableFormulaFanOut" in parallel_names
+    assert "InTablePipeline" in parallel_names
     assert "CrossTablePipeline" in parallel_names
 
     # Stage 3: aggregator
