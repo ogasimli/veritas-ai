@@ -2,7 +2,10 @@
 
 import json
 
-from ...deep_research_client import DeepResearchClient
+from veritas_ai_agent.sub_agents.external_signal.deep_research_client import (
+    DeepResearchClient,
+)
+
 from . import prompt
 from .schema import ExternalSignalVerifiableClaim
 

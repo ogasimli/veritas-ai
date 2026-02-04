@@ -11,7 +11,7 @@ from veritas_ai_agent.sub_agents.external_signal.sub_agents.aggregator.schema im
     ExternalSignalFindingsAggregatorOutput,
     ReconciledExternalSignal,
 )
-from veritas_ai_agent.sub_agents.external_signal.sub_agents.report_to_internet.schema import (
+from veritas_ai_agent.sub_agents.external_signal.sub_agents.verification.sub_agents.report_to_internet.schema import (
     ExternalSignalClaimVerification,
     ExternalSignalReportToInternetOutput,
 )
