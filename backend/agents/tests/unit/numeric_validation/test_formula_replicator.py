@@ -398,3 +398,40 @@ class TestEdgeCases:
         cols = [r.target_cell.col_index for r in result]
         # Should replicate to col 2 because row 2 col 2 is numeric (38)
         assert 2 in cols
+
+
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
+    detect_sum_cells_direction,
+)
+
+
+class TestDirectionDetection:
+    """Test detect_sum_cells_direction logic."""
+
+    def test_detect_vertical(self):
+        """Should detect vertical direction (same column)."""
+        # (t, r, c) format
+        formula = "sum_cells((0, 1, 2), (0, 3, 2), (0, 5, 2))"
+        assert detect_sum_cells_direction(formula) == "vertical"
+
+    def test_detect_horizontal(self):
+        """Should detect horizontal direction (same row)."""
+        formula = "sum_cells((0, 1, 2), (0, 1, 4), (0, 1, 6))"
+        assert detect_sum_cells_direction(formula) == "horizontal"
+
+    def test_detect_mixed_none(self):
+        """Should return None for mixed dimensions (span both rows and cols)."""
+        # Cells: (0, 1, 2) and (0, 2, 3) -> different rows (1,2) AND different cols (2,3)
+        formula = "sum_cells((0, 1, 2), (0, 2, 3))"
+        assert detect_sum_cells_direction(formula) is None
+
+    def test_detect_single_cell_none(self):
+        """Should return None for single cell (ambiguous or invalid for sum_cells)."""
+        formula = "sum_cells((0, 1, 2))"
+        # _is_vertical_sum_cells and _is_horizontal_sum_cells both return False for < 2 cells
+        assert detect_sum_cells_direction(formula) is None
+
+    def test_detect_non_sum_cells_none(self):
+        """Should return None for non-sum_cells formulas."""
+        assert detect_sum_cells_direction("sum_col(0, 1, 2, 3)") is None
+        assert detect_sum_cells_direction("garbage") is None

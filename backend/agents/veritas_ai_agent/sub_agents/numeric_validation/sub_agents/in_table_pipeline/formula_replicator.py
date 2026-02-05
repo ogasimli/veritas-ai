@@ -107,6 +107,22 @@ def _is_horizontal_sum_cells(formula: str) -> bool:
     return len(rows) == 1
 
 
+def detect_sum_cells_direction(formula: str) -> str | None:
+    """Detect replication direction from a sum_cells formula's cell layout.
+
+    Returns
+    -------
+    "vertical"    - all referenced cells share one column  → replicate across columns
+    "horizontal"  - all referenced cells share one row     → replicate across rows
+    None          - cells span both dimensions; replication is not yet supported
+    """
+    if _is_vertical_sum_cells(formula):
+        return "vertical"
+    if _is_horizontal_sum_cells(formula):
+        return "horizontal"
+    return None
+
+
 def _replicate_vertical(
     item: InferredFormula, table_grids: dict
 ) -> list[InferredFormula]:

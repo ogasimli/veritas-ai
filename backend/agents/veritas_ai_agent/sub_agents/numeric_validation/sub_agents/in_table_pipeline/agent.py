@@ -22,6 +22,9 @@ Design notes
 from google.adk.agents import ParallelAgent
 
 from .callbacks import after_in_table_parallel_callback
+from .sub_agents.logic_reconciliation_check.agent import (
+    _logic_reconciliation_check_pipeline,
+)
 from .sub_agents.vertical_horizontal_check.agent import (
     create_horizontal_check_agent,
     create_vertical_check_agent,
@@ -30,12 +33,14 @@ from .sub_agents.vertical_horizontal_check.agent import (
 # Create sub-agents
 _vertical_agent = create_vertical_check_agent()
 _horizontal_agent = create_horizontal_check_agent()
-# TODO: _logical_agent = create_logical_check_agent()
 
 # Module-level singleton
 in_table_pipeline_agent = ParallelAgent(
     name="InTablePipeline",
-    sub_agents=[_vertical_agent, _horizontal_agent],
-    # TODO: Add _logical_agent when implemented
+    sub_agents=[
+        _vertical_agent,
+        _horizontal_agent,
+        _logic_reconciliation_check_pipeline,
+    ],
     after_agent_callback=after_in_table_parallel_callback,
 )

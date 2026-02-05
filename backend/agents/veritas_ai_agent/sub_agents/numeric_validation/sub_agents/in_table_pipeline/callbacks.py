@@ -23,16 +23,42 @@ State keys written
     - inferred_formulas: list of {"formula": str}
 """
 
+import logging
+
 from google.adk.agents.callback_context import CallbackContext
 
-from .formula_replicator import replicate_formulas
+from .formula_replicator import detect_sum_cells_direction, replicate_formulas
 from .schema import InferredFormula
+
+logger = logging.getLogger(__name__)
+
+
+# Keys whose replication direction is determined statically
+_FIXED_DIRECTION_KEYS: dict[str, str] = {
+    "vertical_check_output": "vertical",
+    "horizontal_check_output": "horizontal",
+}
+
+# Keys whose replication direction is detected per-formula at runtime
+_DYNAMIC_DIRECTION_KEYS: list[str] = [
+    "logic_reconciliation_formula_inferer_output",
+]
 
 
 def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
     """Collect sub-agent outputs, replicate formulas, populate actual_value."""
     state = callback_context.state
-    tables = state.get("extracted_tables", {}).get("tables", [])
+    # Robustly handle extracted_tables format
+    extracted = state.get("extracted_tables", {})
+    if isinstance(extracted, str):
+        try:
+            import json
+
+            extracted = json.loads(extracted)
+        except json.JSONDecodeError:
+            extracted = {}
+
+    tables = extracted if isinstance(extracted, list) else extracted.get("tables", [])
 
     if not tables:
         state.setdefault("reconstructed_formulas", [])
@@ -40,9 +66,13 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
 
     # 1 & 2. Collect raw formulas and replicate them
     all_replicated: list[InferredFormula] = []
-    table_grids = {t["table_index"]: t["grid"] for t in tables}
+    # Make sure we use a dict for fast lookup
+    table_grids = {t.get("table_index"): t.get("grid") for t in tables}
 
-    for key in ["vertical_check_output", "horizontal_check_output"]:
+    # Iterate over both fixed and dynamic keys
+    all_keys = list(_FIXED_DIRECTION_KEYS.keys()) + _DYNAMIC_DIRECTION_KEYS
+
+    for key in all_keys:
         output = state.get(key)
         if not output:
             continue
@@ -53,20 +83,43 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
         for item in output.get("formulas", []):
             if hasattr(item, "model_dump"):
                 item = item.model_dump()
+
             try:
-                formula = InferredFormula(
-                    target_cell=item["target_cell"],
-                    formula=item["formula"],
-                )
-                batch_formulas.append(formula)
+                # Handle case where item might be just a string if something went wrong, but assume dict
+                if isinstance(item, dict):
+                    formula = InferredFormula(
+                        target_cell=item["target_cell"],
+                        formula=item["formula"],
+                    )
+                    batch_formulas.append(formula)
             except (KeyError, TypeError):
                 pass
 
         if batch_formulas:
-            direction = "vertical" if "vertical" in key else "horizontal"
-            all_replicated.extend(
-                replicate_formulas(batch_formulas, table_grids, direction=direction)
-            )
+            if key in _FIXED_DIRECTION_KEYS:
+                # Existing path: single direction for the whole batch
+                all_replicated.extend(
+                    replicate_formulas(
+                        batch_formulas,
+                        table_grids,
+                        direction=_FIXED_DIRECTION_KEYS[key],
+                    )
+                )
+            else:
+                # Dynamic path: detect direction per formula from sum_cells cell layout
+                for formula in batch_formulas:
+                    direction = detect_sum_cells_direction(formula.formula)
+                    if direction is None:
+                        logger.warning(
+                            "Skipping formula with mixed-dimension cells: %s",
+                            formula.formula,
+                        )
+                        # TODO: Handle formulas where cells span both row and column
+                        # dimensions. For now these are skipped.
+                        continue
+                    all_replicated.extend(
+                        replicate_formulas([formula], table_grids, direction=direction)
+                    )
 
     replicated = all_replicated
     # 3. Look up actual values and write to shared state

@@ -7,7 +7,7 @@ Tests cover:
 - State management
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks import (
     after_in_table_parallel_callback,
@@ -342,3 +342,145 @@ class TestAfterInTableParallelCallback:
         formulas = ctx.state["reconstructed_formulas"]
         # Should only have the valid formula
         assert len(formulas) == 1
+
+
+class TestDynamicReplication:
+    """Test dynamic direction logic in logic_reconciliation_formula_inferer_output."""
+
+    def test_dynamic_vertical_and_horizontal(self):
+        """Should detect directions dynamically and replicate logic check formulas."""
+        grid = [
+            ["Item", "C1", "C2"],
+            ["R1", 10, 10],
+            ["R2", 20, 20],
+            ["Total", 30, 30],
+        ]
+        # Table 0
+
+        # Vertical formula: sum_cells((0,1,1), (0,2,1)) -> Col 1, Rows 1+2
+        # Horizontal formula: sum_cells((0,1,1), (0,1,2)) -> cannot happen in this grid easily for rollforward,
+        # but let's assume a valid horizontal pattern:
+        # e.g. Row 1: 10, 10. Maybe sum_cells((0,1,1), (0,1,2))
+
+        ctx = MagicMock()
+        ctx.state = {
+            "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
+            "logic_reconciliation_formula_inferer_output": {
+                "formulas": [
+                    {
+                        "target_cell": {
+                            "table_index": 0,
+                            "row_index": 3,
+                            "col_index": 1,
+                        },
+                        "formula": "sum_cells((0, 1, 1), (0, 2, 1))",  # Vertical
+                    },
+                    {
+                        "target_cell": {
+                            "table_index": 0,
+                            "row_index": 1,
+                            "col_index": 1,
+                        },
+                        "formula": "sum_cells((0, 2, 1), (0, 2, 2))",  # Horizontal ref? No, let's make it clear horizontal
+                        # sum_cells((0,2,1), (0,2,2)) -> Row 2, Cols 1 & 2
+                    },
+                ]
+            },
+        }
+
+        # Override formula for horizontal to be clearly horizontal
+        # Row 2 (R2): sum of Col 1 and Col 2? No, let's say Total Row is sum of rows.
+        # Let's say we have a horizontal check: Row 1 Col 1 + Row 1 Col 2 (nonsense but structural check).
+
+        # Clearer horizontal example:
+        # sum_cells((0, 1, 1), (0, 1, 2)) -> cells in Row 1.
+        ctx.state["logic_reconciliation_formula_inferer_output"]["formulas"][1][
+            "formula"
+        ] = "sum_cells((0, 1, 1), (0, 1, 2))"
+        ctx.state["logic_reconciliation_formula_inferer_output"]["formulas"][1][
+            "target_cell"
+        ] = {"table_index": 0, "row_index": 1, "col_index": 0}
+
+        with patch(
+            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_sum_cells_direction"
+        ) as mock_detect:
+            # We mock detect to ensure it's called
+            def side_effect(f):
+                if "(0, 1, 1), (0, 2, 1)" in f:
+                    return "vertical"
+                if "(0, 1, 1), (0, 1, 2)" in f:
+                    return "horizontal"
+                return None
+
+            mock_detect.side_effect = side_effect
+
+            # We also need real replication logic, which is imported in callbacks.
+            # But since we patch mock_detect in the TEST file, we need to patch where it is USED.
+            # The test imports `after_in_table_parallel_callback`.
+            # That function imports `detect_sum_cells_direction` from `formula_replicator`.
+            # So we patch `veritas_ai_agent...callbacks.detect_sum_cells_direction`.
+
+            after_in_table_parallel_callback(ctx)
+
+            assert mock_detect.call_count >= 2
+
+        formulas = ctx.state["reconstructed_formulas"]
+        # We expect vertical replication (Col 1 -> Col 2 if numeric)
+        # Grid: Col 1 has 10,20. Col 2 has 10,20. So vertical should replicate to Col 2.
+
+        # We expect horizontal replication (Row 1 -> Row 2 if numeric)
+        # Grid: Row 1 has 10,10. Row 2 has 20,20. So horizontal should replicate to Row 2.
+
+        f_strs = [f["inferred_formulas"][0]["formula"] for f in formulas]
+
+        # Check vertical replication to Col 2
+        # Original: sum_cells((0, 1, 1), (0, 2, 1))
+        # Replicated: sum_cells((0, 1, 2), (0, 2, 2))
+        vertical_repl = "sum_cells((0, 1, 2), (0, 2, 2))"
+        assert any(vertical_repl in s for s in f_strs), (
+            f"Missing vertical replication: {f_strs}"
+        )
+
+        # Check horizontal replication to Row 2
+        # Original: sum_cells((0, 1, 1), (0, 1, 2))
+        # Replicated: sum_cells((0, 2, 1), (0, 2, 2))
+        horizontal_repl = "sum_cells((0, 2, 1), (0, 2, 2))"
+        assert any(horizontal_repl in s for s in f_strs), (
+            f"Missing horizontal replication: {f_strs}"
+        )
+
+    def test_logs_warning_on_mixed_dimension(self):
+        """Should log warning if direction returns None."""
+        ctx = MagicMock()
+        ctx.state = {
+            "extracted_tables": {"tables": [{"table_index": 0, "grid": []}]},
+            "logic_reconciliation_formula_inferer_output": {
+                "formulas": [
+                    {
+                        "target_cell": {
+                            "table_index": 0,
+                            "row_index": 0,
+                            "col_index": 0,
+                        },
+                        "formula": "mixed_bad_formula",
+                    }
+                ]
+            },
+        }
+
+        # We need to ensure that the mocked return value is indeed None
+        with (
+            patch(
+                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_sum_cells_direction",
+                return_value=None,
+            ) as mock_detect,
+            patch(
+                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
+            ) as mock_logger,
+        ):
+            after_in_table_parallel_callback(ctx)
+
+            assert mock_detect.called
+            assert mock_logger.warning.called
+            args = mock_logger.warning.call_args
+            assert "Skipping formula with mixed-dimension cells" in args[0][0]
