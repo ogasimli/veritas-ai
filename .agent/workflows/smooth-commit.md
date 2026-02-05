@@ -10,9 +10,7 @@ description: safely commit staged changes with auto-fixing of pre-commit hooks
 
     <detailed explanation>
     ```
-    *   **Rule**: Do NOT include IDE navigation links (e.g., `cci:7://...`) or absolute paths in the message.
-    *   **Rule**: Filenames are allowed and encouraged for clarity.
-    *   **Rule**: Relative paths is not encouraged, so use it only if absolutely necessary
+    *   **Rule**: Follow all formatting rules defined in `.agent/rules/git.md` (plain text only, no backticks, no paths).
 3.  **User Confirmation**: Show the drafted message to the user and ask: "I propose this commit message. Shall I proceed? (yes/no/edit)"
     *   **STOP**: Wait for user input.
 4.  **Protect Unstaged Changes**:
