@@ -7,3 +7,5 @@ description: Rules for Git and Commit Operations
 - **No Navigation Links**: NEVER include IDE navigation links, relative paths starting with `./`, or absolute paths in commit messages.
 - **Reference Style**: Refer to files by their base name only (e.g., schema.py instead of backend/agents/schema.py) and write them as plain text.
 - **Zero Metadata**: Do not include any cci:7:// or similar metadata in any user-visible commit draft.
+- **Detail Section Usage**: Only populate the details section if there are more than 2 important changes. Otherwise, describe the changes within the commit heading itself.
+- **Detail Section Format**: When the details section is used, ALWAYS use a bulletpoint list style.
