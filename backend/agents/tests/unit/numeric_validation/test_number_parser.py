@@ -263,3 +263,19 @@ class TestProcessDataframe:
         # Col 2: "2,000" -> 2000.0
         assert result[1] == [1000.0, "A", 2000.0]
         assert result[2] == [-500.0, "B", -400.0]
+
+    def test_strict_string_dtype_handled(self):
+        # Reproduces the TypeError where strict string columns (like string[pyarrow])
+        # would reject assignment of mixed types (float/str).
+        try:
+            # Try string[python] or string[pyarrow] which are/can be strict
+            df = pd.DataFrame({"A": ["1,000", "label", "2,000"]}, dtype="string")
+        except Exception:
+            # Fallback if strict string type isn't supported globally
+            df = pd.DataFrame({"A": ["1,000", "label", "2,000"]})
+
+        # This should NOT raise TypeError now
+        result = process_dataframe(df, locale="en_US")
+        assert result[1][0] == 1000.0
+        assert result[2][0] == "label"
+        assert result[3][0] == 2000.0
