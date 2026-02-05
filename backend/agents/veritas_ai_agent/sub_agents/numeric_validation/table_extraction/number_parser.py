@@ -10,16 +10,16 @@ import pandas as pd
 from babel.numbers import NumberFormatError, parse_decimal
 
 
-def detect_column_locale(column_values: list[str]) -> str:
+def detect_locale(values: list[str]) -> str:
     """
-    Detect number locale for a column by scoring digit-separator patterns.
+    Detect number locale from a list of numeric strings.
     Returns 'en_US' (comma thousands / dot decimal) or 'de_DE' (dot thousands / comma decimal).
     Falls back to 'en_US' when ambiguous.
     """
     dot_decimal_score = 0
     comma_decimal_score = 0
 
-    for val in column_values:
+    for val in values:
         if not isinstance(val, str):
             continue
         clean = re.sub(r"[^\d.,-]", "", val.strip())
@@ -104,32 +104,23 @@ def parse_cell_value(raw: str, locale: str) -> str | float:
         return _clean_text(raw)
 
 
-def process_dataframe(df: pd.DataFrame) -> list[list[str | float]]:
+def process_dataframe(df: pd.DataFrame, locale: str) -> list[list[str | float]]:
     """
-    Parse every column of *df* in-place: detect locale, convert numeric cells
-    to float, clean text cells.  Return as a 2-D list with the header row first.
+    Parse every column of *df* in-place using the provided *locale*.
     """
     df.columns = [_clean_text(c) for c in df.columns]
 
-    for col in df.columns:
-        # Collect string representations that contain at least one digit
-        sample = [
-            str(x) for x in df[col] if pd.notna(x) and any(c.isdigit() for c in str(x))
-        ]
+    for i in range(len(df.columns)):
+        # Use iloc to select by position, preventing issues with duplicate column names
+        series = df.iloc[:, i]
 
-        if not sample:
-            # Clean text for non-numeric columns
-            df[col] = df[col].fillna("").astype(str).apply(_clean_text)
-            continue
-
-        locale = detect_column_locale(sample)
-
-        def parse_with_locale(v, locale=locale):
+        def parse_with_locale(v):
             if pd.isna(v):
                 return ""
             return parse_cell_value(str(v), locale)
 
-        df[col] = df[col].apply(parse_with_locale)
+        # Update specific column by position
+        df.iloc[:, i] = series.apply(parse_with_locale)
 
     # Header row + data rows
     rows: list[list[str | float]] = [list(df.columns)]

@@ -3,60 +3,60 @@
 import pandas as pd
 
 from veritas_ai_agent.sub_agents.numeric_validation.table_extraction.number_parser import (
-    detect_column_locale,
+    detect_locale,
     parse_cell_value,
     process_dataframe,
 )
 
 # ---------------------------------------------------------------------------
-# detect_column_locale
+# detect_locale
 # ---------------------------------------------------------------------------
 
 
-class TestDetectColumnLocale:
+class TestDetectLocale:
     # --- unambiguous US signals -------------------------------------------
     def test_us_comma_thousands_dot_decimal(self):
-        assert detect_column_locale(["1,234.56", "2,000.00"]) == "en_US"
+        assert detect_locale(["1,234.56", "2,000.00"]) == "en_US"
 
     def test_us_multiple_commas(self):
         # 1,234,567 → commas are clearly thousands (US)
-        assert detect_column_locale(["1,234,567"]) == "en_US"
+        assert detect_locale(["1,234,567"]) == "en_US"
 
     # --- unambiguous EU signals -------------------------------------------
     def test_eu_dot_thousands_comma_decimal(self):
-        assert detect_column_locale(["1.234,56", "2.000,00"]) == "de_DE"
+        assert detect_locale(["1.234,56", "2.000,00"]) == "de_DE"
 
     def test_eu_multiple_dots(self):
         # 1.234.567 → dots are clearly thousands (EU)
-        assert detect_column_locale(["1.234.567"]) == "de_DE"
+        assert detect_locale(["1.234.567"]) == "de_DE"
 
     def test_eu_short_comma_decimal(self):
         # 1,5  →  fractional part != 3 digits  →  decimal comma
-        assert detect_column_locale(["1,5", "2,75"]) == "de_DE"
+        assert detect_locale(["1,5", "2,75"]) == "de_DE"
 
     # --- fallback / ambiguous ----------------------------------------------
     def test_no_separators_falls_back_to_us(self):
-        assert detect_column_locale(["100", "200", "3000"]) == "en_US"
+        assert detect_locale(["100", "200", "3000"]) == "en_US"
 
     def test_empty_list_falls_back_to_us(self):
-        assert detect_column_locale([]) == "en_US"
+        assert detect_locale([]) == "en_US"
 
     def test_non_numeric_strings_ignored(self):
         # Only "1,234.56" is scoreable; the rest have no digits
-        assert detect_column_locale(["hello", "world", "1,234.56"]) == "en_US"
+        assert detect_locale(["hello", "world", "1,234.56"]) == "en_US"
 
     def test_ambiguous_1_234_no_strong_signal_falls_back_to_us(self):
         # "1,234" → 3 digits after comma → ambiguous, no score added
-        assert detect_column_locale(["1,234"]) == "en_US"
+        assert detect_locale(["1,234"]) == "en_US"
 
     # --- mixed signals (majority wins) ------------------------------------
     def test_majority_us_wins(self):
         vals = ["1,234.56", "2,000.00", "1.234,56"]  # 2 US vs 1 EU
-        assert detect_column_locale(vals) == "en_US"
+        assert detect_locale(vals) == "en_US"
 
     def test_majority_eu_wins(self):
         vals = ["1.234,56", "2.000,00", "1,234.56"]  # 2 EU vs 1 US
-        assert detect_column_locale(vals) == "de_DE"
+        assert detect_locale(vals) == "de_DE"
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ class TestProcessDataframe:
                 ["Total", "500", "400"],
             ],
         )
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
 
         # Header row preserved
         assert result[0] == ["Item", "2024", "2023"]
@@ -193,7 +193,7 @@ class TestProcessDataframe:
                 ["Kosten", "789,00"],
             ],
         )
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="de_DE")
         assert result[1] == ["Umsatz", 1234.56]
         assert result[2] == ["Kosten", 789.0]
 
@@ -202,7 +202,7 @@ class TestProcessDataframe:
             ["Name", "Category"],
             [["Alice", "A"], ["Bob", "B"]],
         )
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         assert result[1] == ["Alice", "A"]
         assert result[2] == ["Bob", "B"]
 
@@ -212,7 +212,7 @@ class TestProcessDataframe:
             ["Item", "Value"],
             [["A", "100"], ["B", "N/A"], ["C", "300"]],
         )
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         assert result[1][1] == 100.0
         assert result[2][1] == "N/A"
         assert result[3][1] == 300.0
@@ -222,22 +222,44 @@ class TestProcessDataframe:
             ["Metric", "Rate"],
             [["Growth", "12.5%"], ["Margin", "8.0%"]],
         )
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         assert result[1][1] == 0.125
         assert result[2][1] == 0.08
 
     def test_empty_dataframe(self):
         df = self._make_df(["A", "B"], [])
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         # Only the header row
         assert result == [["A", "B"]]
 
     def test_single_row(self):
         df = self._make_df(["X"], [["42"]])
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         assert result == [["X"], [42.0]]
 
     def test_nbsp_in_header(self):
         df = self._make_df(["Col\u00a0A", "Col B"], [["1", "2"]])
-        result = process_dataframe(df)
+        result = process_dataframe(df, locale="en_US")
         assert result[0] == ["Col A", "Col B"]
+
+    def test_duplicate_headers_parsed_correctly(self):
+        # Reproduces the original bug where duplicate empty logic caused columns to be skipped.
+        # Headers: ["", "Unique", ""]
+        df = self._make_df(
+            ["", "Unique", ""],
+            [
+                ["1,000", "A", "2,000"],
+                ["(500)", "B", "(400)"],
+            ],
+        )
+        # Duplicate columns must be accessible and parsed
+        result = process_dataframe(df, locale="en_US")
+
+        # Header row
+        assert result[0] == ["", "Unique", ""]
+        # Data rows
+        # Col 0: "1,000" -> 1000.0
+        # Col 1: "A"     -> "A"
+        # Col 2: "2,000" -> 2000.0
+        assert result[1] == [1000.0, "A", 2000.0]
+        assert result[2] == [-500.0, "B", -400.0]

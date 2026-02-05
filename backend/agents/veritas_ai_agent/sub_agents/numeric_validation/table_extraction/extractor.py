@@ -9,6 +9,7 @@ by number_parser.process_dataframe before the grid is returned.
 
 import logging
 
+import pandas as pd
 from markdown_table_extractor import TableMergeStrategy, extract_markdown_tables
 
 from .number_parser import process_dataframe
@@ -33,12 +34,36 @@ def extract_tables_from_markdown(markdown_content: str) -> list[dict]:
         skip_sub_headers=False,
     )
 
+    dfs = list(result.get_dataframes())
+
+    # 1. Collect all numeric-looking samples from the entire document
+    all_samples = []
+    for df in dfs:
+        for i in range(len(df.columns)):
+            series = df.iloc[:, i]
+            # Fast collection of non-na strings with digits
+            col_samples = [
+                str(x)
+                for x in series
+                if pd.notna(x) and any(c.isdigit() for c in str(x))
+            ]
+            all_samples.extend(col_samples)
+
+    # 2. Detect global locale once
+    global_locale = "en_US"
+    if all_samples:
+        from .number_parser import detect_locale
+
+        global_locale = detect_locale(all_samples)
+        logger.info("Detected document-wide locale: %s", global_locale)
+
     tables: list[dict] = []
-    for idx, df in enumerate(result.get_dataframes()):
+    for idx, df in enumerate(dfs):
+        # 3. Pass global locale to parser
         tables.append(
             {
                 "table_index": idx,
-                "grid": process_dataframe(df),
+                "grid": process_dataframe(df, locale=global_locale),
             }
         )
 
