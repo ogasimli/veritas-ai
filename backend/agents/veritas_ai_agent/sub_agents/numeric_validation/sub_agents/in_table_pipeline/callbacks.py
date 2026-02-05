@@ -38,8 +38,9 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
         state.setdefault("reconstructed_formulas", [])
         return
 
-    # 1. Collect raw formulas from sub-agent outputs
-    raw_formulas: list[InferredFormula] = []
+    # 1 & 2. Collect raw formulas and replicate them
+    all_replicated: list[InferredFormula] = []
+    table_grids = {t["table_index"]: t["grid"] for t in tables}
 
     for key in ["vertical_check_output", "horizontal_check_output"]:
         output = state.get(key)
@@ -48,6 +49,7 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
         if hasattr(output, "model_dump"):
             output = output.model_dump()
 
+        batch_formulas: list[InferredFormula] = []
         for item in output.get("formulas", []):
             if hasattr(item, "model_dump"):
                 item = item.model_dump()
@@ -56,20 +58,25 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
                     target_cell=item["target_cell"],
                     formula=item["formula"],
                 )
-                raw_formulas.append(formula)
+                batch_formulas.append(formula)
             except (KeyError, TypeError):
                 pass
 
-    # 2. Replicate formulas across columns/rows
+        if batch_formulas:
+            direction = "vertical" if "vertical" in key else "horizontal"
+            all_replicated.extend(
+                replicate_formulas(batch_formulas, table_grids, direction=direction)
+            )
 
-    table_grids = {t["table_index"]: t["grid"] for t in tables}
-    replicated = replicate_formulas(raw_formulas, table_grids)
-
+    replicated = all_replicated
     # 3. Look up actual values and write to shared state
     state.setdefault("reconstructed_formulas", [])
 
     for item in replicated:
-        t_idx, row, col = item.target_cell
+        target = item.target_cell
+        t_idx = target.table_index
+        row = target.row_index
+        col = target.col_index
 
         actual_value = None
         try:
@@ -82,7 +89,13 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
             {
                 "check_type": "in_table",
                 "table_index": t_idx,
-                "target_cells": [list(item.target_cell)],
+                "target_cells": [
+                    {
+                        "table_index": t_idx,
+                        "row_index": row,
+                        "col_index": col,
+                    }
+                ],
                 "actual_value": actual_value,
                 "inferred_formulas": [{"formula": item.formula}],
             }

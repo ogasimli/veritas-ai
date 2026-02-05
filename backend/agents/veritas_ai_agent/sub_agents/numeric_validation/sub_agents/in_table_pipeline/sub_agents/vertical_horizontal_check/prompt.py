@@ -32,8 +32,8 @@ Analyse Row 0 (Headers) and Column 0 (Labels) to detect the structure:
 Output formulas using strictly these Python-compatible numeric validator functions:
 
 * `sum_col(t, col, start_r, end_r)` → Sums cells in column `col` from row `start_r` to `end_r` (inclusive) in table `t`.
-  - **IMPORTANT**: You MUST include all 4 parameters. The `col` parameter should match the column index in your target_cell.
-  - **Example**: For target_cell [0, 10, 2], if summing rows 5-8, use `sum_col(0, 2, 5, 8)`.
+  - **IMPORTANT**: You MUST include all 4 parameters. The `row` and `col` parameters should match the indices in your target_cell.
+  - **Example**: For target_cell {"table_index": 0, "row_index": 10, "col_index": 2}, if summing rows 5-8, use `sum_col(0, 2, 5, 8)`.
 
 * `sum_cells((t, r1, c1), (t, r2, c2), ...)` → Sums specific non-contiguous cells.
   - **Example**: `sum_cells((0, 5, 1), (0, 9, 1))` sums cells at (table=0, row=5, col=1) and (table=0, row=9, col=1).
@@ -54,11 +54,11 @@ Return a SINGLE JSON object matching `CheckAgentOutput`.
 {
   "formulas": [
     {
-      "target_cell": [0, 5, 1],
+      "target_cell": { "table_index": 0, "row_index": 5, "col_index": 1 },
       "formula": "sum_col(0, 1, 2, 4)"
     },
     {
-      "target_cell": [0, 10, 1],
+      "target_cell": { "table_index": 0, "row_index": 10, "col_index": 1 },
       "formula": "sum_cells((0, 5, 1), (0, 9, 1))"
     }
   ]
@@ -69,7 +69,7 @@ Return a SINGLE JSON object matching `CheckAgentOutput`.
 - [ ] Did I analyze ALL tables in the input?
 - [ ] Did I focus ONLY on vertical (column-based) patterns?
 - [ ] Did I output formulas ONLY for the LEFT-MOST numeric column?
-- [ ] Did I include the correct target_cell coordinates?
+- [ ] Did I include the correct target_cell object?
 - [ ] Is the JSON structure valid and matches CheckAgentOutput schema?
 """
 
@@ -101,8 +101,8 @@ Analyse Row 0 (Headers) and Column 0 (Labels) to detect the structure:
 Output formulas using strictly these Python-compatible numeric validator functions:
 
 * `sum_row(t, row, start_c, end_c)` → Sums cells in row `row` from column `start_c` to `end_c` (inclusive) in table `t`.
-  - **IMPORTANT**: You MUST include all 4 parameters. The `row` parameter should match the row index in your target_cell.
-  - **Example**: For target_cell [0, 5, 8], if summing columns 2-6, use `sum_row(0, 5, 2, 6)`.
+  - **IMPORTANT**: You MUST include all 4 parameters. The `row` and `col` parameters should match the indices in your target_cell.
+  - **Example**: For target_cell {"table_index": 0, "row_index": 5, "col_index": 8}, if summing columns 2-6, use `sum_row(0, 5, 2, 6)`.
 
 * `sum_cells((t, r1, c1), (t, r2, c2), ...)` → Sums specific non-contiguous cells.
   - **Example**: `sum_cells((0, 5, 1), (0, 5, 3))` sums cells at (table=0, row=5, col=1) and (table=0, row=5, col=3).
@@ -120,7 +120,7 @@ Return a SINGLE JSON object matching `CheckAgentOutput`.
 {
   "formulas": [
     {
-      "target_cell": [0, 1, 4],
+      "target_cell": { "table_index": 0, "row_index": 1, "col_index": 4 },
       "formula": "sum_row(0, 1, 1, 3)"
     }
   ]
@@ -131,6 +131,6 @@ Return a SINGLE JSON object matching `CheckAgentOutput`.
 - [ ] Did I analyze ALL tables in the input?
 - [ ] Did I focus ONLY on horizontal (row-based) patterns?
 - [ ] Did I output formulas ONLY for the TOP-MOST numeric row?
-- [ ] Did I include the correct target_cell coordinates?
+- [ ] Did I include the correct target_cell object?
 - [ ] Is the JSON structure valid and matches CheckAgentOutput schema?
 """

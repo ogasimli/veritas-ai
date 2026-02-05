@@ -15,6 +15,7 @@ from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
     CheckAgentOutput,
     InferredFormula,
+    TargetCell,
 )
 
 
@@ -54,7 +55,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 3, 1),
+                        target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
@@ -86,7 +87,7 @@ class TestAfterInTableParallelCallback:
             "horizontal_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 1, 3),
+                        target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
                         formula="sum_row(0, 1, 1, 2)",
                     )
                 ]
@@ -117,7 +118,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 3, 1),
+                        target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
@@ -128,7 +129,13 @@ class TestAfterInTableParallelCallback:
 
         formulas = ctx.state["reconstructed_formulas"]
         # Find the formula for target_cell (0, 3, 1)
-        target_formula = next(f for f in formulas if f["target_cells"] == [[0, 3, 1]])
+        target_formula = next(
+            f
+            for f in formulas
+            if f["target_cells"][0]["table_index"] == 0
+            and f["target_cells"][0]["row_index"] == 3
+            and f["target_cells"][0]["col_index"] == 1
+        )
 
         # Should have actual_value from grid[3][1] = 60
         assert target_formula["actual_value"] == 60.0
@@ -148,7 +155,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 3, 1),
+                        target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
@@ -158,7 +165,13 @@ class TestAfterInTableParallelCallback:
         after_in_table_parallel_callback(ctx)
 
         formulas = ctx.state["reconstructed_formulas"]
-        target_formula = next(f for f in formulas if f["target_cells"] == [[0, 3, 1]])
+        target_formula = next(
+            f
+            for f in formulas
+            if f["target_cells"][0]["table_index"] == 0
+            and f["target_cells"][0]["row_index"] == 3
+            and f["target_cells"][0]["col_index"] == 1
+        )
 
         assert target_formula["actual_value"] is None
 
@@ -177,7 +190,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 3, 1),
+                        target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
@@ -187,7 +200,13 @@ class TestAfterInTableParallelCallback:
         after_in_table_parallel_callback(ctx)
 
         formulas = ctx.state["reconstructed_formulas"]
-        target_formula = next(f for f in formulas if f["target_cells"] == [[0, 3, 1]])
+        target_formula = next(
+            f
+            for f in formulas
+            if f["target_cells"][0]["table_index"] == 0
+            and f["target_cells"][0]["row_index"] == 3
+            and f["target_cells"][0]["col_index"] == 1
+        )
 
         assert target_formula["actual_value"] is None
 
@@ -206,7 +225,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 3, 1),
+                        target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
@@ -214,7 +233,7 @@ class TestAfterInTableParallelCallback:
             "horizontal_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 1, 3),
+                        target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
                         formula="sum_row(0, 1, 1, 2)",
                     )
                 ]
@@ -245,7 +264,11 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": {
                 "formulas": [
                     {
-                        "target_cell": [0, 2, 1],
+                        "target_cell": {
+                            "table_index": 0,
+                            "row_index": 2,
+                            "col_index": 1,
+                        },
                         "formula": "sum_col(0, 1, 1, 1)",
                         "check_type": "vertical",
                     }
@@ -268,7 +291,7 @@ class TestAfterInTableParallelCallback:
             "vertical_check_output": CheckAgentOutput(
                 formulas=[
                     InferredFormula(
-                        target_cell=(0, 2, 1),
+                        target_cell=TargetCell(table_index=0, row_index=2, col_index=1),
                         formula="sum_col(0, 1, 1, 1)",
                     )
                 ]
@@ -302,7 +325,11 @@ class TestAfterInTableParallelCallback:
                 "formulas": [
                     {"formula": "sum_col(0, 1, 0, 0)"},  # Missing target_cell
                     {
-                        "target_cell": [0, 1, 1],
+                        "target_cell": {
+                            "table_index": 0,
+                            "row_index": 1,
+                            "col_index": 1,
+                        },
                         "formula": "sum_col(0, 1, 0, 0)",
                         "check_type": "vertical",
                     },  # Valid

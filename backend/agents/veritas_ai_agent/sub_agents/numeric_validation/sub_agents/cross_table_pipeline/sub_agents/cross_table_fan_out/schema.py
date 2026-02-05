@@ -3,6 +3,10 @@
 from pydantic import BaseModel, Field
 
 from veritas_ai_agent.schemas import BaseAgentOutput
+from veritas_ai_agent.sub_agents.numeric_validation.schemas import (
+    InferredFormula,
+    TargetCell,
+)
 
 
 class CrossTableFormula(BaseModel):
@@ -14,14 +18,14 @@ class CrossTableFormula(BaseModel):
     formula itself (e.g. difference == 0).
     """
 
-    target_cells: list[dict] = Field(
+    target_cells: list[TargetCell] = Field(
         default_factory=list,
-        description="TargetCell-shaped dicts for every cell involved",
+        description="List of target cells involved in the relationship",
     )
     actual_value: float | None = None
-    inferred_formulas: list[dict] = Field(
+    inferred_formulas: list[InferredFormula] = Field(
         default_factory=list,
-        description="List of {formula: str} dicts proposed by the LLM",
+        description="List of formula candidates proposed by the LLM",
     )
 
 

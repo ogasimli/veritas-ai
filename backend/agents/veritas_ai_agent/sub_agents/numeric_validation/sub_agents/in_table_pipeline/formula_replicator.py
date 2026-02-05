@@ -32,7 +32,7 @@ import logging
 import re
 from typing import Any
 
-from .schema import InferredFormula
+from .schema import InferredFormula, TargetCell
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +48,13 @@ CELL_REF_PATTERN = re.compile(r"\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
 
 
 def replicate_formulas(
-    formulas: list[InferredFormula], table_grids: dict[int, list[list[Any]]]
+    formulas: list[InferredFormula],
+    table_grids: dict[int, list[list[Any]]],
+    direction: str = "vertical",
 ) -> list[InferredFormula]:
     """Replicate anchor formulas across appropriate rows/columns.
 
+    direction: "vertical" (replicate across columns) or "horizontal" (replicate across rows).
     Returns list of InferredFormula including originals and replicated copies.
     """
     replicated_results: list[InferredFormula] = []
@@ -59,38 +62,31 @@ def replicate_formulas(
 
     for item in formulas:
         # Add the original formula first
-        key = (tuple(item.target_cell), item.formula)
+        target = item.target_cell
+        key = ((target.table_index, target.row_index, target.col_index), item.formula)
         if key not in seen_keys:
             replicated_results.append(item)
             seen_keys.add(key)
 
-        # Infer check_type from formula pattern
-        # Vertical: sum_col(...) or sum_cells with same column
-        # Horizontal: sum_row(...) or sum_cells with same row
-        if _is_vertical_formula(item.formula):
+        # Use explicit direction instead of inferring from formula
+        if direction == "vertical":
             new_formulas = _replicate_vertical(item, table_grids)
-        elif _is_horizontal_formula(item.formula):
+        elif direction == "horizontal":
             new_formulas = _replicate_horizontal(item, table_grids)
         else:
             new_formulas = []
 
         for new_item in new_formulas:
-            key = (tuple(new_item.target_cell), new_item.formula)
+            new_target = new_item.target_cell
+            key = (
+                (new_target.table_index, new_target.row_index, new_target.col_index),
+                new_item.formula,
+            )
             if key not in seen_keys:
                 replicated_results.append(new_item)
                 seen_keys.add(key)
 
     return replicated_results
-
-
-def _is_vertical_formula(formula: str) -> bool:
-    """Check if formula is vertical (column-based)."""
-    return "sum_col" in formula or _is_vertical_sum_cells(formula)
-
-
-def _is_horizontal_formula(formula: str) -> bool:
-    """Check if formula is horizontal (row-based)."""
-    return "sum_row" in formula or _is_horizontal_sum_cells(formula)
 
 
 def _is_vertical_sum_cells(formula: str) -> bool:
@@ -116,7 +112,7 @@ def _replicate_vertical(
 ) -> list[InferredFormula]:
     """Replicate column-based formulas to other numeric columns."""
     formula = item.formula
-    target = item.target_cell  # (t, r, c)
+    target = item.target_cell
 
     # Handle sum_col(t, col, r1, r2)
     match = SUM_COL_PATTERN.match(formula)
@@ -132,11 +128,11 @@ def _replicate_vertical(
         for c in range(anchor_col + 1, num_cols):
             if _is_column_numeric_in_range(grid, c, r1, r2):
                 new_formula = f"sum_col({t_idx}, {c}, {r1}, {r2})"
-                new_target = [
-                    target[0],
-                    target[1],
-                    c,
-                ]  # Same table, same row, different col
+                new_target = TargetCell(
+                    table_index=target.table_index,
+                    row_index=target.row_index,
+                    col_index=c,
+                )
                 results.append(
                     InferredFormula(
                         target_cell=new_target,
@@ -154,7 +150,7 @@ def _replicate_horizontal(
 ) -> list[InferredFormula]:
     """Replicate row-based formulas to other rows."""
     formula = item.formula
-    target = item.target_cell  # (t, r, c)
+    target = item.target_cell
 
     # Handle sum_row(t, row, c1, c2)
     match = SUM_ROW_PATTERN.match(formula)
@@ -170,11 +166,11 @@ def _replicate_horizontal(
         for r in range(anchor_row + 1, num_rows):
             if _is_row_numeric_in_range(grid, r, c1, c2):
                 new_formula = f"sum_row({t_idx}, {r}, {c1}, {c2})"
-                new_target = [
-                    target[0],
-                    r,
-                    target[2],
-                ]  # Same table, different row, same col
+                new_target = TargetCell(
+                    table_index=target.table_index,
+                    row_index=r,
+                    col_index=target.col_index,
+                )
                 results.append(
                     InferredFormula(
                         target_cell=new_target,
@@ -216,7 +212,11 @@ def _replicate_vertical_sum_cells(
         if _are_rows_valid_for_col(grid, c, rows):
             parts = [f"({t_idx}, {r}, {c})" for r in rows]
             new_formula = f"sum_cells({', '.join(parts)})"
-            new_target = [target[0], target[1], c]
+            new_target = TargetCell(
+                table_index=target.table_index,
+                row_index=target.row_index,
+                col_index=c,
+            )
             results.append(InferredFormula(target_cell=new_target, formula=new_formula))
 
     return results
@@ -252,7 +252,11 @@ def _replicate_horizontal_sum_cells(
         if _are_cols_valid_for_row(grid, r, cols):
             parts = [f"({t_idx}, {r}, {c})" for c in cols]
             new_formula = f"sum_cells({', '.join(parts)})"
-            new_target = [target[0], r, target[2]]
+            new_target = TargetCell(
+                table_index=target.table_index,
+                row_index=r,
+                col_index=target.col_index,
+            )
             results.append(InferredFormula(target_cell=new_target, formula=new_formula))
 
     return results
