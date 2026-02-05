@@ -140,8 +140,8 @@ class TestAfterInTableParallelCallback:
         # Should have actual_value from grid[3][1] = 60
         assert target_formula["actual_value"] == 60.0
 
-    def test_actual_value_none_for_empty_cell(self):
-        """Should set actual_value to None if target cell is empty."""
+    def test_actual_value_zero_for_empty_cell(self):
+        """Should set actual_value to 0.0 if target cell is empty."""
         grid = [
             ["Item", "2024"],
             ["Revenue", 100],
@@ -173,10 +173,10 @@ class TestAfterInTableParallelCallback:
             and f["target_cells"][0]["col_index"] == 1
         )
 
-        assert target_formula["actual_value"] is None
+        assert target_formula["actual_value"] == 0.0
 
-    def test_actual_value_none_for_non_numeric(self):
-        """Should set actual_value to None if target cell is not numeric."""
+    def test_actual_value_zero_for_non_numeric(self):
+        """Should set actual_value to 0.0 if target cell is not numeric."""
         grid = [
             ["Item", "2024"],
             ["Revenue", 100],
@@ -208,7 +208,38 @@ class TestAfterInTableParallelCallback:
             and f["target_cells"][0]["col_index"] == 1
         )
 
-        assert target_formula["actual_value"] is None
+        assert target_formula["actual_value"] == 0.0
+
+    def test_actual_value_none_for_out_of_bounds(self):
+        """Should set actual_value to None and log error for out-of-bounds target."""
+        grid = [["Item", "2024"], ["A", 10]]
+        ctx = MagicMock()
+        ctx.state = {
+            "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
+            "vertical_check_output": CheckAgentOutput(
+                formulas=[
+                    InferredFormula(
+                        target_cell=TargetCell(
+                            table_index=0, row_index=5, col_index=1
+                        ),  # Out of bounds
+                        formula="sum_col(0, 1, 1, 1)",
+                    )
+                ]
+            ),
+        }
+
+        with patch(
+            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
+        ) as mock_logger:
+            after_in_table_parallel_callback(ctx)
+
+            # Should have logged an error
+            assert mock_logger.error.called
+            args = mock_logger.error.call_args[0]
+            assert "out of bounds" in args[0]
+
+            formulas = ctx.state["reconstructed_formulas"]
+            assert formulas[0]["actual_value"] is None
 
     def test_both_vertical_and_horizontal(self):
         """Should handle both vertical and horizontal formulas."""
@@ -402,10 +433,11 @@ class TestDynamicReplication:
         ] = {"table_index": 0, "row_index": 1, "col_index": 0}
 
         with patch(
-            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_sum_cells_direction"
+            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction"
         ) as mock_detect:
             # We mock detect to ensure it's called
-            def side_effect(f):
+            def side_effect(f_item):
+                f = f_item.formula
                 if "(0, 1, 1), (0, 2, 1)" in f:
                     return "vertical"
                 if "(0, 1, 1), (0, 1, 2)" in f:
@@ -471,7 +503,7 @@ class TestDynamicReplication:
         # We need to ensure that the mocked return value is indeed None
         with (
             patch(
-                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_sum_cells_direction",
+                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction",
                 return_value=None,
             ) as mock_detect,
             patch(

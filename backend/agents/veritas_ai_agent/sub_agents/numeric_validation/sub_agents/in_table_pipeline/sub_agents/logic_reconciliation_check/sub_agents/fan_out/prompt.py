@@ -29,12 +29,11 @@ EXCLUDE:
 4) PROPOSE ALL PLAUSIBLE FORMULAS (sign conventions, missing movement lines).
 5) EVERY CELL REFERENCE MUST USE: cell(table_index,row,col)
 6) VECTORIZATION: Financial tables use consistent logic across columns. Define the formula for the **LEFT-MOST NUMERIC COLUMN** (typically column 1) once. Assume it applies to all numeric columns in that table. Do NOT output formulas for column 2, 3, etc.
+
 ### Syntax Protocol
 Output formulas using strictly these Python-compatible numeric validator functions:
-
 * `sum_cells((t, r1, c1), (t, r2, c2), ...)` -> Sums specific non-contiguous cells.
   - **Example**: `sum_cells((0, 5, 1), (0, 9, 1))` sums cells at (table=0, row=5, col=1) and (table=0, row=9, col=1).
-
 * `cell(t, r, c)` -> References a single cell for direct references or simple arithmetic.
   - **Example**: `cell(0, 5, 2)` references table 0, row 5, column 2.
 

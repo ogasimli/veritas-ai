@@ -401,37 +401,128 @@ class TestEdgeCases:
 
 
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
-    detect_sum_cells_direction,
+    detect_replication_direction,
 )
 
 
 class TestDirectionDetection:
-    """Test detect_sum_cells_direction logic."""
+    """Test detect_replication_direction logic."""
 
     def test_detect_vertical(self):
         """Should detect vertical direction (same column)."""
         # (t, r, c) format
         formula = "sum_cells((0, 1, 2), (0, 3, 2), (0, 5, 2))"
-        assert detect_sum_cells_direction(formula) == "vertical"
+        target = TargetCell(table_index=0, row_index=6, col_index=2)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) == "vertical"
 
     def test_detect_horizontal(self):
         """Should detect horizontal direction (same row)."""
         formula = "sum_cells((0, 1, 2), (0, 1, 4), (0, 1, 6))"
-        assert detect_sum_cells_direction(formula) == "horizontal"
+        target = TargetCell(table_index=0, row_index=1, col_index=8)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) == "horizontal"
 
     def test_detect_mixed_none(self):
         """Should return None for mixed dimensions (span both rows and cols)."""
         # Cells: (0, 1, 2) and (0, 2, 3) -> different rows (1,2) AND different cols (2,3)
         formula = "sum_cells((0, 1, 2), (0, 2, 3))"
-        assert detect_sum_cells_direction(formula) is None
+        target = TargetCell(table_index=0, row_index=3, col_index=3)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) is None
 
-    def test_detect_single_cell_none(self):
-        """Should return None for single cell (ambiguous or invalid for sum_cells)."""
+    def test_detect_single_cell_none_for_sum_cells(self):
+        """Should return None for single cell sum_cells (ambiguous or invalid)."""
         formula = "sum_cells((0, 1, 2))"
+        target = TargetCell(table_index=0, row_index=2, col_index=2)
+        item = InferredFormula(target_cell=target, formula=formula)
         # _is_vertical_sum_cells and _is_horizontal_sum_cells both return False for < 2 cells
-        assert detect_sum_cells_direction(formula) is None
+        assert detect_replication_direction(item) is None
 
-    def test_detect_non_sum_cells_none(self):
-        """Should return None for non-sum_cells formulas."""
-        assert detect_sum_cells_direction("sum_col(0, 1, 2, 3)") is None
-        assert detect_sum_cells_direction("garbage") is None
+    def test_detect_cell_vertical(self):
+        """Should detect vertical check if columns match."""
+        # Target: Row 8, Col 1. Source: Row 5, Col 1.
+        # Same column -> vertical logic check.
+        formula = "cell(0, 5, 1)"
+        target = TargetCell(table_index=0, row_index=8, col_index=1)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) == "vertical"
+
+    def test_detect_cell_horizontal(self):
+        """Should detect horizontal check if rows match."""
+        # Target: Row 8, Col 5. Source: Row 8, Col 2.
+        # Same row -> horizontal logic check.
+        formula = "cell(0, 8, 2)"
+        target = TargetCell(table_index=0, row_index=8, col_index=5)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) == "horizontal"
+
+    def test_detect_cell_mixed_none(self):
+        """Should return None if neither row nor column matches."""
+        # Target: Row 8, Col 5. Source: Row 7, Col 4.
+        # Diagonal / unrelated.
+        formula = "cell(0, 7, 4)"
+        target = TargetCell(table_index=0, row_index=8, col_index=5)
+        item = InferredFormula(target_cell=target, formula=formula)
+        assert detect_replication_direction(item) is None
+
+
+class TestCellFormulaReplication:
+    """Test replication of cell() formulas."""
+
+    def test_replicate_cell_vertical(self):
+        """Should replicate cell() formula to other columns (vertical)."""
+        # Grid:
+        # R1: 10, 20, 30
+        # R2: 10, 20, 30
+        # Check: R2 = R1.
+        grid = [
+            ["Item", "C1", "C2", "C3"],
+            ["R1", 10, 20, 30],
+            ["R2", 10, 20, 30],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor: Col 1 checking Row 2 == Row 1
+        target = TargetCell(table_index=0, row_index=2, col_index=1)
+        anchor = InferredFormula(target_cell=target, formula="cell(0, 1, 1)")
+
+        # Replicate vertical
+        result = replicate_formulas([anchor], table_grids, direction="vertical")
+
+        formulas_by_col = {r.target_cell.col_index: r.formula for r in result}
+
+        # Col 1: cell(0, 1, 1) (Original)
+        assert formulas_by_col[1] == "cell(0, 1, 1)"
+        # Col 2: cell(0, 1, 2)
+        assert formulas_by_col[2] == "cell(0, 1, 2)"
+        # Col 3: cell(0, 1, 3)
+        assert formulas_by_col[3] == "cell(0, 1, 3)"
+
+    def test_replicate_cell_horizontal(self):
+        """Should replicate cell() formula to other rows (horizontal)."""
+        # Grid:
+        # C1, C2
+        # 10, 10
+        # 20, 20
+        # Check: C2 = C1.
+        grid = [
+            ["Item", "C1", "C2"],
+            ["R1", 10, 10],
+            ["R2", 20, 20],
+        ]
+        table_grids = {0: grid}
+
+        # Anchor: Row 1 checking C2 == C1
+        target = TargetCell(table_index=0, row_index=1, col_index=2)
+        anchor = InferredFormula(target_cell=target, formula="cell(0, 1, 1)")
+
+        # Replicate horizontal
+        result = replicate_formulas([anchor], table_grids, direction="horizontal")
+
+        formulas_by_row = {r.target_cell.row_index: r.formula for r in result}
+
+        # Row 1: cell(0, 1, 1) (Original)
+        assert formulas_by_row[1] == "cell(0, 1, 1)"
+        # Row 2: cell(0, 2, 1)
+        assert formulas_by_row[2] == "cell(0, 2, 1)"

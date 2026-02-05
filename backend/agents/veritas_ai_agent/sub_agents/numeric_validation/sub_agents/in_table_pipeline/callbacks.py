@@ -27,7 +27,7 @@ import logging
 
 from google.adk.agents.callback_context import CallbackContext
 
-from .formula_replicator import detect_sum_cells_direction, replicate_formulas
+from .formula_replicator import detect_replication_direction, replicate_formulas
 from .schema import InferredFormula
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
             else:
                 # Dynamic path: detect direction per formula from sum_cells cell layout
                 for formula in batch_formulas:
-                    direction = detect_sum_cells_direction(formula.formula)
+                    direction = detect_replication_direction(formula)
                     if direction is None:
                         logger.warning(
                             "Skipping formula with mixed-dimension cells: %s",
@@ -136,8 +136,24 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
             cell_val = table_grids[t_idx][row][col]
             if isinstance(cell_val, (int, float)):
                 actual_value = float(cell_val)
-        except (KeyError, IndexError, TypeError):
-            pass
+            else:
+                # Non-numeric / labels / dashes treated as 0.0
+                actual_value = 0.0
+        except (KeyError, IndexError):
+            logger.error(
+                "Target cell [%d, %d] is out of bounds for table %r",
+                row,
+                col,
+                t_idx,
+            )
+        except Exception as e:
+            logger.error(
+                "Unexpected error looking up target cell [%d, %d] in table %r: %s",
+                row,
+                col,
+                t_idx,
+                e,
+            )
         state["reconstructed_formulas"].append(
             {
                 "check_type": "in_table",

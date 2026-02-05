@@ -45,6 +45,7 @@ SUM_ROW_PATTERN = re.compile(
 )
 SUM_CELLS_PATTERN = re.compile(r"sum_cells\s*\((.*)\)")
 CELL_REF_PATTERN = re.compile(r"\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
+CELL_FUNC_PATTERN = re.compile(r"cell\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
 
 
 def replicate_formulas(
@@ -107,19 +108,40 @@ def _is_horizontal_sum_cells(formula: str) -> bool:
     return len(rows) == 1
 
 
-def detect_sum_cells_direction(formula: str) -> str | None:
-    """Detect replication direction from a sum_cells formula's cell layout.
+def detect_replication_direction(item: InferredFormula) -> str | None:
+    """Detect replication direction from formula layout relative to target.
 
     Returns
     -------
-    "vertical"    - all referenced cells share one column  → replicate across columns
-    "horizontal"  - all referenced cells share one row     → replicate across rows
-    None          - cells span both dimensions; replication is not yet supported
+    "vertical"    - replicate across columns (e.g. column-based logic)
+    "horizontal"  - replicate across rows (e.g. row-based logic)
+    None          - unknown or mixed dimension
     """
+    formula = item.formula
+    target = item.target_cell
+
     if _is_vertical_sum_cells(formula):
         return "vertical"
     if _is_horizontal_sum_cells(formula):
         return "horizontal"
+
+    # Default single cell reference logic checks to vertical replication
+    # (checking if the same cell logic applies to other columns)
+    match = CELL_FUNC_PATTERN.match(formula)
+    if match:
+        # Check alignment relative to target
+        _, r_src, c_src = map(int, match.groups())
+
+        # If columns match (Target Col == Source Col), it's a vertical relationship (Row diff)
+        # -> Replicate across columns
+        if c_src == target.col_index:
+            return "vertical"
+
+        # If rows match (Target Row == Source Row), it's a horizontal relationship (Col diff)
+        # -> Replicate across rows
+        if r_src == target.row_index:
+            return "horizontal"
+
     return None
 
 
@@ -144,6 +166,52 @@ def _replicate_vertical(
         for c in range(anchor_col + 1, num_cols):
             if _is_column_numeric_in_range(grid, c, r1, r2):
                 new_formula = f"sum_col({t_idx}, {c}, {r1}, {r2})"
+                new_target = TargetCell(
+                    table_index=target.table_index,
+                    row_index=target.row_index,
+                    col_index=c,
+                )
+                results.append(
+                    InferredFormula(
+                        target_cell=new_target,
+                        formula=new_formula,
+                    )
+                )
+        return results
+
+    # Handle cell(t, r, c) - single cell logic replication
+    match = CELL_FUNC_PATTERN.match(formula)
+    if match:
+        t_src, r_src, c_src = map(int, match.groups())
+        grid = table_grids.get(t_src)
+        if not grid:
+            return []
+
+        results = []
+        num_cols = len(grid[0]) if grid else 0
+
+        # We assume the user wants to check this relationship for all subsequent columns
+        # starting from the anchor column of the TARGET cell.
+        anchor_col = target.col_index
+
+        for c in range(anchor_col + 1, num_cols):
+            # Check if source cell exists and is numeric in the new column
+            # For cell(t, r, new_c), we need to check grid[r_src][new_c]
+            # Since t_src might not be same as target table, we use t_src for source check.
+
+            # Note: For vertical replication, we shift the column index.
+            # Target becomes (target.t, target.r, c)
+            # Source becomes (t_src, r_src, c_src + (c - anchor_col))?
+            # OR typically: if we replicate across columns, we assume the column index matches?
+            # Usually: cell(t, r, 1) -> cell(t, r, 2) when target shifts col 1 -> 2.
+            # So new source col = c_src + (c - anchor_col).
+
+            offset = c - anchor_col
+            new_src_col = c_src + offset
+
+            # Validate source is numeric
+            if _is_column_numeric_in_range(grid, new_src_col, r_src, r_src):
+                new_formula = f"cell({t_src}, {r_src}, {new_src_col})"
                 new_target = TargetCell(
                     table_index=target.table_index,
                     row_index=target.row_index,
@@ -182,6 +250,37 @@ def _replicate_horizontal(
         for r in range(anchor_row + 1, num_rows):
             if _is_row_numeric_in_range(grid, r, c1, c2):
                 new_formula = f"sum_row({t_idx}, {r}, {c1}, {c2})"
+                new_target = TargetCell(
+                    table_index=target.table_index,
+                    row_index=r,
+                    col_index=target.col_index,
+                )
+                results.append(
+                    InferredFormula(
+                        target_cell=new_target,
+                        formula=new_formula,
+                    )
+                )
+        return results
+
+    # Handle cell(t, r, c) - single cell logic replication
+    match = CELL_FUNC_PATTERN.match(formula)
+    if match:
+        t_src, r_src, c_src = map(int, match.groups())
+        grid = table_grids.get(t_src)
+        if not grid:
+            return []
+
+        results = []
+        num_rows = len(grid)
+        anchor_row = target.row_index
+
+        for r in range(anchor_row + 1, num_rows):
+            offset = r - anchor_row
+            new_src_row = r_src + offset
+
+            if _is_row_numeric_in_range(grid, new_src_row, c_src, c_src):
+                new_formula = f"cell({t_src}, {new_src_row}, {c_src})"
                 new_target = TargetCell(
                     table_index=target.table_index,
                     row_index=r,
