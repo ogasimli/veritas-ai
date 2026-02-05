@@ -32,7 +32,13 @@ import logging
 import re
 from typing import Any
 
-from .schema import InferredFormula, TargetCell
+from .schema import TargetCell
+from .sub_agents.logic_reconciliation_check.sub_agents.fan_out.schema import (
+    LogicInferredFormula,
+)
+from .sub_agents.vertical_horizontal_check.schema import (
+    HorizontalVerticalCheckInferredFormula,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,43 +55,79 @@ CELL_FUNC_PATTERN = re.compile(r"cell\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)"
 
 
 def replicate_formulas(
-    formulas: list[InferredFormula],
+    formulas: list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula],
     table_grids: dict[int, list[list[Any]]],
     direction: str = "vertical",
-) -> list[InferredFormula]:
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
     """Replicate anchor formulas across appropriate rows/columns.
 
-    direction: "vertical" (replicate across columns) or "horizontal" (replicate across rows).
-    Returns list of InferredFormula including originals and replicated copies.
+    Handles both single-formula (InferredFormula) and multi-formula (LogicInferredFormula) inputs.
+    Returns list of same type as input, including originals and replicated copies.
     """
-    replicated_results: list[InferredFormula] = []
+    if not formulas:
+        return []
+
+    # Detect input type from first item
+    is_multi = hasattr(formulas[0], "formulas")
+    replicated_results: list[
+        HorizontalVerticalCheckInferredFormula | LogicInferredFormula
+    ] = []
     seen_keys: set[tuple] = set()
 
     for item in formulas:
         # Add the original formula first
         target = item.target_cell
-        key = ((target.table_index, target.row_index, target.col_index), item.formula)
-        if key not in seen_keys:
-            replicated_results.append(item)
-            seen_keys.add(key)
-
-        # Use explicit direction instead of inferring from formula
-        if direction == "vertical":
-            new_formulas = _replicate_vertical(item, table_grids)
-        elif direction == "horizontal":
-            new_formulas = _replicate_horizontal(item, table_grids)
+        if isinstance(item, LogicInferredFormula):
+            f_list = item.formulas
         else:
-            new_formulas = []
+            f_list = [item.formula]
 
-        for new_item in new_formulas:
-            new_target = new_item.target_cell
-            key = (
-                (new_target.table_index, new_target.row_index, new_target.col_index),
-                new_item.formula,
-            )
+        # Since we want to return the same type, let's process each formula in the item
+        for f_str in f_list:
+            key = ((target.table_index, target.row_index, target.col_index), f_str)
             if key not in seen_keys:
-                replicated_results.append(new_item)
+                if is_multi:
+                    replicated_results.append(
+                        LogicInferredFormula(target_cell=target, formulas=[f_str])
+                    )
+                else:
+                    replicated_results.append(
+                        HorizontalVerticalCheckInferredFormula(
+                            target_cell=target, formula=f_str
+                        )
+                    )
                 seen_keys.add(key)
+
+            # Replicate
+            new_items = []
+            if direction == "vertical":
+                new_items = _replicate_vertical_str(
+                    f_str, target, table_grids, is_multi
+                )
+            elif direction == "horizontal":
+                new_items = _replicate_horizontal_str(
+                    f_str, target, table_grids, is_multi
+                )
+
+            for new_item in new_items:
+                if is_multi and isinstance(new_item, LogicInferredFormula):
+                    new_f = new_item.formulas[0]
+                elif isinstance(new_item, HorizontalVerticalCheckInferredFormula):
+                    new_f = new_item.formula
+                else:
+                    continue
+                new_target = new_item.target_cell
+                k = (
+                    (
+                        new_target.table_index,
+                        new_target.row_index,
+                        new_target.col_index,
+                    ),
+                    new_f,
+                )
+                if k not in seen_keys:
+                    replicated_results.append(new_item)
+                    seen_keys.add(k)
 
     return replicated_results
 
@@ -108,16 +150,17 @@ def _is_horizontal_sum_cells(formula: str) -> bool:
     return len(rows) == 1
 
 
-def detect_replication_direction(item: InferredFormula) -> str | None:
+def detect_replication_direction(
+    item: HorizontalVerticalCheckInferredFormula | LogicInferredFormula,
+) -> str | None:
     """Detect replication direction from formula layout relative to target.
 
-    Returns
-    -------
-    "vertical"    - replicate across columns (e.g. column-based logic)
-    "horizontal"  - replicate across rows (e.g. row-based logic)
-    None          - unknown or mixed dimension
+    For multi-formula items, uses the first formula as a representative.
     """
-    formula = item.formula
+    if isinstance(item, LogicInferredFormula):
+        formula = item.formulas[0]
+    else:
+        formula = item.formula
     target = item.target_cell
 
     if _is_vertical_sum_cells(formula):
@@ -145,13 +188,10 @@ def detect_replication_direction(item: InferredFormula) -> str | None:
     return None
 
 
-def _replicate_vertical(
-    item: InferredFormula, table_grids: dict
-) -> list[InferredFormula]:
+def _replicate_vertical_str(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
     """Replicate column-based formulas to other numeric columns."""
-    formula = item.formula
-    target = item.target_cell
-
     # Handle sum_col(t, col, r1, r2)
     match = SUM_COL_PATTERN.match(formula)
     if match:
@@ -171,12 +211,18 @@ def _replicate_vertical(
                     row_index=target.row_index,
                     col_index=c,
                 )
-                results.append(
-                    InferredFormula(
-                        target_cell=new_target,
-                        formula=new_formula,
+                if as_multi:
+                    results.append(
+                        LogicInferredFormula(
+                            target_cell=new_target, formulas=[new_formula]
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        HorizontalVerticalCheckInferredFormula(
+                            target_cell=new_target, formula=new_formula
+                        )
+                    )
         return results
 
     # Handle cell(t, r, c) - single cell logic replication
@@ -189,27 +235,12 @@ def _replicate_vertical(
 
         results = []
         num_cols = len(grid[0]) if grid else 0
-
-        # We assume the user wants to check this relationship for all subsequent columns
-        # starting from the anchor column of the TARGET cell.
         anchor_col = target.col_index
 
         for c in range(anchor_col + 1, num_cols):
-            # Check if source cell exists and is numeric in the new column
-            # For cell(t, r, new_c), we need to check grid[r_src][new_c]
-            # Since t_src might not be same as target table, we use t_src for source check.
-
-            # Note: For vertical replication, we shift the column index.
-            # Target becomes (target.t, target.r, c)
-            # Source becomes (t_src, r_src, c_src + (c - anchor_col))?
-            # OR typically: if we replicate across columns, we assume the column index matches?
-            # Usually: cell(t, r, 1) -> cell(t, r, 2) when target shifts col 1 -> 2.
-            # So new source col = c_src + (c - anchor_col).
-
             offset = c - anchor_col
             new_src_col = c_src + offset
 
-            # Validate source is numeric
             if _is_column_numeric_in_range(grid, new_src_col, r_src, r_src):
                 new_formula = f"cell({t_src}, {r_src}, {new_src_col})"
                 new_target = TargetCell(
@@ -217,25 +248,28 @@ def _replicate_vertical(
                     row_index=target.row_index,
                     col_index=c,
                 )
-                results.append(
-                    InferredFormula(
-                        target_cell=new_target,
-                        formula=new_formula,
+                if as_multi:
+                    results.append(
+                        LogicInferredFormula(
+                            target_cell=new_target, formulas=[new_formula]
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        HorizontalVerticalCheckInferredFormula(
+                            target_cell=new_target, formula=new_formula
+                        )
+                    )
         return results
 
     # Handle sum_cells for vertical patterns (same column across cells)
-    return _replicate_vertical_sum_cells(item, table_grids)
+    return _replicate_vertical_sum_cells_str(formula, target, table_grids, as_multi)
 
 
-def _replicate_horizontal(
-    item: InferredFormula, table_grids: dict
-) -> list[InferredFormula]:
+def _replicate_horizontal_str(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
     """Replicate row-based formulas to other rows."""
-    formula = item.formula
-    target = item.target_cell
-
     # Handle sum_row(t, row, c1, c2)
     match = SUM_ROW_PATTERN.match(formula)
     if match:
@@ -255,12 +289,18 @@ def _replicate_horizontal(
                     row_index=r,
                     col_index=target.col_index,
                 )
-                results.append(
-                    InferredFormula(
-                        target_cell=new_target,
-                        formula=new_formula,
+                if as_multi:
+                    results.append(
+                        LogicInferredFormula(
+                            target_cell=new_target, formulas=[new_formula]
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        HorizontalVerticalCheckInferredFormula(
+                            target_cell=new_target, formula=new_formula
+                        )
+                    )
         return results
 
     # Handle cell(t, r, c) - single cell logic replication
@@ -286,22 +326,28 @@ def _replicate_horizontal(
                     row_index=r,
                     col_index=target.col_index,
                 )
-                results.append(
-                    InferredFormula(
-                        target_cell=new_target,
-                        formula=new_formula,
+                if as_multi:
+                    results.append(
+                        LogicInferredFormula(
+                            target_cell=new_target, formulas=[new_formula]
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        HorizontalVerticalCheckInferredFormula(
+                            target_cell=new_target, formula=new_formula
+                        )
+                    )
         return results
 
-    return _replicate_horizontal_sum_cells(item, table_grids)
+    return _replicate_horizontal_sum_cells_str(formula, target, table_grids, as_multi)
 
 
-def _replicate_vertical_sum_cells(
-    item: InferredFormula, table_grids: dict
-) -> list[InferredFormula]:
+def _replicate_vertical_sum_cells_str(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
     """Handle sum_cells((t,r1,c), (t,r2,c)...) - all same column."""
-    cells = CELL_REF_PATTERN.findall(item.formula)
+    cells = CELL_REF_PATTERN.findall(formula)
     if not cells:
         return []
 
@@ -314,7 +360,6 @@ def _replicate_vertical_sum_cells(
     t_idx = next(iter(t_indices))
     anchor_col = next(iter(cols))
     rows = [int(c[1]) for c in cells]
-    target = item.target_cell
 
     grid = table_grids.get(t_idx)
     if not grid:
@@ -332,16 +377,25 @@ def _replicate_vertical_sum_cells(
                 row_index=target.row_index,
                 col_index=c,
             )
-            results.append(InferredFormula(target_cell=new_target, formula=new_formula))
+            if as_multi:
+                results.append(
+                    LogicInferredFormula(target_cell=new_target, formulas=[new_formula])
+                )
+            else:
+                results.append(
+                    HorizontalVerticalCheckInferredFormula(
+                        target_cell=new_target, formula=new_formula
+                    )
+                )
 
     return results
 
 
-def _replicate_horizontal_sum_cells(
-    item: InferredFormula, table_grids: dict
-) -> list[InferredFormula]:
+def _replicate_horizontal_sum_cells_str(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
     """Handle sum_cells((t,r,c1), (t,r,c2)...) - all same row."""
-    cells = CELL_REF_PATTERN.findall(item.formula)
+    cells = CELL_REF_PATTERN.findall(formula)
     if not cells:
         return []
 
@@ -354,7 +408,6 @@ def _replicate_horizontal_sum_cells(
     t_idx = next(iter(t_indices))
     anchor_row = next(iter(rows_set))
     cols = [int(c[2]) for c in cells]
-    target = item.target_cell
 
     grid = table_grids.get(t_idx)
     if not grid:
@@ -372,7 +425,16 @@ def _replicate_horizontal_sum_cells(
                 row_index=r,
                 col_index=target.col_index,
             )
-            results.append(InferredFormula(target_cell=new_target, formula=new_formula))
+            if as_multi:
+                results.append(
+                    LogicInferredFormula(target_cell=new_target, formulas=[new_formula])
+                )
+            else:
+                results.append(
+                    HorizontalVerticalCheckInferredFormula(
+                        target_cell=new_target, formula=new_formula
+                    )
+                )
 
     return results
 

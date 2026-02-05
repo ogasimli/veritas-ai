@@ -10,8 +10,13 @@ from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline
     replicate_formulas,
 )
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
-    InferredFormula,
     TargetCell,
+)
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.logic_reconciliation_check.sub_agents.fan_out.schema import (
+    LogicInferredFormula,
+)
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+    HorizontalVerticalCheckInferredFormula,
 )
 
 
@@ -29,7 +34,7 @@ class TestVerticalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
             formula="sum_col(0, 1, 1, 2)",
         )
@@ -38,7 +43,11 @@ class TestVerticalReplication:
 
         # Should get formulas for columns 1, 2, 3
         assert len(result) == 3
-        formulas_by_col = {r.target_cell.col_index: r.formula for r in result}
+        formulas_by_col = {
+            r.target_cell.col_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
 
         assert formulas_by_col[1] == "sum_col(0, 1, 1, 2)"  # Original
         assert formulas_by_col[2] == "sum_col(0, 2, 1, 2)"  # Replicated to col 2
@@ -58,7 +67,7 @@ class TestVerticalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
             formula="sum_col(0, 1, 1, 2)",
         )
@@ -66,7 +75,11 @@ class TestVerticalReplication:
         result = replicate_formulas([anchor], table_grids, direction="vertical")
 
         # Should replicate to col 2 even though target is None, because rows 1-2 in col 2 are numeric
-        formulas_by_col = {r.target_cell.col_index: r.formula for r in result}
+        formulas_by_col = {
+            r.target_cell.col_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
         assert 2 in formulas_by_col
         assert formulas_by_col[2] == "sum_col(0, 2, 1, 2)"
 
@@ -80,7 +93,7 @@ class TestVerticalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
             formula="sum_col(0, 1, 1, 2)",
         )
@@ -103,7 +116,7 @@ class TestVerticalReplication:
         table_grids = {0: grid}
 
         # Anchor at col 2 — col 1 is numeric but comes before anchor
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=2),
             formula="sum_col(0, 2, 1, 2)",
         )
@@ -127,7 +140,7 @@ class TestVerticalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=5, col_index=1),
             formula="sum_cells((0, 2, 1), (0, 4, 1))",
         )
@@ -135,7 +148,11 @@ class TestVerticalReplication:
         result = replicate_formulas([anchor], table_grids, direction="vertical")
 
         # target_cell object has .col_index
-        formulas_by_col = {r.target_cell.col_index: r.formula for r in result}
+        formulas_by_col = {
+            r.target_cell.col_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
         assert formulas_by_col[1] == "sum_cells((0, 2, 1), (0, 4, 1))"
         assert formulas_by_col[2] == "sum_cells((0, 2, 2), (0, 4, 2))"
 
@@ -152,7 +169,7 @@ class TestVerticalReplication:
         table_grids = {0: grid}
 
         # Anchor at col 2 — col 1 is numeric but comes before anchor
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=5, col_index=2),
             formula="sum_cells((0, 2, 2), (0, 4, 2))",
         )
@@ -177,7 +194,7 @@ class TestHorizontalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=1, col_index=4),
             formula="sum_row(0, 1, 1, 3)",
         )
@@ -186,7 +203,11 @@ class TestHorizontalReplication:
 
         # Should get formulas for rows 1, 2
         assert len(result) == 2
-        formulas_by_row = {r.target_cell.row_index: r.formula for r in result}
+        formulas_by_row = {
+            r.target_cell.row_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
 
         assert formulas_by_row[1] == "sum_row(0, 1, 1, 3)"  # Original
         assert formulas_by_row[2] == "sum_row(0, 2, 1, 3)"  # Replicated to row 2
@@ -200,14 +221,18 @@ class TestHorizontalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
             formula="sum_row(0, 1, 1, 2)",
         )
 
         result = replicate_formulas([anchor], table_grids, direction="horizontal")
 
-        formulas_by_row = {r.target_cell.row_index: r.formula for r in result}
+        formulas_by_row = {
+            r.target_cell.row_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
         assert 2 in formulas_by_row  # Should replicate even with empty target
         assert formulas_by_row[2] == "sum_row(0, 2, 1, 2)"
 
@@ -220,7 +245,7 @@ class TestHorizontalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
             formula="sum_row(0, 1, 1, 2)",
         )
@@ -242,7 +267,7 @@ class TestHorizontalReplication:
         table_grids = {0: grid}
 
         # Anchor at row 2 — row 1 is numeric but comes before anchor
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=2, col_index=3),
             formula="sum_row(0, 2, 1, 2)",
         )
@@ -263,14 +288,18 @@ class TestHorizontalReplication:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
             formula="sum_cells((0, 1, 1), (0, 1, 2))",
         )
 
         result = replicate_formulas([anchor], table_grids, direction="horizontal")
 
-        formulas_by_row = {r.target_cell.row_index: r.formula for r in result}
+        formulas_by_row = {
+            r.target_cell.row_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
         assert formulas_by_row[1] == "sum_cells((0, 1, 1), (0, 1, 2))"
         assert formulas_by_row[2] == "sum_cells((0, 2, 1), (0, 2, 2))"
 
@@ -285,7 +314,7 @@ class TestHorizontalReplication:
         table_grids = {0: grid}
 
         # Anchor at row 2 — row 1 is numeric but comes before anchor
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=2, col_index=3),
             formula="sum_cells((0, 2, 1), (0, 2, 2))",
         )
@@ -308,7 +337,7 @@ class TestEdgeCases:
 
     def test_missing_table_grid(self):
         """Should skip replication if table grid not found."""
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=99, row_index=1, col_index=1),
             formula="sum_col(99, 1, 0, 1)",
         )
@@ -317,7 +346,9 @@ class TestEdgeCases:
 
         # Should only contain original (no replication)
         assert len(result) == 1
-        assert result[0].formula == "sum_col(99, 1, 0, 1)"
+        item = result[0]
+        assert isinstance(item, HorizontalVerticalCheckInferredFormula)
+        assert item.formula == "sum_col(99, 1, 0, 1)"
 
     def test_deduplication(self):
         """Should deduplicate identical formulas."""
@@ -325,11 +356,11 @@ class TestEdgeCases:
         table_grids = {0: grid}
 
         # Two identical anchors
-        anchor1 = InferredFormula(
+        anchor1 = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=2, col_index=1),
             formula="sum_col(0, 1, 1, 1)",
         )
-        anchor2 = InferredFormula(
+        anchor2 = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=2, col_index=1),
             formula="sum_col(0, 1, 1, 1)",
         )
@@ -342,7 +373,8 @@ class TestEdgeCases:
         keys = set()
         for r in result:
             t = r.target_cell
-            keys.add(((t.table_index, t.row_index, t.col_index), r.formula))
+            if isinstance(r, HorizontalVerticalCheckInferredFormula):
+                keys.add(((t.table_index, t.row_index, t.col_index), r.formula))
         assert len(result) == len(keys)
         assert len(result) == 2  # Original + replicated to col 2
 
@@ -356,12 +388,12 @@ class TestEdgeCases:
         ]
         table_grids = {0: grid}
 
-        vertical_anchor = InferredFormula(
+        vertical_anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
             formula="sum_col(0, 1, 1, 2)",
         )
 
-        horizontal_anchor = InferredFormula(
+        horizontal_anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
             formula="sum_row(0, 1, 1, 2)",
         )
@@ -372,8 +404,18 @@ class TestEdgeCases:
         )
         result = res_v + res_h
         # Should have both types replicated
-        vertical_formulas = [r for r in result if "sum_col" in r.formula]
-        horizontal_formulas = [r for r in result if "sum_row" in r.formula]
+        vertical_formulas = [
+            r
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+            and "sum_col" in r.formula
+        ]
+        horizontal_formulas = [
+            r
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+            and "sum_row" in r.formula
+        ]
 
         assert len(vertical_formulas) > 1
         assert len(horizontal_formulas) > 1
@@ -388,7 +430,7 @@ class TestEdgeCases:
         ]
         table_grids = {0: grid}
 
-        anchor = InferredFormula(
+        anchor = HorizontalVerticalCheckInferredFormula(
             target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
             formula="sum_col(0, 1, 1, 2)",  # Rows 1-2
         )
@@ -413,14 +455,18 @@ class TestDirectionDetection:
         # (t, r, c) format
         formula = "sum_cells((0, 1, 2), (0, 3, 2), (0, 5, 2))"
         target = TargetCell(table_index=0, row_index=6, col_index=2)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) == "vertical"
 
     def test_detect_horizontal(self):
         """Should detect horizontal direction (same row)."""
         formula = "sum_cells((0, 1, 2), (0, 1, 4), (0, 1, 6))"
         target = TargetCell(table_index=0, row_index=1, col_index=8)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) == "horizontal"
 
     def test_detect_mixed_none(self):
@@ -428,14 +474,18 @@ class TestDirectionDetection:
         # Cells: (0, 1, 2) and (0, 2, 3) -> different rows (1,2) AND different cols (2,3)
         formula = "sum_cells((0, 1, 2), (0, 2, 3))"
         target = TargetCell(table_index=0, row_index=3, col_index=3)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) is None
 
     def test_detect_single_cell_none_for_sum_cells(self):
         """Should return None for single cell sum_cells (ambiguous or invalid)."""
         formula = "sum_cells((0, 1, 2))"
         target = TargetCell(table_index=0, row_index=2, col_index=2)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         # _is_vertical_sum_cells and _is_horizontal_sum_cells both return False for < 2 cells
         assert detect_replication_direction(item) is None
 
@@ -445,7 +495,9 @@ class TestDirectionDetection:
         # Same column -> vertical logic check.
         formula = "cell(0, 5, 1)"
         target = TargetCell(table_index=0, row_index=8, col_index=1)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) == "vertical"
 
     def test_detect_cell_horizontal(self):
@@ -454,7 +506,9 @@ class TestDirectionDetection:
         # Same row -> horizontal logic check.
         formula = "cell(0, 8, 2)"
         target = TargetCell(table_index=0, row_index=8, col_index=5)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) == "horizontal"
 
     def test_detect_cell_mixed_none(self):
@@ -463,7 +517,9 @@ class TestDirectionDetection:
         # Diagonal / unrelated.
         formula = "cell(0, 7, 4)"
         target = TargetCell(table_index=0, row_index=8, col_index=5)
-        item = InferredFormula(target_cell=target, formula=formula)
+        item = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula=formula
+        )
         assert detect_replication_direction(item) is None
 
 
@@ -485,12 +541,18 @@ class TestCellFormulaReplication:
 
         # Anchor: Col 1 checking Row 2 == Row 1
         target = TargetCell(table_index=0, row_index=2, col_index=1)
-        anchor = InferredFormula(target_cell=target, formula="cell(0, 1, 1)")
+        anchor = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula="cell(0, 1, 1)"
+        )
 
         # Replicate vertical
         result = replicate_formulas([anchor], table_grids, direction="vertical")
 
-        formulas_by_col = {r.target_cell.col_index: r.formula for r in result}
+        formulas_by_col = {
+            r.target_cell.col_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
 
         # Col 1: cell(0, 1, 1) (Original)
         assert formulas_by_col[1] == "cell(0, 1, 1)"
@@ -515,14 +577,58 @@ class TestCellFormulaReplication:
 
         # Anchor: Row 1 checking C2 == C1
         target = TargetCell(table_index=0, row_index=1, col_index=2)
-        anchor = InferredFormula(target_cell=target, formula="cell(0, 1, 1)")
+        anchor = HorizontalVerticalCheckInferredFormula(
+            target_cell=target, formula="cell(0, 1, 1)"
+        )
 
         # Replicate horizontal
         result = replicate_formulas([anchor], table_grids, direction="horizontal")
 
-        formulas_by_row = {r.target_cell.row_index: r.formula for r in result}
+        formulas_by_row = {
+            r.target_cell.row_index: r.formula
+            for r in result
+            if isinstance(r, HorizontalVerticalCheckInferredFormula)
+        }
 
         # Row 1: cell(0, 1, 1) (Original)
         assert formulas_by_row[1] == "cell(0, 1, 1)"
         # Row 2: cell(0, 2, 1)
         assert formulas_by_row[2] == "cell(0, 2, 1)"
+
+
+class TestLogicReplication:
+    """Test logic reconciliation multi-formula replication."""
+
+    def test_replicate_logic_multi_formulas(self):
+        """Should replicate each formula in a multi-formula LogicInferredFormula."""
+        grid = [
+            ["Item", "C1", "C2", "C3"],
+            ["R1", 10, 11, 12],
+            ["R2", 20, 21, 22],
+            ["Total", 30, 32, 34],
+        ]
+        table_grids = {0: grid}
+
+        # Item with 2 formulas
+        item = LogicInferredFormula(
+            target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
+            formulas=["sum_col(0, 1, 1, 2)", "cell(0, 1, 1)"],
+        )
+
+        # Replicate vertically
+        results = replicate_formulas([item], table_grids, direction="vertical")
+
+        assert len(results) == 6
+
+        col2_formulas = [
+            f.formulas[0]
+            for f in results
+            if f.target_cell.col_index == 2 and isinstance(f, LogicInferredFormula)
+        ]
+        assert "sum_col(0, 2, 1, 2)" in col2_formulas
+        assert "cell(0, 1, 2)" in col2_formulas
+
+        # Verify all results are LogicInferredFormula
+        for r in results:
+            assert isinstance(r, LogicInferredFormula)
+            assert len(r.formulas) == 1

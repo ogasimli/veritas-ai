@@ -13,9 +13,11 @@ from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline
     after_in_table_parallel_callback,
 )
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
-    CheckAgentOutput,
-    InferredFormula,
     TargetCell,
+)
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+    HorizontalVerticalCheckAgentOutput,
+    HorizontalVerticalCheckInferredFormula,
 )
 
 
@@ -52,9 +54,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
@@ -84,9 +86,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "horizontal_check_output": CheckAgentOutput(
+            "horizontal_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
                         formula="sum_row(0, 1, 1, 2)",
                     )
@@ -115,9 +117,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
@@ -152,9 +154,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
@@ -187,9 +189,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
@@ -216,9 +218,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(
                             table_index=0, row_index=5, col_index=1
                         ),  # Out of bounds
@@ -253,17 +255,17 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=3, col_index=1),
                         formula="sum_col(0, 1, 1, 2)",
                     )
                 ]
             ),
-            "horizontal_check_output": CheckAgentOutput(
+            "horizontal_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=1, col_index=3),
                         formula="sum_row(0, 1, 1, 2)",
                     )
@@ -319,9 +321,9 @@ class TestAfterInTableParallelCallback:
         ctx = MagicMock()
         ctx.state = {
             "extracted_tables": {"tables": [{"table_index": 0, "grid": grid}]},
-            "vertical_check_output": CheckAgentOutput(
+            "vertical_check_output": HorizontalVerticalCheckAgentOutput(
                 formulas=[
-                    InferredFormula(
+                    HorizontalVerticalCheckInferredFormula(
                         target_cell=TargetCell(table_index=0, row_index=2, col_index=1),
                         formula="sum_col(0, 1, 1, 1)",
                     )
@@ -515,4 +517,4 @@ class TestDynamicReplication:
             assert mock_detect.called
             assert mock_logger.warning.called
             args = mock_logger.warning.call_args
-            assert "Skipping formula with mixed-dimension cells" in args[0][0]
+            assert "Skipping formula with mixed/unknown dimension" in args[0][0]

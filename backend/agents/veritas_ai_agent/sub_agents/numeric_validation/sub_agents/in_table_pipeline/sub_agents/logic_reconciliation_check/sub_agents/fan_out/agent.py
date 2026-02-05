@@ -12,8 +12,8 @@ from google.genai import types
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
-from .....schema import CheckAgentOutput
 from .prompt import get_table_instruction
+from .schema import LogicCheckAgentOutput
 
 
 class LogicReconciliationFormulaInferer(BaseAgent):
@@ -114,7 +114,7 @@ def _create_table_agent(table_index: int, table_json: str) -> LlmAgent:
         name=f"LogicReconciliationFormulaInfererTableAgent_{table_index}",
         model="gemini-3-pro-preview",
         instruction=get_table_instruction(table_json),
-        output_schema=CheckAgentOutput,
+        output_schema=LogicCheckAgentOutput,
         output_key=f"logic_reconciliation_formula_inferer_table_output_{table_index}",
         on_model_error_callback=default_model_error_handler,
         planner=BuiltInPlanner(

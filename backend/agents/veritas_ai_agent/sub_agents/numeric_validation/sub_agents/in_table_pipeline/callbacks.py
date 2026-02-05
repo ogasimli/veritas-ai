@@ -28,7 +28,12 @@ import logging
 from google.adk.agents.callback_context import CallbackContext
 
 from .formula_replicator import detect_replication_direction, replicate_formulas
-from .schema import InferredFormula
+from .sub_agents.logic_reconciliation_check.sub_agents.fan_out.schema import (
+    LogicInferredFormula,
+)
+from .sub_agents.vertical_horizontal_check.schema import (
+    HorizontalVerticalCheckInferredFormula,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +70,9 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
         return
 
     # 1 & 2. Collect raw formulas and replicate them
-    all_replicated: list[InferredFormula] = []
+    all_replicated: list[
+        HorizontalVerticalCheckInferredFormula | LogicInferredFormula
+    ] = []
     # Make sure we use a dict for fast lookup
     table_grids = {t.get("table_index"): t.get("grid") for t in tables}
 
@@ -79,18 +86,25 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
         if hasattr(output, "model_dump"):
             output = output.model_dump()
 
-        batch_formulas: list[InferredFormula] = []
+        batch_formulas: list[
+            HorizontalVerticalCheckInferredFormula | LogicInferredFormula
+        ] = []
         for item in output.get("formulas", []):
             if hasattr(item, "model_dump"):
                 item = item.model_dump()
 
             try:
-                # Handle case where item might be just a string if something went wrong, but assume dict
                 if isinstance(item, dict):
-                    formula = InferredFormula(
-                        target_cell=item["target_cell"],
-                        formula=item["formula"],
-                    )
+                    if "formulas" in item:
+                        formula = LogicInferredFormula(
+                            target_cell=item["target_cell"],
+                            formulas=item["formulas"],
+                        )
+                    else:
+                        formula = HorizontalVerticalCheckInferredFormula(
+                            target_cell=item["target_cell"],
+                            formula=item["formula"],
+                        )
                     batch_formulas.append(formula)
             except (KeyError, TypeError):
                 pass
@@ -107,18 +121,22 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
                 )
             else:
                 # Dynamic path: detect direction per formula from sum_cells cell layout
-                for formula in batch_formulas:
-                    direction = detect_replication_direction(formula)
+                for formula_item in batch_formulas:
+                    direction = detect_replication_direction(formula_item)
                     if direction is None:
+                        if isinstance(formula_item, LogicInferredFormula):
+                            f_str = formula_item.formulas[0]
+                        else:
+                            f_str = formula_item.formula
                         logger.warning(
-                            "Skipping formula with mixed-dimension cells: %s",
-                            formula.formula,
+                            "Skipping formula with mixed/unknown dimension: %s",
+                            f_str,
                         )
-                        # TODO: Handle formulas where cells span both row and column
-                        # dimensions. For now these are skipped.
                         continue
                     all_replicated.extend(
-                        replicate_formulas([formula], table_grids, direction=direction)
+                        replicate_formulas(
+                            [formula_item], table_grids, direction=direction
+                        )
                     )
 
     replicated = all_replicated
@@ -166,6 +184,13 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
                     }
                 ],
                 "actual_value": actual_value,
-                "inferred_formulas": [{"formula": item.formula}],
+                "inferred_formulas": [
+                    {"formula": f}
+                    for f in (
+                        item.formulas
+                        if isinstance(item, LogicInferredFormula)
+                        else [item.formula]
+                    )
+                ],
             }
         )

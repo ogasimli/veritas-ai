@@ -42,8 +42,8 @@ from google.genai import types
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
-from ...schema import CheckAgentOutput
 from .prompt import HORIZONTAL_INSTRUCTION, VERTICAL_INSTRUCTION
+from .schema import HorizontalVerticalCheckAgentOutput
 from .utils import chunk_tables
 
 
@@ -105,7 +105,7 @@ class BatchedCheckAgent(BaseAgent):
                 name=f"{self.name}_{i}",
                 model="gemini-3-pro-preview",
                 instruction=batch_instruction,
-                output_schema=CheckAgentOutput,
+                output_schema=HorizontalVerticalCheckAgentOutput,
                 # Use a temp key for per-batch output to avoid overwriting
                 output_key=f"{self.output_key}_batch_{i}",
                 on_model_error_callback=default_model_error_handler,
