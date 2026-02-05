@@ -10,7 +10,7 @@ description: safely commit staged changes with auto-fixing of pre-commit hooks
 
     <detailed explanation>
     ```
-    *   **Rule**: Follow all formatting rules defined in `.agent/rules/git.md` (plain text only, no backticks, no paths).
+    *   **Rule**: Follow all formatting rules defined in `.agent/rules/git.md`.
 3.  **User Confirmation**: Show the drafted message to the user and ask: "I propose this commit message. Shall I proceed? (yes/no/edit)"
     *   **STOP**: Wait for user input.
 4.  **Protect Unstaged Changes**:
