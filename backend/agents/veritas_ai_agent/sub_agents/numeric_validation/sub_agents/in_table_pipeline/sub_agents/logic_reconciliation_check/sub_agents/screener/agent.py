@@ -7,13 +7,13 @@ from google.genai import types
 from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
 
-from .prompt import SCREENER_INSTRUCTION
+from .prompt import INSTRUCTION
 from .schema import LogicReconciliationCheckScreenerOutput
 
 logic_reconciliation_check_screener_agent = LlmAgent(
     name="LogicReconciliationCheckScreener",
     model="gemini-3-pro-preview",
-    instruction=SCREENER_INSTRUCTION,
+    instruction=INSTRUCTION,
     output_schema=LogicReconciliationCheckScreenerOutput,
     output_key="logic_reconciliation_check_screener_output",
     on_model_error_callback=default_model_error_handler,
