@@ -139,7 +139,11 @@ class MultiPassRefinementAgent(BaseAgent):
             if hasattr(output, "model_dump"):
                 output = output.model_dump()
             new_findings = config.extract_findings(output)
-            callback_context.state[accumulated_key].extend(new_findings)
+            # Explicitly set the key back to trigger state update events by creating a new list
+            # (In-place modification might not trigger the state change listener)
+            current_findings = list(callback_context.state[accumulated_key])
+            current_findings.extend(new_findings)
+            callback_context.state[accumulated_key] = current_findings
             logger.debug(
                 "%s chain %d: accumulated %d findings",
                 agent_name,
