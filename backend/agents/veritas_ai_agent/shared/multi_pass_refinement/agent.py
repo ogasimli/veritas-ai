@@ -39,6 +39,8 @@ class MultiPassRefinementAgent(BaseAgent):
 
     config: MultiPassRefinementConfig | None = None
     output_key: str | None = None
+    parallel_agent: ParallelAgent | None = None
+    aggregator_agent: LlmAgent | None = None
 
     def __init__(
         self,
@@ -46,57 +48,77 @@ class MultiPassRefinementAgent(BaseAgent):
         config: MultiPassRefinementConfig,
         output_key: str | None = None,
     ):
-        super().__init__(name=name)
+        output_key = output_key or f"{name.lower()}_output"
+
+        # --- Build Static Agent Graph ---
+        # Note: We must create these locally before super().__init__ because
+        # Pydantic models require __init__ to set fields.
+        chain_agents = []
+        for chain_idx in range(config.n_parallel_chains):
+            chain_loop = self._create_chain_loop(name, config, chain_idx)
+            chain_agents.append(chain_loop)
+
+        parallel_agent = ParallelAgent(
+            name=f"{name}_ParallelChains",
+            sub_agents=chain_agents,
+        )
+
+        aggregator_agent = self._create_aggregator(name, config, output_key)
+
+        # Initialize BaseAgent with all sub-agents and config
+        super().__init__(
+            name=name,
+            sub_agents=[parallel_agent, aggregator_agent],
+        )
         self.config = config
-        self.output_key = output_key or f"{name.lower()}_output"
+        self.output_key = output_key
+        self.parallel_agent = parallel_agent
+        self.aggregator_agent = aggregator_agent
+
+    @property
+    def _internal_findings_key(self) -> str:
+        return f"{self.name}_all_findings"
 
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         state = ctx.session.state
 
-        # --- Phase 1: Run N parallel chains, each is a LoopAgent with M iterations ---
-        assert self.config is not None
-        config = self.config
-        chain_agents = []
-        for chain_idx in range(config.n_parallel_chains):
-            chain_loop = self._create_chain_loop(chain_idx)
-            chain_agents.append(chain_loop)
+        # Ensure agents are initialized
+        assert self.parallel_agent is not None
+        assert self.aggregator_agent is not None
 
-        parallel = ParallelAgent(
-            name=f"{self.name}_ParallelChains",
-            sub_agents=chain_agents,
-        )
-        async for event in parallel.run_async(ctx):
+        # --- Phase 1: Run N parallel chains ---
+        async for event in self.parallel_agent.run_async(ctx):
             yield event
 
         # --- Phase 2: Collect all findings from all chains ---
+        assert self.config is not None
         all_findings: list[dict] = []
-        for chain_idx in range(config.n_parallel_chains):
+        for chain_idx in range(self.config.n_parallel_chains):
             key = f"chain_{chain_idx}_accumulated_findings"
             chain_findings = state.get(key, [])
             all_findings.extend(chain_findings)
+
+        # Store findings in state so the Aggregator's dynamic instruction can read them
+        state[self._internal_findings_key] = all_findings
 
         logger.info(
             "%s: collected %d total findings from %d chains x %d passes",
             self.name,
             len(all_findings),
-            config.n_parallel_chains,
-            config.m_sequential_passes,
+            self.config.n_parallel_chains,
+            self.config.m_sequential_passes,
         )
 
         # --- Phase 3: Aggregate/deduplicate ---
-        all_findings_json = json.dumps(all_findings, indent=2)
-        aggregator = self._create_aggregator(all_findings_json)
-
-        async for event in aggregator.run_async(ctx):
+        async for event in self.aggregator_agent.run_async(ctx):
             yield event
 
-    def _create_chain_loop(self, chain_idx: int) -> LoopAgent:
+    def _create_chain_loop(
+        self, agent_name: str, config: MultiPassRefinementConfig, chain_idx: int
+    ) -> LoopAgent:
         """Create a LoopAgent that runs M sequential passes for one chain."""
-        assert self.config is not None
-        config = self.config
-
         accumulated_key = f"chain_{chain_idx}_accumulated_findings"
         pass_output_key = f"chain_{chain_idx}_current_pass_output"
 
@@ -120,7 +142,7 @@ class MultiPassRefinementAgent(BaseAgent):
             callback_context.state[accumulated_key].extend(new_findings)
             logger.debug(
                 "%s chain %d: accumulated %d findings",
-                self.name,
+                agent_name,
                 chain_idx,
                 len(callback_context.state[accumulated_key]),
             )
@@ -133,7 +155,7 @@ class MultiPassRefinementAgent(BaseAgent):
 
         # Build LlmAgent kwargs
         agent_kwargs = {
-            "name": f"{self.name}_Chain{chain_idx}_Pass",
+            "name": f"{agent_name}_Chain{chain_idx}_Pass",
             "model": model,
             "instruction": chain_config.get_instruction(chain_idx),
             "output_schema": chain_config.output_schema,
@@ -147,35 +169,42 @@ class MultiPassRefinementAgent(BaseAgent):
             "after_model_callback": chain_config.after_model_callback,
             "before_tool_callback": chain_config.before_tool_callback,
             "after_tool_callback": chain_config.after_tool_callback,
-            "tools": chain_config.tools,
+            "tools": chain_config.tools or [],
             "code_executor": chain_config.code_executor,
         }
 
         pass_agent = LlmAgent(**agent_kwargs)
 
         return LoopAgent(
-            name=f"{self.name}_Chain_{chain_idx}",
+            name=f"{agent_name}_Chain_{chain_idx}",
             sub_agents=[pass_agent],
-            max_iterations=self.config.m_sequential_passes,
+            max_iterations=config.m_sequential_passes,
             before_agent_callback=before_loop_callback,
         )
 
-    def _create_aggregator(self, all_findings_json: str) -> LlmAgent:
-        """Create LLM-based aggregator."""
+    def _create_aggregator(
+        self, agent_name: str, config: MultiPassRefinementConfig, output_key: str
+    ) -> LlmAgent:
+        """Create LLM-based aggregator with dynamic instruction."""
         # Build aggregator config
-        assert self.config is not None
-        agg_config = self.config.aggregator_config
+        agg_config = config.aggregator_config
         model = agg_config.model
         planner = agg_config.planner
         generate_config = agg_config.generate_content_config
 
+        # Dynamic instruction provider
+        def aggregator_instruction_provider(ctx: InvocationContext) -> str:
+            findings = ctx.session.state.get(self._internal_findings_key, [])
+            all_findings_json = json.dumps(findings, indent=2)
+            return agg_config.get_instruction(all_findings_json)
+
         # Build LlmAgent kwargs
         agent_kwargs = {
-            "name": f"{self.name}Aggregator",
+            "name": f"{agent_name}Aggregator",
             "model": model,
-            "instruction": agg_config.get_instruction(all_findings_json),
+            "instruction": aggregator_instruction_provider,
             "output_schema": agg_config.output_schema,
-            "output_key": self.output_key,
+            "output_key": output_key,
             "planner": planner,
             "generate_content_config": generate_config,
             "before_agent_callback": agg_config.before_agent_callback,
@@ -186,7 +215,7 @@ class MultiPassRefinementAgent(BaseAgent):
             "after_model_callback": agg_config.after_model_callback,
             "before_tool_callback": agg_config.before_tool_callback,
             "after_tool_callback": agg_config.after_tool_callback,
-            "tools": agg_config.tools,
+            "tools": agg_config.tools or [],
             "code_executor": agg_config.code_executor,
         }
 
