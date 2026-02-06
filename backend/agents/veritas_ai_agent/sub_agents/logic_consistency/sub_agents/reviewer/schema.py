@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from veritas_ai_agent.schemas import BaseAgentOutput
+
 
 class RefinedLogicConsistencyFinding(BaseModel):
     """A confirmed logic inconsistency that passed the false-positive filter."""
@@ -24,9 +26,6 @@ class RefinedLogicConsistencyFinding(BaseModel):
     source_refs: list[str] = Field(
         description="References to locations in the document (e.g., 'Table 4', 'Note 12', 'MD&A Section 3')"
     )
-
-
-from veritas_ai_agent.schemas import BaseAgentOutput
 
 
 class LogicConsistencyReviewerOutput(BaseAgentOutput):

@@ -1,6 +1,6 @@
-from typing import Literal
-
 from pydantic import BaseModel, Field
+
+from veritas_ai_agent.schemas import BaseAgentOutput
 
 
 class LogicConsistencyFinding(BaseModel):
@@ -15,18 +15,12 @@ class LogicConsistencyFinding(BaseModel):
     contradiction: str = Field(
         description="Explanation of why the claim is logically inconsistent or contradictory"
     )
-    severity: Literal["high", "medium", "low"] = Field(
-        description="Severity level: 'high' (core business contradiction), 'medium' (suspicious pattern), 'low' (minor inconsistency)"
-    )
     reasoning: str = Field(
         description="Step-by-step reasoning chain showing how the contradiction was identified"
     )
     source_refs: list[str] = Field(
         description="References to locations in the document (e.g., 'Table 4', 'Note 12', 'MD&A Section 3')"
     )
-
-
-from veritas_ai_agent.schemas import BaseAgentOutput
 
 
 class LogicConsistencyDetectorOutput(BaseAgentOutput):

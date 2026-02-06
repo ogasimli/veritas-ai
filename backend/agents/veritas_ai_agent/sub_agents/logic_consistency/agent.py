@@ -1,4 +1,9 @@
-"""Logic Consistency Agent - detects and refines semantic contradictions in financial statements."""
+"""Logic Consistency Agent - detects and refines semantic contradictions in financial statements.
+
+Pipeline:
+1. Detector (MultiPassRefinementAgent): N chains x M passes to find all contradictions
+2. Reviewer (LlmAgent): Single pass to filter false positives and assign severity
+"""
 
 from google.adk.agents import SequentialAgent
 
