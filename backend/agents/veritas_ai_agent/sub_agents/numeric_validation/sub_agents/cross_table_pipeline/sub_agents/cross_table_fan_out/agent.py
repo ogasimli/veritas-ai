@@ -23,8 +23,8 @@ from google.adk.events import Event
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 
-from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
-from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.error_handler import default_model_error_handler
+from veritas_ai_agent.shared.llm_config import get_default_retry_config
 
 from .chunking import FSLI_BATCH_SIZE, chunk_fsli_list
 from .prompt import get_batch_instruction

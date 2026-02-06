@@ -1,4 +1,4 @@
-"""MultiPassRefinementAgent: N parallel chains × M sequential passes → aggregation.
+"""MultiPassRefinementAgent: N parallel chains x M sequential passes -> aggregation.
 
 Uses ADK's LoopAgent for the M sequential passes within each chain.
 """
@@ -14,10 +14,10 @@ from google.adk.events import Event
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 
-from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
-from veritas_ai_agent.app_utils.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.error_handler import default_model_error_handler
+from veritas_ai_agent.shared.llm_config import get_default_retry_config
 
-from .config import LlmAgentConfig, MultiPassRefinementConfig
+from .config import MultiPassRefinementConfig
 from .protocols import MultiPassRefinementProtocol
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def _get_default_generate_config() -> types.GenerateContentConfig:
 
 
 class MultiPassRefinementAgent(BaseAgent):
-    """Reusable agent that runs N×M LLM passes to maximize finding coverage.
+    """Reusable agent that runs NxM LLM passes to maximize finding coverage.
 
     Architecture:
     - N parallel chains run independently (parallel branches explore different paths)
@@ -61,10 +61,10 @@ class MultiPassRefinementAgent(BaseAgent):
         State key to write final aggregated output
     """
 
-    name: str
-    protocol: MultiPassRefinementProtocol
-    config: MultiPassRefinementConfig
-    output_key: str
+    # Define fields to satisfy Pydantic if BaseAgent is a BaseModel
+    protocol: MultiPassRefinementProtocol | None = None
+    config: MultiPassRefinementConfig | None = None
+    output_key: str | None = None
 
     def __init__(
         self,
@@ -73,22 +73,22 @@ class MultiPassRefinementAgent(BaseAgent):
         config: MultiPassRefinementConfig | None = None,
         output_key: str | None = None,
     ):
-        config = config or MultiPassRefinementConfig()
-        output_key = output_key or f"{name.lower()}_output"
-        super().__init__(
-            name=name,
-            protocol=protocol,
-            config=config,
-            output_key=output_key,
-        )
+        # We pass only name to super() to avoid ty-check unknown-argument errors,
+        # but we must ensure fields are initialized for Pydantic.
+        super().__init__(name=name)
+        self.protocol = protocol
+        self.config = config or MultiPassRefinementConfig()
+        self.output_key = output_key or f"{name.lower()}_output"
 
     @property
     def _n_parallel(self) -> int:
-        return self.config.n_parallel_chains or self.protocol.default_n_parallel
+        n = self.config.n_parallel_chains if self.config else None
+        return n or self.protocol.default_n_parallel if self.protocol else 2
 
     @property
     def _m_sequential(self) -> int:
-        return self.config.m_sequential_passes or self.protocol.default_m_sequential
+        m = self.config.m_sequential_passes if self.config else None
+        return m or self.protocol.default_m_sequential if self.protocol else 3
 
     async def _run_async_impl(
         self, ctx: InvocationContext
@@ -117,7 +117,7 @@ class MultiPassRefinementAgent(BaseAgent):
             all_findings.extend(chain_findings)
 
         logger.info(
-            "%s: collected %d total findings from %d chains × %d passes",
+            "%s: collected %d total findings from %d chains x %d passes",
             self.name,
             len(all_findings),
             self._n_parallel,
@@ -136,13 +136,7 @@ class MultiPassRefinementAgent(BaseAgent):
             state[self.output_key] = state.get(agg_output_key)
 
     def _create_chain_loop(self, chain_idx: int) -> LoopAgent:
-        """Create a LoopAgent that runs M sequential passes for one chain.
-
-        Uses ADK's LoopAgent instead of custom BaseAgent loop.
-        - before_agent_callback: initializes accumulated findings in state
-        - after_agent_callback: appends new findings to accumulated list
-        - Prompt uses {chain_<idx>_accumulated_findings} for ADK state injection
-        """
+        """Create a LoopAgent that runs M sequential passes for one chain."""
         accumulated_key = f"chain_{chain_idx}_accumulated_findings"
         pass_output_key = f"chain_{chain_idx}_current_pass_output"
 
@@ -157,8 +151,9 @@ class MultiPassRefinementAgent(BaseAgent):
                 return
             if hasattr(output, "model_dump"):
                 output = output.model_dump()
-            new_findings = self.protocol.extract_findings(output)
-            callback_context.state[accumulated_key].extend(new_findings)
+            if self.protocol:
+                new_findings = self.protocol.extract_findings(output)
+                callback_context.state[accumulated_key].extend(new_findings)
             logger.debug(
                 "%s chain %d: accumulated %d findings",
                 self.name,
@@ -167,9 +162,10 @@ class MultiPassRefinementAgent(BaseAgent):
             )
 
         # Get planner, generate config, and model from chain_agent_config or use defaults
-        chain_config = self.config.chain_agent_config
+        chain_config = self.config.chain_agent_config if self.config else None
         planner = (
-            chain_config.planner if chain_config and chain_config.planner
+            chain_config.planner
+            if chain_config and chain_config.planner
             else _get_default_planner()
         )
         generate_config = (
@@ -181,14 +177,17 @@ class MultiPassRefinementAgent(BaseAgent):
         model = (
             chain_config.model
             if chain_config and chain_config.model
-            else (self.config.model or _FALLBACK_MODEL)
+            else (self.config.model if self.config else _FALLBACK_MODEL)
+            or _FALLBACK_MODEL
         )
 
         pass_agent = LlmAgent(
             name=f"{self.name}_Chain{chain_idx}_Pass",
             model=model,
-            instruction=self.protocol.get_pass_instruction(chain_idx),
-            output_schema=self.protocol.pass_output_schema,
+            instruction=self.protocol.get_pass_instruction(chain_idx)
+            if self.protocol
+            else "",
+            output_schema=self.protocol.pass_output_schema if self.protocol else None,
             output_key=pass_output_key,
             after_agent_callback=after_pass_callback,
             on_model_error_callback=default_model_error_handler,
@@ -206,9 +205,10 @@ class MultiPassRefinementAgent(BaseAgent):
     def _create_aggregator(self, all_findings_json: str) -> LlmAgent:
         """Create LLM-based aggregator."""
         # Get planner and generate config from aggregator_config or use defaults
-        agg_config = self.config.aggregator_config
+        agg_config = self.config.aggregator_config if self.config else None
         planner = (
-            agg_config.planner if agg_config and agg_config.planner
+            agg_config.planner
+            if agg_config and agg_config.planner
             else _get_default_planner()
         )
         generate_config = (
@@ -220,17 +220,20 @@ class MultiPassRefinementAgent(BaseAgent):
         model = (
             agg_config.model
             if agg_config and agg_config.model
-            else (self.config.model or _FALLBACK_MODEL)
+            else (self.config.model if self.config else _FALLBACK_MODEL)
+            or _FALLBACK_MODEL
         )
 
         return LlmAgent(
             name=f"{self.name}Aggregator",
             model=model,
-            instruction=self.protocol.get_aggregator_instruction(
-                all_findings_json
-            ),
-            output_schema=self.protocol.aggregated_output_schema,
-            output_key=self.output_key,
+            instruction=self.protocol.get_aggregator_instruction(all_findings_json)
+            if self.protocol
+            else "",
+            output_schema=self.protocol.aggregated_output_schema
+            if self.protocol
+            else None,
+            output_key=self.output_key or "",
             on_model_error_callback=default_model_error_handler,
             planner=planner,
             generate_content_config=generate_config,

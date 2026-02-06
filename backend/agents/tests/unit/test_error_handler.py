@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 import pytest
 from google.adk.models.llm_response import LlmResponse
 
-from veritas_ai_agent.app_utils.error_handler import default_model_error_handler
 from veritas_ai_agent.schemas import AgentError
+from veritas_ai_agent.shared.error_handler import default_model_error_handler
 
 
 @pytest.mark.asyncio

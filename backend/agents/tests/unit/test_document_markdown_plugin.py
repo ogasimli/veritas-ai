@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from veritas_ai_agent.app_utils.document_markdown_plugin import (
+from veritas_ai_agent.shared.document_markdown_plugin import (
     DocumentMarkdownPlugin,
 )
 

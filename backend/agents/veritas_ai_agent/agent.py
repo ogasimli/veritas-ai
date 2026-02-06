@@ -6,8 +6,8 @@ from google.adk.agents import ParallelAgent
 from google.adk.apps.app import App, ContextCacheConfig
 from google.adk.plugins import DebugLoggingPlugin, LoggingPlugin
 
-from .app_utils.coordination_plugin import create_coordination_plugin
-from .app_utils.document_markdown_plugin import create_document_markdown_plugin
+from .shared.coordination_plugin import create_coordination_plugin
+from .shared.document_markdown_plugin import create_document_markdown_plugin
 from .sub_agents import (
     disclosure_compliance_agent,
     external_signal_agent,

@@ -108,7 +108,7 @@ def process_dataframe(df: pd.DataFrame, locale: str) -> list[list[str | float]]:
     """
     Parse every column of *df* using the provided *locale*.
     """
-    # Convert to object to avoid TypeError when assigning mixed types (floats/strings) 
+    # Convert to object to avoid TypeError when assigning mixed types (floats/strings)
     # to strictly typed columns (e.g. string[pyarrow]).
     df = df.astype(object)
     df.columns = [_clean_text(c) for c in df.columns]

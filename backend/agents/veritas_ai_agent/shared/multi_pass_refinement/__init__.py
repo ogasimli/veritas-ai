@@ -1,9 +1,9 @@
-"""Multi-Pass Refinement Agent pattern - N parallel chains × M sequential passes.
+"""Multi-Pass Refinement Agent pattern - N parallel chains x M sequential passes.
 
 Exports
 -------
 MultiPassRefinementAgent : BaseAgent
-    Main agent that orchestrates N×M refinement pattern
+    Main agent that orchestrates NxM refinement pattern
 MultiPassRefinementConfig : dataclass
     Runtime configuration for refinement parameters
 LlmAgentConfig : dataclass
@@ -17,8 +17,8 @@ from .config import LlmAgentConfig, MultiPassRefinementConfig
 from .protocols import MultiPassRefinementProtocol
 
 __all__ = [
+    "LlmAgentConfig",
     "MultiPassRefinementAgent",
     "MultiPassRefinementConfig",
-    "LlmAgentConfig",
     "MultiPassRefinementProtocol",
 ]

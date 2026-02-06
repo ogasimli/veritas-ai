@@ -1,9 +1,6 @@
 """Configuration for the MultiPassRefinementAgent pattern."""
 
-
-
 from dataclasses import dataclass
-
 
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types

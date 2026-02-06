@@ -1,11 +1,8 @@
 """Protocol interface for MultiPassRefinementAgent implementations."""
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from google.adk.agents import BaseAgent, LlmAgent
 
 
 @runtime_checkable
