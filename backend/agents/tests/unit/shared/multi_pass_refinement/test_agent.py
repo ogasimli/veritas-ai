@@ -8,11 +8,8 @@ from veritas_ai_agent.shared.multi_pass_refinement.agent import (
     MultiPassRefinementAgent,
 )
 from veritas_ai_agent.shared.multi_pass_refinement.config import (
-    LlmAgentConfig,
     MultiPassRefinementConfig,
-)
-from veritas_ai_agent.shared.multi_pass_refinement.protocols import (
-    MultiPassRefinementProtocol,
+    MultiPassRefinementLlmAgentConfig,
 )
 
 # --- Test Helpers ---
@@ -26,33 +23,42 @@ class MockAggregatedOutput(BaseModel):
     final_findings: list[dict]
 
 
-class MockProtocol(MultiPassRefinementProtocol):
-    """Mock implementation of the protocol for testing."""
+def _mock_get_pass_instruction(chain_idx: int) -> str:
+    """Mock pass instruction callable."""
+    return f"Pass Prompt {chain_idx}"
 
-    @property
-    def pass_output_schema(self):
-        return MockPassOutput
 
-    @property
-    def aggregated_output_schema(self):
-        return MockAggregatedOutput
+def _mock_extract_findings(output: dict) -> list[dict]:
+    """Mock findings extraction callable."""
+    return output.get("findings", [])
 
-    @property
-    def default_n_parallel(self) -> int:
-        return 2
 
-    @property
-    def default_m_sequential(self) -> int:
-        return 3
+def _mock_get_aggregator_instruction(all_findings_json: str) -> str:
+    """Mock aggregator instruction callable."""
+    return f"Agg Prompt {len(all_findings_json)}"
 
-    def get_pass_instruction(self, chain_idx: int) -> str:
-        return f"Pass Prompt {chain_idx}"
 
-    def extract_findings(self, output: dict) -> list[dict]:
-        return output.get("findings", [])
+def _create_mock_config(**overrides) -> MultiPassRefinementConfig:
+    """Create a mock config with all required fields."""
+    # Create default chain and aggregator configs (model defaults to "gemini-3-pro-preview")
+    chain_config = MultiPassRefinementLlmAgentConfig(
+        output_schema=MockPassOutput,
+        get_instruction=_mock_get_pass_instruction,
+    )
+    aggregator_config = MultiPassRefinementLlmAgentConfig(
+        output_schema=MockAggregatedOutput,
+        get_instruction=_mock_get_aggregator_instruction,
+    )
 
-    def get_aggregator_instruction(self, all_findings_json: str) -> str:
-        return f"Agg Prompt {len(all_findings_json)}"
+    defaults = {
+        "chain_agent_config": chain_config,
+        "aggregator_config": aggregator_config,
+        "extract_findings": _mock_extract_findings,
+        "n_parallel_chains": 2,
+        "m_sequential_passes": 3,
+    }
+    defaults.update(overrides)
+    return MultiPassRefinementConfig(**defaults)
 
 
 class AsyncIterator:
@@ -75,35 +81,36 @@ class AsyncIterator:
 
 
 def test_initialization_defaults():
-    protocol = MockProtocol()
-    agent = MultiPassRefinementAgent(name="TestAgent", protocol=protocol)
+    config = _create_mock_config()
+    agent = MultiPassRefinementAgent(name="TestAgent", config=config)
 
     assert agent.name == "TestAgent"
-    assert agent._n_parallel == 2
-    assert agent._m_sequential == 3
+    assert agent.config is not None
+    assert agent.config.n_parallel_chains == 2
+    assert agent.config.m_sequential_passes == 3
     assert agent.output_key == "testagent_output"
 
 
 def test_configuration_overrides():
-    protocol = MockProtocol()
-    config = MultiPassRefinementConfig(
+    config = _create_mock_config(
         n_parallel_chains=5,
         m_sequential_passes=1,
     )
     agent = MultiPassRefinementAgent(
-        name="TestAgent", protocol=protocol, config=config, output_key="custom_output"
+        name="TestAgent", config=config, output_key="custom_output"
     )
 
-    assert agent._n_parallel == 5
-    assert agent._m_sequential == 1
+    assert agent.config is not None
+    assert agent.config.n_parallel_chains == 5
+    assert agent.config.m_sequential_passes == 1
     assert agent.output_key == "custom_output"
 
 
 @pytest.mark.asyncio
 async def test_run_async_flow():
     """Test the full orchestration flow without executing actual agents."""
-    protocol = MockProtocol()
-    agent = MultiPassRefinementAgent(name="TestAgent", protocol=protocol)
+    config = _create_mock_config()
+    agent = MultiPassRefinementAgent(name="TestAgent", config=config)
 
     # Mock Context
     ctx = MagicMock()
@@ -158,8 +165,8 @@ async def test_run_async_flow():
 @pytest.mark.asyncio
 async def test_findings_collection_logic():
     """Verify that findings are correctly collected from state before aggregation."""
-    protocol = MockProtocol()
-    agent = MultiPassRefinementAgent(name="TestAgent", protocol=protocol)
+    config = _create_mock_config()
+    agent = MultiPassRefinementAgent(name="TestAgent", config=config)
 
     # Mock Context with pre-populated findings (simulating chain execution)
     ctx = MagicMock()
@@ -212,34 +219,37 @@ async def test_findings_collection_logic():
 
 
 def test_model_config_resolution():
-    """Test that models are correctly resolved from config hierarchy."""
-    protocol = MockProtocol()
-
+    """Test that models are correctly specified in agent configs."""
     with (
         patch(
             "veritas_ai_agent.shared.multi_pass_refinement.agent.LlmAgent"
         ) as MockLlm,
         patch("veritas_ai_agent.shared.multi_pass_refinement.agent.LoopAgent"),
     ):
-        # 1. Default fallback
-        agent = MultiPassRefinementAgent(name="TestAgent", protocol=protocol)
+        # 1. Default model from config
+        config = _create_mock_config()
+        agent = MultiPassRefinementAgent(name="TestAgent", config=config)
         agent._create_chain_loop(0)
         assert MockLlm.call_args.kwargs["model"] == "gemini-3-pro-preview"
 
-        # 2. Chain config override
-        chain_config = LlmAgentConfig(model="custom-chain-model")
-        config = MultiPassRefinementConfig(chain_agent_config=chain_config)
-        agent = MultiPassRefinementAgent(
-            name="TestAgent", protocol=protocol, config=config
+        # 2. Custom chain model
+        chain_config = MultiPassRefinementLlmAgentConfig(
+            output_schema=MockPassOutput,
+            get_instruction=_mock_get_pass_instruction,
+            model="custom-chain-model",
         )
+        config = _create_mock_config(chain_agent_config=chain_config)
+        agent = MultiPassRefinementAgent(name="TestAgent", config=config)
         agent._create_chain_loop(0)
         assert MockLlm.call_args.kwargs["model"] == "custom-chain-model"
 
-        # 3. Aggregator config override
-        agg_config = LlmAgentConfig(model="custom-agg-model")
-        config = MultiPassRefinementConfig(aggregator_config=agg_config)
-        agent = MultiPassRefinementAgent(
-            name="TestAgent", protocol=protocol, config=config
+        # 3. Custom aggregator model
+        agg_config = MultiPassRefinementLlmAgentConfig(
+            output_schema=MockAggregatedOutput,
+            get_instruction=_mock_get_aggregator_instruction,
+            model="custom-agg-model",
         )
+        config = _create_mock_config(aggregator_config=agg_config)
+        agent = MultiPassRefinementAgent(name="TestAgent", config=config)
         agent._create_aggregator("[]")
         assert MockLlm.call_args.kwargs["model"] == "custom-agg-model"

@@ -5,20 +5,16 @@ Exports
 MultiPassRefinementAgent : BaseAgent
     Main agent that orchestrates NxM refinement pattern
 MultiPassRefinementConfig : dataclass
-    Runtime configuration for refinement parameters
-LlmAgentConfig : dataclass
+    Complete configuration including runtime parameters and domain logic
+MultiPassRefinementLlmAgentConfig : dataclass
     Configuration for individual agents using ADK's native config objects
-MultiPassRefinementProtocol : Protocol
-    Interface for concrete implementations
 """
 
 from .agent import MultiPassRefinementAgent
-from .config import LlmAgentConfig, MultiPassRefinementConfig
-from .protocols import MultiPassRefinementProtocol
+from .config import MultiPassRefinementConfig, MultiPassRefinementLlmAgentConfig
 
 __all__ = [
-    "LlmAgentConfig",
     "MultiPassRefinementAgent",
     "MultiPassRefinementConfig",
-    "MultiPassRefinementProtocol",
+    "MultiPassRefinementLlmAgentConfig",
 ]
