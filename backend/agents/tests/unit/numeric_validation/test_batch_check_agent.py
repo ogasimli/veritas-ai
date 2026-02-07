@@ -1,13 +1,25 @@
-from unittest.mock import MagicMock, patch
+import json
 
 import pytest
+from google.adk.agents import LlmAgent
 
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent import (
-    BatchedCheckAgent,
+    _create_check_fan_out_agent,
+    _prepare_work_items,
+    create_horizontal_check_agent,
+    create_vertical_check_agent,
+)
+from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+    HorizontalVerticalCheckAgentOutput,
 )
 from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.utils import (
     chunk_tables,
 )
+
+
+# ---------------------------------------------------------------------------
+# chunk_tables utility tests (unchanged)
+# ---------------------------------------------------------------------------
 
 
 class TestChunkTables:
@@ -50,67 +62,162 @@ class TestChunkTables:
         assert sum(len(b) for b in batches) == 31
 
 
-@pytest.mark.asyncio
-class TestBatchedCheckAgent:
-    @patch(
-        "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent.ParallelAgent"
-    )
-    @patch(
-        "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent.LlmAgent"
-    )
-    async def test_run_async_impl(self, mock_llm_agent, mock_parallel_agent):
-        # Setup context and state
-        ctx = MagicMock()
-        ctx.session.state = {
-            "extracted_tables": {"tables": [{"table_index": 0}, {"table_index": 1}]},
-            # Pre-populate sub-agent outputs as if they ran
-            "test_output_batch_0": {"formulas": [{"f": 1}]},
-        }
+# ---------------------------------------------------------------------------
+# _prepare_work_items tests
+# ---------------------------------------------------------------------------
 
-        # Mock ParallelAgent run_async to loop through sub-agents
-        parallel_runner = MagicMock()
-        # parallel_runner.run_async.return_value = [] # Not needed if side_effect is used
-        mock_parallel_agent.return_value = parallel_runner
 
-        # Mock async generator for ParallelAgent.run_async using a helper
-        async def mock_async_gen(ctx):
-            yield "event"
+class TestPrepareWorkItems:
+    def test_empty_state_returns_empty(self):
+        """No extracted_tables key defaults to empty list."""
+        assert _prepare_work_items({}) == []
 
-        parallel_runner.run_async.side_effect = mock_async_gen
+    def test_empty_list_returns_empty(self):
+        assert _prepare_work_items({"extracted_tables": []}) == []
 
-        agent = BatchedCheckAgent(
-            name="TestAgent",
-            instruction="test {extracted_tables}",
-            output_key="test_output",
+    def test_empty_json_string_returns_empty(self):
+        assert _prepare_work_items({"extracted_tables": "[]"}) == []
+
+    def test_invalid_json_string_returns_empty(self):
+        assert _prepare_work_items({"extracted_tables": "not json"}) == []
+
+    def test_dict_envelope_with_tables_key(self):
+        """Dict with 'tables' key is unwrapped."""
+        tables = [{"table_index": 0}, {"table_index": 1}]
+        result = _prepare_work_items({"extracted_tables": {"tables": tables}})
+        # 2 tables < 15 -> single batch
+        assert len(result) == 1
+        assert result[0] == tables
+
+    def test_dict_envelope_without_tables_key(self):
+        """Dict without 'tables' key returns empty."""
+        assert _prepare_work_items({"extracted_tables": {"other": [1, 2]}}) == []
+
+    def test_list_envelope(self):
+        """Plain list of tables is used directly."""
+        tables = [{"table_index": i} for i in range(3)]
+        result = _prepare_work_items({"extracted_tables": tables})
+        assert len(result) == 1
+        assert result[0] == tables
+
+    def test_json_string_parsed(self):
+        """JSON string is parsed before processing."""
+        tables = [{"table_index": 0}]
+        state = {"extracted_tables": json.dumps(tables)}
+        result = _prepare_work_items(state)
+        assert len(result) == 1
+        assert result[0] == tables
+
+    def test_chunking_applied(self):
+        """Tables exceeding max_size are chunked."""
+        tables = [{"table_index": i} for i in range(20)]
+        result = _prepare_work_items({"extracted_tables": tables})
+        # 20 tables / max 15 -> 2 batches of 10
+        assert len(result) == 2
+        assert sum(len(b) for b in result) == 20
+
+
+# ---------------------------------------------------------------------------
+# _create_agent callback tests (via _create_check_fan_out_agent)
+# ---------------------------------------------------------------------------
+
+
+class TestCreateAgent:
+    def _get_create_agent(self):
+        """Get the _create_agent closure from a FanOutAgent."""
+        agent = _create_check_fan_out_agent(
+            "TestCheck", "Instruction with {extracted_tables} placeholder", "test_output"
+        )
+        return agent.config.create_agent
+
+    def test_returns_llm_agent(self):
+        create_agent = self._get_create_agent()
+        batch = [{"table_index": 0, "data": [["a", "b"]]}]
+        agent = create_agent(0, batch, "test_key")
+        assert isinstance(agent, LlmAgent)
+
+    def test_output_key_passed_through(self):
+        """The output_key provided by FanOutAgent is used directly."""
+        create_agent = self._get_create_agent()
+        batch = [{"table_index": 0}]
+        agent = create_agent(0, batch, "TestCheck_item_0")
+        assert agent.output_key == "TestCheck_item_0"
+
+    def test_instruction_replacement(self):
+        """Instruction template has {extracted_tables} replaced with batch JSON."""
+        create_agent = self._get_create_agent()
+        batch = [{"table_index": 0}]
+        agent = create_agent(0, batch, "key")
+
+        expected_json = json.dumps({"tables": batch}, indent=2)
+        assert expected_json in agent.instruction
+
+    def test_agent_name_includes_index(self):
+        create_agent = self._get_create_agent()
+        batch = [{"table_index": 0}]
+        agent = create_agent(3, batch, "key")
+        assert agent.name == "TestCheck_3"
+
+    def test_output_schema(self):
+        create_agent = self._get_create_agent()
+        batch = [{"table_index": 0}]
+        agent = create_agent(0, batch, "key")
+        assert agent.output_schema == HorizontalVerticalCheckAgentOutput
+
+
+# ---------------------------------------------------------------------------
+# FanOutAgent wiring tests
+# ---------------------------------------------------------------------------
+
+
+class TestFanOutAgentWiring:
+    def test_vertical_agent_config(self):
+        agent = create_vertical_check_agent()
+        assert agent.name == "VerticalCheckAgent"
+        assert agent.config.output_key == "vertical_check_output"
+        assert agent.config.results_field == "formulas"
+        assert agent.config.batch_size is None
+        assert agent.config.aggregate is None
+        assert agent.config.prepare_work_items is _prepare_work_items
+
+    def test_horizontal_agent_config(self):
+        agent = create_horizontal_check_agent()
+        assert agent.name == "HorizontalCheckAgent"
+        assert agent.config.output_key == "horizontal_check_output"
+        assert agent.config.results_field == "formulas"
+        assert agent.config.batch_size is None
+        assert agent.config.aggregate is None
+        assert agent.config.prepare_work_items is _prepare_work_items
+
+    def test_create_agent_callback_wired(self):
+        """Both agents have a create_agent callback wired."""
+        v_agent = create_vertical_check_agent()
+        h_agent = create_horizontal_check_agent()
+        assert callable(v_agent.config.create_agent)
+        assert callable(h_agent.config.create_agent)
+
+    def test_vertical_uses_vertical_instruction(self):
+        """Vertical agent uses VERTICAL_INSTRUCTION template."""
+        from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
+            VERTICAL_INSTRUCTION,
         )
 
-        # Run
-        events = []
-        async for event in agent._run_async_impl(ctx):
-            events.append(event)
+        agent = create_vertical_check_agent()
+        sub = agent.config.create_agent(0, [{"table_index": 0}], "key")
+        # The instruction should contain vertical-specific content
+        assert "Vertical Logic Auditor" in sub.instruction
+        # And the placeholder should be replaced
+        assert "{extracted_tables}" not in sub.instruction
 
-        # Assertions
-        assert len(events) == 1  # Should yield from parallel agent
-
-        # Check LLM sub-agent creation
-        # With 2 tables and max 15, should be 1 batch
-        assert mock_llm_agent.call_count == 1
-        _, kwargs = mock_llm_agent.call_args
-        assert kwargs["output_key"] == "test_output_batch_0"
-
-        # Check output aggregation
-        assert ctx.session.state["test_output"] == {"formulas": [{"f": 1}]}
-
-    @pytest.mark.asyncio
-    async def test_run_async_no_tables(self):
-        ctx = MagicMock()
-        ctx.session.state = {"extracted_tables": []}
-
-        agent = BatchedCheckAgent(
-            name="TestAgent", instruction="test", output_key="test_output"
+    def test_horizontal_uses_horizontal_instruction(self):
+        """Horizontal agent uses HORIZONTAL_INSTRUCTION template."""
+        from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
+            HORIZONTAL_INSTRUCTION,
         )
 
-        async for _event in agent._run_async_impl(ctx):
-            pass
-
-        assert ctx.session.state["test_output"] == {"formulas": []}
+        agent = create_horizontal_check_agent()
+        sub = agent.config.create_agent(0, [{"table_index": 0}], "key")
+        # The instruction should contain horizontal-specific content
+        assert "Horizontal Logic Auditor" in sub.instruction
+        # And the placeholder should be replaced
+        assert "{extracted_tables}" not in sub.instruction
