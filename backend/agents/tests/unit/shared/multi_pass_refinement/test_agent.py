@@ -135,8 +135,9 @@ async def test_run_async_flow():
             "google.adk.agents.LlmAgent.run_async", return_value=AsyncIterator([])
         ) as mock_llm_run,
         patch(
-            "google.adk.agents.LoopAgent.run_async", return_value=AsyncIterator([])
-        ) as mock_loop_run,
+            "google.adk.agents.SequentialAgent.run_async",
+            return_value=AsyncIterator([]),
+        ) as mock_sequential_run,
     ):
         # Initialize Agent (Real classes used, so Pydantic validation runs)
         agent = MultiPassRefinementAgent(name="TestAgent", config=config)
@@ -159,10 +160,10 @@ async def test_run_async_flow():
         # Thus, LlmAgent.run_async should only be called ONCE (for Aggregator).
         mock_llm_run.assert_called_once()
 
-        # Verify LoopAgent execution
-        # LoopAgents are inside ParallelAgent. Since ParallelAgent.run_async is mocked,
-        # LoopAgent.run_async should NOT be called.
-        mock_loop_run.assert_not_called()
+        # Verify SequentialAgent execution
+        # SequentialAgents are inside ParallelAgent. Since ParallelAgent.run_async is mocked,
+        # SequentialAgent.run_async should NOT be called.
+        mock_sequential_run.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -229,8 +230,8 @@ def test_model_config_resolution():
 
     # Verify Chain Agents
     assert agent.parallel_agent is not None
-    chain_loop = agent.parallel_agent.sub_agents[0]
-    pass_agent = chain_loop.sub_agents[0]
+    chain_sequence = agent.parallel_agent.sub_agents[0]
+    pass_agent = chain_sequence.sub_agents[0]
     assert pass_agent.model == "gemini-3-pro-preview"
 
     # 2. Custom chain model
@@ -243,8 +244,8 @@ def test_model_config_resolution():
 
     agent = MultiPassRefinementAgent(name="TestAgent2", config=config_custom)
     assert agent.parallel_agent is not None
-    chain_loop = agent.parallel_agent.sub_agents[0]
-    pass_agent = chain_loop.sub_agents[0]
+    chain_sequence = agent.parallel_agent.sub_agents[0]
+    pass_agent = chain_sequence.sub_agents[0]
     assert pass_agent.model == "custom-chain-model"
 
     # 3. Custom aggregator model
@@ -258,3 +259,38 @@ def test_model_config_resolution():
     agent = MultiPassRefinementAgent(name="TestAgent3", config=config_agg)
     assert agent.aggregator_agent is not None
     assert agent.aggregator_agent.model == "custom-agg-model"
+
+
+def test_chain_unrolling_structure():
+    """Verify that chains are unrolled into SequentialAgents with distinct pass agents."""
+    config = _create_mock_config(
+        n_parallel_chains=1,
+        m_sequential_passes=3,
+    )
+    agent = MultiPassRefinementAgent(name="TestAgent", config=config)
+
+    # Get the single chain sequence
+    assert agent.parallel_agent is not None
+    assert len(agent.parallel_agent.sub_agents) == 1
+    chain_sequence = agent.parallel_agent.sub_agents[0]
+
+    # Verify it is a sequence of 3 agents
+    # Note: We can't easily check isinstance(SequentialAgent) if we don't import it,
+    # but we can check the number of sub_agents.
+    assert len(chain_sequence.sub_agents) == 3
+
+    # Verify strict naming and output keys
+    # Pass 0
+    pass0 = chain_sequence.sub_agents[0]
+    assert pass0.name == "TestAgent_Chain0_Pass0"
+    assert pass0.output_key == "chain_0_pass_0_output"
+
+    # Pass 1
+    pass1 = chain_sequence.sub_agents[1]
+    assert pass1.name == "TestAgent_Chain0_Pass1"
+    assert pass1.output_key == "chain_0_pass_1_output"
+
+    # Pass 2
+    pass2 = chain_sequence.sub_agents[2]
+    assert pass2.name == "TestAgent_Chain0_Pass2"
+    assert pass2.output_key == "chain_0_pass_2_output"

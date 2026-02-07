@@ -4,7 +4,7 @@ Runs N parallel chains x M sequential passes to maximize finding coverage.
 Each chain explores independently, with later passes finding issues missed earlier.
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.code_executors import BuiltInCodeExecutor
