@@ -16,6 +16,9 @@ from app.services.storage import StorageService, get_storage_service
 
 router = APIRouter()
 
+# File size limit in MB
+MAX_FILE_SIZE_MB = 50
+
 
 async def process_document_task(
     job_id: uuid.UUID,
@@ -108,8 +111,16 @@ async def upload_document(
     db.add(job)
     await db.flush()  # Get the job ID
 
-    # 3. Upload file to storage
+    # 3. Validate file size
     content = await file.read()
+    file_size_mb = len(content) / (1024 * 1024)
+    if file_size_mb > MAX_FILE_SIZE_MB:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size ({file_size_mb:.2f}MB) exceeds the maximum allowed size of {MAX_FILE_SIZE_MB}MB",
+        )
+
+    # 4. Upload file to storage
     destination_path = f"jobs/{job.id}/{file.filename}"
     gcs_path = await storage.upload_file(
         file_content=content,
@@ -118,7 +129,7 @@ async def upload_document(
         or "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
-    # 3. Create Document record
+    # 5. Create Document record
     doc = Document(
         job_id=job.id,
         filename=file.filename,
@@ -131,12 +142,12 @@ async def upload_document(
 
     await db.commit()
 
-    # 4. Trigger background processing
+    # 6. Trigger background processing
     background_tasks.add_task(
         process_document_task, job_id=job.id, doc_id=doc.id, gcs_path=gcs_path
     )
 
-    # 5. Fetch job with documents loaded for the response
+    # 7. Fetch job with documents loaded for the response
     stmt = select(Job).where(Job.id == job.id).options(selectinload(Job.documents))
     result = await db.execute(stmt)
     job_with_docs = result.scalar_one()
