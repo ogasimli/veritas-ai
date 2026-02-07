@@ -12,6 +12,7 @@ from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
 
+from .callbacks import strip_injected_context
 from .prompt import get_reviewer_instruction
 from .schema import LogicConsistencyReviewerOutput
 
@@ -41,9 +42,11 @@ def _create_reviewer_agent(index: int, batch: list[dict], output_key: str) -> Ll
         name=f"LogicConsistencyReviewerBatch_{index}",
         model="gemini-3-pro-preview",
         instruction=get_reviewer_instruction(json.dumps(batch, indent=2)),
+        include_contents="none",
         output_key=output_key,
         output_schema=LogicConsistencyReviewerOutput,
         on_model_error_callback=default_model_error_handler,
+        before_model_callback=strip_injected_context,
         planner=BuiltInPlanner(
             thinking_config=types.ThinkingConfig(
                 include_thoughts=False, thinking_level="high"
