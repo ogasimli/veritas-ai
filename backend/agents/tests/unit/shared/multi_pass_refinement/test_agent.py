@@ -283,14 +283,14 @@ def test_chain_unrolling_structure():
     # Pass 0
     pass0 = chain_sequence.sub_agents[0]
     assert pass0.name == "TestAgent_Chain0_Pass0"
-    assert pass0.output_key == "chain_0_pass_0_output"
+    assert pass0.output_key == "TestAgent_chain_0_pass_0_output"
 
     # Pass 1
     pass1 = chain_sequence.sub_agents[1]
     assert pass1.name == "TestAgent_Chain0_Pass1"
-    assert pass1.output_key == "chain_0_pass_1_output"
+    assert pass1.output_key == "TestAgent_chain_0_pass_1_output"
 
     # Pass 2
     pass2 = chain_sequence.sub_agents[2]
     assert pass2.name == "TestAgent_Chain0_Pass2"
-    assert pass2.output_key == "chain_0_pass_2_output"
+    assert pass2.output_key == "TestAgent_chain_0_pass_2_output"

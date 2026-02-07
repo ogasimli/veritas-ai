@@ -131,7 +131,7 @@ class MultiPassRefinementAgent(BaseAgent):
         model = chain_config.model
 
         for pass_idx in range(config.m_sequential_passes):
-            pass_output_key = f"chain_{chain_idx}_pass_{pass_idx}_output"
+            pass_output_key = f"{agent_name}_chain_{chain_idx}_pass_{pass_idx}_output"
 
             # Create closure for this specific pass
             def make_after_pass_callback(current_pass_key: str):
