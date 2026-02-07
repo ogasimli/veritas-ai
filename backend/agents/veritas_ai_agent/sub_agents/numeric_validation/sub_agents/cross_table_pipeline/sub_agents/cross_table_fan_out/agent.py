@@ -64,7 +64,7 @@ def _create_chunk_agent(index: int, work_item: Any, output_key: str) -> LlmAgent
     """Return a fresh LlmAgent for one FSLI chunk."""
     fsli_batch_json, tables_json = work_item
     return LlmAgent(
-        name=f"cross_table_batch_{index}",
+        name=f"CrossTableBatch_{index}",
         model="gemini-3-pro-preview",
         instruction=get_batch_instruction(fsli_batch_json, tables_json),
         output_key=output_key,

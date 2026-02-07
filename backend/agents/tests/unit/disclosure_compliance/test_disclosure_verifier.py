@@ -154,14 +154,14 @@ class TestCreateVerifierAgent:
         checklist = {"name": "IAS 1", "disclosures": []}
         agent = _create_verifier_agent(0, ("IAS 1", checklist), "key")
 
-        assert agent.name == "verify_IAS_1"
+        assert agent.name == "DisclosureVerifier_IAS_1"
 
     def test_sanitizes_complex_standard_code(self):
         """Agent name should handle complex standard codes with multiple special chars."""
         checklist = {"name": "IFRS 15/16", "disclosures": []}
         agent = _create_verifier_agent(0, ("IFRS 15/16", checklist), "key")
 
-        assert agent.name == "verify_IFRS_15_16"
+        assert agent.name == "DisclosureVerifier_IFRS_15_16"
 
     def test_instruction_contains_checklist_data(self):
         """Instruction should contain the checklist disclosure requirements."""

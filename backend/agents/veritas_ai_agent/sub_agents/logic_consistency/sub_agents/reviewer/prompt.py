@@ -79,11 +79,6 @@ You are a logic consistency reviewer. Your job is to filter false positives from
 -> **Severity**: HIGH (going concern risk if cash burn continues)
 """
 
-# Backward-compatible constant: reads findings from state via ADK placeholder
-INSTRUCTION = _ROLE_AND_TASKS.replace(
-    "{findings_placeholder}", "{logic_consistency_detector_output}"
-)
-
 
 def get_reviewer_instruction(findings_json: str) -> str:
     """Build reviewer instruction with a specific subset of findings baked in.

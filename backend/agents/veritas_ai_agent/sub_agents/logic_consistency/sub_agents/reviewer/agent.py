@@ -6,6 +6,7 @@ from typing import Any
 
 from google.adk.agents import LlmAgent
 from google.genai import types
+from google.adk.planners.built_in_planner import BuiltInPlanner
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
@@ -61,6 +62,7 @@ reviewer_agent = FanOutAgent(
         create_agent=_create_reviewer_agent,
         output_key="logic_consistency_reviewer_output",
         results_field="findings",
+        batch_size=3,  # Run at most 3 agents in parallel (each agent processes 3 findings)
         empty_message="No detector findings to review.",
     ),
 )

@@ -52,7 +52,7 @@ def _create_verifier_agent(
     standard_code, checklist = work_item
     sanitized_code = re.sub(r"[^a-zA-Z0-9_]", "_", standard_code)
     return create_disclosure_verifier_agent(
-        name=f"verify_{sanitized_code}",
+        name=f"DisclosureVerifier_{sanitized_code}",
         standard_code=standard_code,
         checklist=checklist,
         output_key=output_key,

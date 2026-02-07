@@ -346,7 +346,7 @@ class TestCreateChunkAgent:
         work_item = ('["Total assets"]', '{"tables": []}')
         agent = _create_chunk_agent(3, work_item, "test_key")
 
-        assert agent.name == "cross_table_batch_3"
+        assert agent.name == "CrossTableBatch_3"
 
     def test_uses_provided_output_key(self):
         """Must use the output_key provided by FanOutAgent."""
