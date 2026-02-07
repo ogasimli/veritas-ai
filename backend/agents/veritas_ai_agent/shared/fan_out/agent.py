@@ -43,11 +43,12 @@ class FanOutAgent(BaseAgent):
         name: str,
         config: FanOutConfig,
         description: str | None = None,
+        **kwargs,
     ):
+        super_kwargs = {"name": name, **kwargs}
         if description:
-            super().__init__(name=name, description=description)
-        else:
-            super().__init__(name=name)
+            super_kwargs["description"] = description
+        super().__init__(**super_kwargs)
         self.config = config
 
     async def _run_async_impl(

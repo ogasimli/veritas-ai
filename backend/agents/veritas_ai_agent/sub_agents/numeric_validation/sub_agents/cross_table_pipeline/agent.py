@@ -6,8 +6,11 @@ Pipeline position
     FsliExtractor   →   CrossTableFormulaFanOut
          |                       |
     writes                 reads FSLIs, writes
-    fsli_extractor_output  cross-table formulas
-                           to reconstructed_formulas
+    fsli_extractor_output  cross_table_fan_out_output
+                                 |
+                           after_agent_callback
+                           copies formulas into
+                           reconstructed_formulas
 """
 
 from google.adk.agents import SequentialAgent
