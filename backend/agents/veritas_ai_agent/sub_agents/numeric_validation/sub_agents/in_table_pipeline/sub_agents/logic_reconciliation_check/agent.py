@@ -5,7 +5,7 @@ Screens tables for rollforward/movement candidates, then fans out per-table chec
 
 from google.adk.agents import SequentialAgent
 
-from .sub_agents.fan_out.agent import LogicReconciliationFormulaInferer
+from .sub_agents.fan_out.agent import logic_reconciliation_formula_inferer
 from .sub_agents.screener.agent import logic_reconciliation_check_screener_agent
 
 # ---------------------------------------------------------------------------
@@ -17,6 +17,6 @@ _logic_reconciliation_check_pipeline = SequentialAgent(
     description="Screens tables for rollforward/movement candidates and detects logical reconciliation formulas.",
     sub_agents=[
         logic_reconciliation_check_screener_agent,
-        LogicReconciliationFormulaInferer(),
+        logic_reconciliation_formula_inferer,
     ],
 )

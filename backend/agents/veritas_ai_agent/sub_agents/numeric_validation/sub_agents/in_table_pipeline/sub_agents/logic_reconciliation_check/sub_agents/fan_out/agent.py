@@ -1,121 +1,62 @@
-"""Logic Reconciliation Check Fan-Out Agent."""
+"""Logic Reconciliation Check Fan-Out Agent — fans out per candidate table."""
 
 import json
-from collections.abc import AsyncGenerator
+from typing import Any
 
-from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
-from google.adk.agents.invocation_context import InvocationContext
-from google.adk.events import Event
+from google.adk.agents import LlmAgent
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
+from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
 
 from .prompt import get_table_instruction
 from .schema import LogicCheckAgentOutput
 
 
-class LogicReconciliationFormulaInferer(BaseAgent):
-    """Dynamic fan-out for logic reconciliation checks."""
+def _prepare_work_items(state: dict[str, Any]) -> list[dict]:
+    """Read screener output and return candidate tables for fan-out."""
+    screener_output = state.get("logic_reconciliation_check_screener_output", {})
+    if hasattr(screener_output, "model_dump"):
+        screener_output = screener_output.model_dump()
 
-    def __init__(self):
-        super().__init__(name="LogicReconciliationFormulaInferer")
+    candidates = screener_output.get("candidate_table_indexes", [])
 
-    async def _run_async_impl(
-        self, ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
-        """Run fan-out logic."""
-        # 1. Get candidate indexes from screener output
-        screener_output = ctx.session.state.get(
-            "logic_reconciliation_check_screener_output", {}
+    all_tables_json = state.get("extracted_tables", "[]")
+    if isinstance(all_tables_json, str):
+        try:
+            all_tables = json.loads(all_tables_json)
+        except json.JSONDecodeError:
+            all_tables = []
+    else:
+        all_tables = all_tables_json
+
+    # Support if all_tables is a dict with "tables" key or just a list
+    tables_list = (
+        all_tables if isinstance(all_tables, list) else all_tables.get("tables", [])
+    )
+
+    candidate_tables = []
+    for idx in candidates:
+        matching_table = next(
+            (t for t in tables_list if t.get("table_index") == idx), None
         )
-        if hasattr(screener_output, "model_dump"):
-            screener_output = screener_output.model_dump()
+        if matching_table:
+            candidate_tables.append(matching_table)
 
-        candidates = screener_output.get("candidate_table_indexes", [])
-
-        # 2. Filter extracted tables
-        all_tables_json = ctx.session.state.get("extracted_tables", "[]")
-        if isinstance(all_tables_json, str):
-            try:
-                all_tables = json.loads(all_tables_json)
-            except json.JSONDecodeError:
-                all_tables = []
-        else:
-            all_tables = all_tables_json
-
-        candidate_tables = []
-        # Support if all_tables is a dict with "tables" key or just a list
-        tables_list = (
-            all_tables if isinstance(all_tables, list) else all_tables.get("tables", [])
-        )
-
-        for idx in candidates:
-            matching_table = next(
-                (t for t in tables_list if t.get("table_index") == idx), None
-            )
-            if matching_table:
-                candidate_tables.append(matching_table)
-
-        # 3. Early return if no candidates
-        if not candidate_tables:
-            ctx.session.state["logic_reconciliation_formula_inferer_output"] = {
-                "formulas": []
-            }
-            yield Event(
-                author=self.name,
-                content=types.Content(
-                    role="agent",
-                    parts=[
-                        types.Part(text="No candidate tables for logic reconciliation.")
-                    ],
-                ),
-            )
-            return
-
-        # 4. Create per-table agents
-        agents = []
-        for table in candidate_tables:
-            t_idx = table.get("table_index")
-            # Envelope: {"tables": [table]}
-            table_envelope = json.dumps({"tables": [table]})
-            agents.append(_create_table_agent(t_idx, table_envelope))
-
-        # 5. Run agents in parallel
-        parallel_agent = ParallelAgent(
-            name="LogicReconciliationCheckParallel", sub_agents=agents
-        )
-
-        async for event in parallel_agent.run_async(ctx):
-            yield event
-
-        # 6. Aggregate per-table outputs
-        aggregated_formulas = []
-        for table in candidate_tables:
-            t_idx = table.get("table_index")
-            key = f"logic_reconciliation_formula_inferer_table_output_{t_idx}"
-            output = ctx.session.state.get(key, {})
-            if hasattr(output, "model_dump"):
-                output = output.model_dump()
-
-            # formulas is list[str] (actually list[InferredFormula] in schema, but dict in state)
-            formulas = output.get("formulas", [])
-            aggregated_formulas.extend(formulas)
-
-        ctx.session.state["logic_reconciliation_formula_inferer_output"] = {
-            "formulas": aggregated_formulas
-        }
+    return candidate_tables
 
 
-def _create_table_agent(table_index: int, table_json: str) -> LlmAgent:
-    """Create a check agent for a specific table."""
+def _create_table_agent(index: int, work_item: Any, output_key: str) -> LlmAgent:
+    """Create a check agent for a specific candidate table."""
+    table_envelope = json.dumps({"tables": [work_item]})
     return LlmAgent(
-        name=f"LogicReconciliationFormulaInfererTableAgent_{table_index}",
+        name=f"LogicReconciliationFormulaInfererTableAgent_{index}",
         model="gemini-3-pro-preview",
-        instruction=get_table_instruction(table_json),
+        instruction=get_table_instruction(table_envelope),
         output_schema=LogicCheckAgentOutput,
-        output_key=f"logic_reconciliation_formula_inferer_table_output_{table_index}",
+        output_key=output_key,
         on_model_error_callback=default_model_error_handler,
         planner=BuiltInPlanner(
             thinking_config=types.ThinkingConfig(
@@ -126,3 +67,16 @@ def _create_table_agent(table_index: int, table_json: str) -> LlmAgent:
             http_options=types.HttpOptions(retry_options=get_default_retry_config())
         ),
     )
+
+
+logic_reconciliation_formula_inferer = FanOutAgent(
+    name="LogicReconciliationFormulaInferer",
+    config=FanOutConfig(
+        prepare_work_items=_prepare_work_items,
+        create_agent=_create_table_agent,
+        output_key="logic_reconciliation_formula_inferer_output",
+        results_field="formulas",
+        batch_size=None,
+        empty_message="No candidate tables for logic reconciliation.",
+    ),
+)
