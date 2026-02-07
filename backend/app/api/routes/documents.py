@@ -13,8 +13,6 @@ from app.schemas.job import JobRead
 from app.services.extractor import ExtractorService
 from app.services.processor import DocumentProcessor
 from app.services.storage import StorageService, get_storage_service
-from app.services.websocket_manager import manager
-from app.utils.validators import is_financial_document
 
 router = APIRouter()
 
@@ -51,49 +49,6 @@ async def process_document_task(
             markdown = extractor.extract_markdown(content)
             print(f"✅ Extracted {len(markdown)} characters of markdown")
             print(f"   Preview (first 200 chars): {markdown[:200]}...")
-
-            # 2.5. Validate financial document content
-            print("🔍 Step 2.5: Validating financial document content...")
-            # Check first 5000 characters for performance
-            sample_text = markdown[:5000]
-            is_financial, confidence = is_financial_document(sample_text)
-            print(f"   Financial document: {is_financial}")
-            print(f"   Confidence score: {confidence:.2f}")
-
-            if not is_financial:
-                error_msg = (
-                    f"Document validation failed: Content does not appear to be a "
-                    f"financial document (confidence: {confidence:.2f}, threshold: 0.40). "
-                    f"Please upload a financial statement, balance sheet, income statement, "
-                    f"or similar financial document."
-                )
-                print(f"❌ {error_msg}")
-
-                # Update Job status to failed
-                job_stmt = select(Job).where(Job.id == job_id)
-                job_result = await db.execute(job_stmt)
-                job = job_result.scalar_one_or_none()
-                if job:
-                    job.status = "failed"
-                    job.error_message = error_msg
-                    await db.commit()
-                    print("✅ Job status updated to 'failed'")
-
-                # Send WebSocket notification about validation failure
-                await manager.send_to_audit(
-                    str(job_id),
-                    {
-                        "type": "validation_failed",
-                        "error": error_msg,
-                        "confidence_score": confidence,
-                    },
-                )
-                print("📤 WebSocket notification sent about validation failure")
-
-                # Stop processing - document is not financial
-                return
-
-            print("✅ Financial document validation passed")
 
             # 3. Update Document record
             print("💾 Step 3: Updating document record in database...")
