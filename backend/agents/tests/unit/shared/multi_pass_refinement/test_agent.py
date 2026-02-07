@@ -187,8 +187,8 @@ async def test_findings_collection_logic():
         findings_chain_1 = [{"issue": "error2"}]
 
         ctx.session.state = {
-            "chain_0_accumulated_findings": findings_chain_0,
-            "chain_1_accumulated_findings": findings_chain_1,
+            "TestAgent_chain_0_accumulated_findings": findings_chain_0,
+            "TestAgent_chain_1_accumulated_findings": findings_chain_1,
         }
 
         # Run _run_async_impl to trigger collection logic

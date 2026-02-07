@@ -1,28 +1,35 @@
-"""Cross-Table Pipeline - SequentialAgent that runs FSLI extraction
-followed by the cross-table formula fan-out.
+"""Cross-Table Pipeline — detects cross-table discrepancies and reviews them.
 
-Pipeline position
------------------
-    FsliExtractor   →   CrossTableFormulaFanOut
-         |                       |
-    writes                 reads FSLIs, writes
-    fsli_extractor_output  cross_table_fan_out_output
-                                 |
-                           after_agent_callback
-                           copies formulas into
-                           reconstructed_formulas
+Architecture
+------------
+    CrossTablePipeline (SequentialAgent)
+      ├─ CrossTableDetectors (ParallelAgent)
+      │   ├─ BalanceSheetCrossTableInconsistencyDetector     (1x3 MultiPassRefinementAgent)
+      │   ├─ IncomeStatementCrossTableInconsistencyDetector  (1x3 MultiPassRefinementAgent)
+      │   └─ CashFlowCrossTableInconsistencyDetector         (2x3 MultiPassRefinementAgent)
+      └─ CrossTableReviewer           (FanOutAgent, max 5 findings/batch)
 """
 
-from google.adk.agents import SequentialAgent
+from google.adk.agents import ParallelAgent, SequentialAgent
 
-from .sub_agents.cross_table_fan_out.agent import cross_table_fan_out_agent
-from .sub_agents.fsli_extractor.agent import fsli_extractor_agent
+from .sub_agents.detectors import (
+    balance_sheet_detector_agent,
+    cash_flow_detector_agent,
+    income_statement_detector_agent,
+)
+from .sub_agents.reviewer import reviewer_agent
 
 cross_table_pipeline_agent = SequentialAgent(
     name="CrossTablePipeline",
-    description=(
-        "Sequential pipeline: extract cross-table FSLIs, then fan out "
-        "parallel agents to propose cross-table formulas."
-    ),
-    sub_agents=[fsli_extractor_agent, cross_table_fan_out_agent],
+    sub_agents=[
+        ParallelAgent(
+            name="CrossTableDetectors",
+            sub_agents=[
+                balance_sheet_detector_agent,
+                income_statement_detector_agent,
+                cash_flow_detector_agent,
+            ],
+        ),
+        reviewer_agent,
+    ],
 )

@@ -106,7 +106,7 @@ REFINEMENT_CONTENT = """
 ### Inputs
 
 **1. Previous Findings (from prior passes)**:
-{chain_CHAIN_IDX_accumulated_findings}
+{LogicConsistencyDetector_chain_CHAIN_IDX_accumulated_findings}
 
 **2. Financial Report**:
 {document_markdown}

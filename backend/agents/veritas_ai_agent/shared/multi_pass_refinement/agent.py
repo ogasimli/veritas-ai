@@ -96,7 +96,7 @@ class MultiPassRefinementAgent(BaseAgent):
         assert self.config is not None
         all_findings: list[dict] = []
         for chain_idx in range(self.config.n_parallel_chains):
-            key = f"chain_{chain_idx}_accumulated_findings"
+            key = f"{self.name}_chain_{chain_idx}_accumulated_findings"
             chain_findings = state.get(key, [])
             all_findings.extend(chain_findings)
 
@@ -119,7 +119,7 @@ class MultiPassRefinementAgent(BaseAgent):
         self, agent_name: str, config: MultiPassRefinementConfig, chain_idx: int
     ) -> SequentialAgent:
         """Create a SequentialAgent that runs M sequential passes for one chain."""
-        accumulated_key = f"chain_{chain_idx}_accumulated_findings"
+        accumulated_key = f"{agent_name}_chain_{chain_idx}_accumulated_findings"
         sub_agents = []
 
         def before_sequence_callback(callback_context: CallbackContext) -> None:
