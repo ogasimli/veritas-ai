@@ -2,7 +2,7 @@
 
 Pipeline:
 1. Detector (MultiPassRefinementAgent): N chains x M passes to find all contradictions
-2. Reviewer (LlmAgent): Single pass to filter false positives and assign severity
+2. Reviewer (FanOutAgent): Parallel batches to filter false positives and assign severity
 """
 
 from google.adk.agents import SequentialAgent

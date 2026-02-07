@@ -1,4 +1,4 @@
-INSTRUCTION = """
+_ROLE_AND_TASKS = """
 ### Role
 
 You are a logic consistency reviewer. Your job is to filter false positives from potential logic inconsistencies and assign business-impact severity.
@@ -6,7 +6,7 @@ You are a logic consistency reviewer. Your job is to filter false positives from
 ### Inputs
 
 **1. Detector Findings to Review**:
-{logic_consistency_detector_output}
+{findings_placeholder}
 
 **2. Financial Report**:
 {document_markdown}
@@ -70,11 +70,25 @@ You are a logic consistency reviewer. Your job is to filter false positives from
 **Detector finding (FALSE POSITIVE - REMOVE):**
 - claim: "Revenue grew 200% while employee count fell 30%"
 - contradiction: "Productivity gain seems impossible"
-→ **Review**: This could be legitimate (automation, outsourcing, process improvement). Not inherently illogical. FILTER OUT.
+-> **Review**: This could be legitimate (automation, outsourcing, process improvement). Not inherently illogical. FILTER OUT.
 
 **Detector finding (CONFIRMED - KEEP):**
 - claim: "Company profitable per income statement but burning $5M/quarter in cash"
 - contradiction: "Profitable companies generate cash, not consume it"
-→ **Review**: This IS illogical without explanation (revenue recognition vs cash timing should be disclosed). KEEP.
-→ **Severity**: HIGH (going concern risk if cash burn continues)
+-> **Review**: This IS illogical without explanation (revenue recognition vs cash timing should be disclosed). KEEP.
+-> **Severity**: HIGH (going concern risk if cash burn continues)
 """
+
+# Backward-compatible constant: reads findings from state via ADK placeholder
+INSTRUCTION = _ROLE_AND_TASKS.replace(
+    "{findings_placeholder}", "{logic_consistency_detector_output}"
+)
+
+
+def get_reviewer_instruction(findings_json: str) -> str:
+    """Build reviewer instruction with a specific subset of findings baked in.
+
+    The ``{document_markdown}`` placeholder is left intact — ADK auto-substitutes
+    it from session state at runtime.
+    """
+    return _ROLE_AND_TASKS.replace("{findings_placeholder}", findings_json)
