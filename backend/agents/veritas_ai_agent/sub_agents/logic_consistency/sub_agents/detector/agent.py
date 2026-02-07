@@ -4,6 +4,9 @@ Runs N parallel chains x M sequential passes to maximize finding coverage.
 Each chain explores independently, with later passes finding issues missed earlier.
 """
 
+from typing import Callable
+
+from google.adk.agents.invocation_context import InvocationContext
 from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
@@ -29,9 +32,19 @@ def _create_config() -> MultiPassRefinementConfig:
         # Convert to dict if they're Pydantic models
         return [f.model_dump() if hasattr(f, "model_dump") else f for f in findings]
 
-    def get_pass_instruction_wrapper(chain_idx: int) -> str:
-        """Unified prompt for all passes in a chain."""
-        return prompt.PASS_INSTRUCTION.replace("CHAIN_IDX", str(chain_idx))
+    def get_pass_instruction_wrapper(
+        chain_idx: int,
+    ) -> Callable[[InvocationContext], str]:
+        """Dynamic instruction based on existence of prior findings."""
+        findings_key = f"chain_{chain_idx}_accumulated_findings"
+
+        def instruction_provider(ctx: InvocationContext) -> str:
+            findings = ctx.session.state.get(findings_key, [])
+            if not findings:
+                return prompt.FIRST_PASS_INSTRUCTION
+            return prompt.REFINEMENT_INSTRUCTION.replace("CHAIN_IDX", str(chain_idx))
+
+        return instruction_provider
 
     def get_aggregator_instruction_wrapper(all_findings_json: str) -> str:
         """Prompt for default aggregator."""
