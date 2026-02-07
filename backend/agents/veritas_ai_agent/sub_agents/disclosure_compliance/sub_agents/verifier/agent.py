@@ -1,120 +1,69 @@
-"""FanOutDisclosureVerifier - Custom agent for parallel disclosure verification."""
+"""Disclosure Verifier — fans out per applicable standard using FanOutAgent."""
 
+import logging
 import re
-from collections.abc import AsyncGenerator
+from typing import Any
 
-from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
-from google.adk.agents.invocation_context import InvocationContext
-from google.adk.events import Event
+from google.adk.agents import LlmAgent
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
+from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
 
 from ...tools.checklist_loader import load_standard_checklist
 from .prompt import get_verifier_instruction
 from .schema import DisclosureVerifierOutput
 
+logger = logging.getLogger(__name__)
 
-class DisclosureVerifier(BaseAgent):
+
+def _prepare_work_items(state: dict[str, Any]) -> list[tuple[str, dict]]:
+    """Read applicable standards from state, load checklists, skip missing ones.
+
+    Returns list of (standard_code, checklist) tuples for standards with valid
+    checklists.  Standards whose checklist cannot be loaded are silently skipped
+    with a ``logger.warning``.
     """
-    Custom agent that dynamically spawns parallel disclosure verifiers,
-    one per applicable standard identified by DisclosureScanner.
+    scanner_output = state.get("disclosure_scanner_output", {})
+    if hasattr(scanner_output, "model_dump"):
+        scanner_output = scanner_output.model_dump()
 
-    Maintains ADK observability by using ParallelAgent internally.
-    """
+    applicable_standards = scanner_output.get("applicable_standards", [])
+    if not applicable_standards:
+        return []
 
-    name: str = "DisclosureVerifier"
-    description: str = "Spawns parallel verifiers for each applicable IFRS/IAS standard"
+    work_items: list[tuple[str, dict]] = []
+    for standard_code in applicable_standards:
+        try:
+            checklist = load_standard_checklist(standard_code)
+            work_items.append((standard_code, checklist))
+        except ValueError as e:
+            logger.warning("Skipping %s: %s", standard_code, e)
 
-    async def _run_async_impl(
-        self, ctx: InvocationContext
-    ) -> AsyncGenerator[Event, None]:
-        # 1. Read applicable standards from session state (set by DisclosureScanner)
-        scanner_output = ctx.session.state.get("disclosure_scanner_output", {})
-        applicable_standards = scanner_output.get("applicable_standards", [])
+    return work_items
 
-        if not applicable_standards:
-            yield Event(
-                author=self.name,
-                content=types.Content(
-                    role="agent",
-                    parts=[types.Part(text="No applicable standards found to verify.")],
-                ),
-            )
-            return
 
-        # 2. Create fresh VerifierAgent instances (single-parent rule)
-        verifier_agents = []
-        for standard_code in applicable_standards:
-            try:
-                # Load checklist for this standard
-                checklist = load_standard_checklist(standard_code)
-
-                # Create verifier agent for this standard
-                sanitized_code = re.sub(r"[^a-zA-Z0-9_]", "_", standard_code)
-                agent = create_disclosure_verifier_agent(
-                    name=f"verify_{sanitized_code}",
-                    standard_code=standard_code,
-                    checklist=checklist,
-                    output_key=f"disclosure_findings:{standard_code}",
-                )
-                verifier_agents.append(agent)
-
-            except ValueError as e:
-                # Standard not in checklist - skip it
-                yield Event(
-                    author=self.name,
-                    content=types.Content(
-                        role="agent",
-                        parts=[types.Part(text=f"Skipping {standard_code}: {e!s}")],
-                    ),
-                )
-                continue
-
-        if not verifier_agents:
-            yield Event(
-                author=self.name,
-                content=types.Content(
-                    role="agent",
-                    parts=[
-                        types.Part(text="No verifiable standards found in checklist.")
-                    ],
-                ),
-            )
-            return
-
-        # 3. Batch processing to avoid rate limits (429 RESOURCE_EXHAUSTED)
-        BATCH_SIZE = 4
-        for i in range(0, len(verifier_agents), BATCH_SIZE):
-            batch = verifier_agents[i : i + BATCH_SIZE]
-
-            # Wrap in ParallelAgent for concurrent execution of this batch
-            parallel = ParallelAgent(
-                name=f"disclosure_verifier_parallel_batch_{i // BATCH_SIZE + 1}",
-                sub_agents=batch,
-            )
-
-            # 4. Yield all events (preserves ADK observability)
-            async for event in parallel.run_async(ctx):
-                yield event
-
-        # 5. After all verifiers complete, aggregate results
-        all_findings = []
-        for key in ctx.session.state:
-            if key.startswith("disclosure_findings:"):
-                findings = ctx.session.state[key]
-                if findings:  # Only add non-empty findings
-                    all_findings.extend(findings.get("findings", []))
-        ctx.session.state["disclosure_all_findings"] = all_findings
+def _create_verifier_agent(
+    index: int, work_item: tuple[str, dict], output_key: str
+) -> LlmAgent:
+    """Create a verifier LlmAgent for one applicable standard."""
+    standard_code, checklist = work_item
+    sanitized_code = re.sub(r"[^a-zA-Z0-9_]", "_", standard_code)
+    return create_disclosure_verifier_agent(
+        name=f"verify_{sanitized_code}",
+        standard_code=standard_code,
+        checklist=checklist,
+        output_key=output_key,
+    )
 
 
 def create_disclosure_verifier_agent(
     name: str, standard_code: str, checklist: dict, output_key: str
 ) -> LlmAgent:
-    """
-    Factory to create a fresh disclosure verifier for a specific standard.
+    """Factory to create a fresh disclosure verifier for a specific standard.
+
     Must create new instances each time (ADK single-parent rule).
 
     Args:
@@ -123,21 +72,20 @@ def create_disclosure_verifier_agent(
         checklist: Loaded checklist data for the standard
         output_key: Session state key for output
     """
-    # Build enhanced instruction with checklist data
-    base_instruction = get_verifier_instruction(standard_code)
-
-    # Add checklist disclosure requirements to instruction
-    disclosures_text = f"\n\n## Disclosure Checklist for {standard_code}\n\n"
-    disclosures_text += f"Standard: {checklist['name']}\n\n"
-    disclosures_text += "Required disclosures to check:\n\n"
+    # Build checklist text
+    checklist_text = f"## Disclosure Checklist for {standard_code}\n\n"
+    checklist_text += f"Standard: {checklist['name']}\n\n"
+    checklist_text += "Required disclosures to check:\n\n"
 
     for disclosure in checklist["disclosures"]:
-        # Reference is now prepended in the prompt as well for consistency
         ref = disclosure.get("reference", "")
         req = disclosure.get("requirement", "")
-        disclosures_text += f"- **{disclosure['id']}**: {ref}: {req}\n\n"
+        checklist_text += f"- **{disclosure['id']}**: {ref}: {req}\n\n"
 
-    full_instruction = base_instruction + disclosures_text
+    # Inject checklist into instruction placeholder
+    full_instruction = get_verifier_instruction(standard_code).replace(
+        "{disclosure_checklist}", checklist_text
+    )
 
     return LlmAgent(
         name=name,
@@ -157,5 +105,14 @@ def create_disclosure_verifier_agent(
     )
 
 
-# Singleton instance for import
-disclosure_verifier_agent = DisclosureVerifier()
+disclosure_verifier_agent = FanOutAgent(
+    name="DisclosureVerifier",
+    config=FanOutConfig(
+        prepare_work_items=_prepare_work_items,
+        create_agent=_create_verifier_agent,
+        output_key="disclosure_all_findings",
+        results_field="findings",
+        batch_size=4,
+        empty_message="No applicable standards found to verify.",
+    ),
+)

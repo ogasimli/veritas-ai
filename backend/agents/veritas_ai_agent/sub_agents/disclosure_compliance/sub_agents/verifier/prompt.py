@@ -3,9 +3,13 @@ def get_verifier_instruction(standard_code: str) -> str:
 
 Your task is to check if required disclosures for this standard are present in the financial statement.
 
+## Disclosure Checklist
+
+{{disclosure_checklist}}
+
 ## Instructions
 
-1. **Load the checklist**: The disclosure requirements for {standard_code} are available in your context. You need to systematically check each disclosure.
+1. **Iterate over the checklist**: The disclosure requirements for {standard_code} are provided above. You need to systematically check each disclosure.
 
 2. **For each disclosure requirement**:
    - Read the requirement description carefully
