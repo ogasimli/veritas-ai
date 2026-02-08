@@ -8,10 +8,12 @@ repos:
         entry: make lint
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-commit]
       - id: make-test
         name: make test
         entry: make test
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-commit]

@@ -19,6 +19,9 @@ def validate_document_content(markdown_text: str) -> tuple[bool, str]:
         return False, "Document too short to be a financial statement"
 
     if "|" not in markdown_text:
-        return False, "Document contains no tables — financial statements require tabular data"
+        return (
+            False,
+            "Document contains no tables — financial statements require tabular data",
+        )
 
     return True, ""

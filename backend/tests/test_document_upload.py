@@ -49,7 +49,13 @@ def test_upload_document_exceeds_size_limit():
         # Upload the file
         response = client.post(
             "/api/v1/documents/upload",
-            files={"file": ("large_test.docx", file_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+            files={
+                "file": (
+                    "large_test.docx",
+                    file_data,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            },
         )
 
         # Assert that we get a 413 error
@@ -126,7 +132,13 @@ def test_upload_document_within_size_limit():
             # Upload the file
             response = client.post(
                 "/api/v1/documents/upload",
-                files={"file": ("small_test.docx", file_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                files={
+                    "file": (
+                        "small_test.docx",
+                        file_data,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
             )
 
             # Assert that the upload succeeds
@@ -202,7 +214,13 @@ def test_upload_document_edge_case_exactly_20mb():
             # Upload the file
             response = client.post(
                 "/api/v1/documents/upload",
-                files={"file": ("exact_test.docx", file_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                files={
+                    "file": (
+                        "exact_test.docx",
+                        file_data,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
             )
 
             # Assert that the upload succeeds (20MB is at the limit, not over)

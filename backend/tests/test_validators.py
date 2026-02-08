@@ -1,7 +1,5 @@
 """Tests for deterministic document content validator."""
 
-import pytest
-
 from app.utils.validators import validate_document_content
 
 
@@ -32,10 +30,16 @@ class TestValidateDocumentContent:
         text = "a" * 300  # Long enough but no pipe characters
         is_valid, error = validate_document_content(text)
         assert is_valid is False
-        assert error == "Document contains no tables — financial statements require tabular data"
+        assert (
+            error
+            == "Document contains no tables — financial statements require tabular data"
+        )
 
     def test_valid_document(self):
-        text = "x" * 200 + "\n| Column A | Column B |\n|----------|----------|\n| data | data |"
+        text = (
+            "x" * 200
+            + "\n| Column A | Column B |\n|----------|----------|\n| data | data |"
+        )
         is_valid, error = validate_document_content(text)
         assert is_valid is True
         assert error == ""
@@ -60,12 +64,12 @@ class TestValidateDocumentContent:
         # so the full string is 199 + 16 = 215 chars, which is > 200
         # Actually let me make sure it's exactly 199 after strip
         text = "a" * 199
-        is_valid, error = validate_document_content(text)
+        is_valid, _error = validate_document_content(text)
         assert is_valid is False
 
     def test_pipe_in_middle_of_text(self):
         """A pipe character anywhere counts as a table marker."""
         text = "a" * 200 + " some text with a | in it"
-        is_valid, error = validate_document_content(text)
+        is_valid, _error = validate_document_content(text)
         assert is_valid is True
-        assert error == ""
+        assert _error == ""
