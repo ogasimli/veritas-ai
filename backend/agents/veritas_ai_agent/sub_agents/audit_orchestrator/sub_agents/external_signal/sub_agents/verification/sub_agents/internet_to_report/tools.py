@@ -41,7 +41,7 @@ async def search_external_signals_tool(
     )
 
     result = await deep_research_client.run_research(
-        query=research_query, timeout_minutes=20
+        query=research_query, timeout_minutes=10
     )
 
     if result["status"] != "completed":

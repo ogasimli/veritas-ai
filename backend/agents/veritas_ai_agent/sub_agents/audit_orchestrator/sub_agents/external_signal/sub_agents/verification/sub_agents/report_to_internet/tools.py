@@ -52,7 +52,7 @@ async def verify_claims_tool(claims_json: str) -> str:
     verification_prompt = prompt.get_deep_research_instruction(claims_formatted)
 
     result = await deep_research_client.run_research(
-        query=verification_prompt, timeout_minutes=20
+        query=verification_prompt, timeout_minutes=10
     )
 
     if result["status"] != "completed":
