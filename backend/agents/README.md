@@ -242,7 +242,7 @@ Launch the ADK Playground to chat with the agent:
 make playground
 ```
 -   Open your browser to `http://localhost:8501`.
--   Upload a PDF financial report.
+-   Upload a financial report in Markdown format.
 -   Type "Analyze this report".
 
 ### 4. Deployment
