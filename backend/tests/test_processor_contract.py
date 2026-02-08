@@ -1,3 +1,4 @@
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -12,6 +13,12 @@ async def test_processor_extraction_contract():
     """
     Contract test to ensure DocumentProcessor correctly extracts results
     from the current session state structure produced by agents.
+
+    State shapes match the ACTUAL agent output schemas:
+    - numeric_validation_output (AggregatorOutput with NumericIssue items)
+    - logic_consistency_reviewer_output (findings list)
+    - disclosure_reviewer_output (findings list)
+    - external_signal_findings_aggregator_output (JSON string fields)
     """
     # 1. Setup Mock DB
     session_added = []
@@ -27,11 +34,6 @@ async def test_processor_extraction_contract():
     db.add.side_effect = mock_add
 
     async def mock_execute(stmt):
-        # Very basic simulation of select(...).where(...)
-        # We just need to check if we're querying AgentResultModel
-        # For simplicity in this contract test, we'll return what's been added so far
-        # that matches the agent_id if possible, but honestly returning everything
-        # is enough to stop the fallback from duplicating.
         results = session_added[:]
         mock_res = MagicMock()
         mock_res.scalars.return_value.all.return_value = results
@@ -47,32 +49,23 @@ async def test_processor_extraction_contract():
     mock_job.status = "processing"
     db.get.return_value = mock_job
 
-    # 3. Define the CONTRACT: This state represents the exact keys/structure
-    # expected from all sub-agents in the orchestrator.
+    # 3. Define the CONTRACT: matches CURRENT agent output schemas
     contract_final_state = {
         "numeric_validation": {
-            "legacy_numeric_issue_reviewer_output": {
-                "findings": [
-                    {
-                        "fsli_name": "Cash",
-                        "summary": "Numeric mismatch in Note 5",
-                        "severity": "high",
-                        "expected_value": 1000.0,
-                        "actual_value": 950.0,
-                        "discrepancy": 50.0,
-                        "source_refs": ["Note 5, Page 12"],
-                    }
-                ]
-            },
-            "in_table_issue_aggregator_output": {
+            "numeric_validation_output": {
                 "issues": [
                     {
-                        "table_name": "Balance Sheet",
-                        "issue_description": "Total Assets does not match sum",
-                        "severity": "medium",
-                        "discrepancy": 10.0,
-                        "source_refs": ["Table 1"],
-                    }
+                        "issue_description": "Gross Profit does not equal Revenue minus COGS",
+                        "check_type": "in_table",
+                        "formula": "5000 - 2000 = 3000 != 3500",
+                        "difference": 500.0,
+                    },
+                    {
+                        "issue_description": "MD&A claims 500% growth but actual is 400%",
+                        "check_type": "cross_table",
+                        "formula": "(5000 - 1000) / 1000 = 4.0 != 5.0",
+                        "difference": 100.0,
+                    },
                 ]
             },
         },
@@ -80,12 +73,12 @@ async def test_processor_extraction_contract():
             "logic_consistency_reviewer_output": {
                 "findings": [
                     {
-                        "fsli_name": "Revenue",
-                        "claim": "Revenue increased by 10%",
-                        "contradiction": "Table 1 shows a 5% decrease",
+                        "fsli_name": "Revenue / Operating Expenses",
+                        "claim": "Revenue increased by 500%",
+                        "contradiction": "Implausible to 5x revenue while closing all facilities",
                         "severity": "high",
-                        "reasoning": "Direct contradiction between MD&A and Table 1",
-                        "source_refs": ["Table 1", "MD&A Section 2"],
+                        "reasoning": "Per-employee output would need to jump 33x",
+                        "source_refs": ["Income Statement", "MD&A Paragraph 1"],
                     }
                 ]
             }
@@ -94,35 +87,49 @@ async def test_processor_extraction_contract():
             "disclosure_reviewer_output": {
                 "findings": [
                     {
-                        "standard": "IAS 1",
-                        "disclosure_id": "IAS1-D12",
-                        "requirement": "Going concern assessment",
+                        "standard": "IAS 19",
+                        "disclosure_id": "IAS19-D1",
+                        "reference": "IFRS15p126(l)",
                         "severity": "high",
-                        "description": "The report fails to explicitly state the going concern assumption.",
+                        "requirement": "Disclosure of employee benefits expense",
                     }
                 ]
             }
         },
         "external_signal": {
             "external_signal_findings_aggregator_output": {
-                "findings": [
+                "external_signals": json.dumps([
                     {
-                        "finding_type": "external_signal",
-                        "summary": "Major lawsuit filed against company",
-                        "severity": "medium",
-                        "source_urls": ["https://reuters.com/news/123"],
-                        "category": "litigation",
-                        "details": "Publication date: 2025-06-15\nPotential contradiction: Contradicts 'No pending litigation' claim",
-                    },
-                    {
-                        "finding_type": "claim_contradiction",
-                        "summary": "CONTRADICTED: Headquartered in London",
+                        "signal_title": "S&P downgraded company to Selective Default",
+                        "signal_type": ["financing_distress"],
+                        "entities_involved": ["Veritas Technologies"],
+                        "event_date": "2024-11-15",
+                        "sources": json.dumps([
+                            {"url": "https://spglobal.com/ratings", "publisher": "S&P Global"}
+                        ]),
+                        "summary": "S&P downgraded Veritas to SD after distressed debt exchange.",
+                        "expected_fs_impact_area": ["Notes"],
+                        "expected_fs_impact_notes_expected": ["Subsequent events"],
+                        "expected_fs_impact_rationale": "Material credit event requires disclosure.",
+                        "evidence_reflected_in_fs": "No",
+                        "evidence_search_terms_used": ["downgrade", "S&P"],
+                        "evidence_not_found_statement": "No mention of credit downgrade.",
+                        "gap_classification": "POTENTIAL_OMISSION",
                         "severity": "high",
-                        "source_urls": ["https://company-registry.gov/uk"],
-                        "category": "claim_verification",
-                        "details": "Claim: Headquartered in London\nStatus: CONTRADICTED\nEvidence: Registry shows HQ moved to Paris in 2024\nDiscrepancy: Location mismatch",
-                    },
-                ]
+                    }
+                ]),
+                "claim_verifications": json.dumps([
+                    {
+                        "claim_text": "Company closed Seattle facility",
+                        "claim_category": "operational",
+                        "verification_status": "CONTRADICTED",
+                        "evidence_summary": "No public records confirm this facility exists.",
+                        "source_urls": ["https://example.com/records"],
+                        "discrepancy": "Facility cannot be verified",
+                        "severity": "high",
+                    }
+                ]),
+                "error": None,
             }
         },
     }
@@ -163,10 +170,27 @@ async def test_processor_extraction_contract():
     assert "disclosure" in categories
     assert "external" in categories
 
-    # We expect EXACTLY 6 results. If fallback logic is buggy, we'd get 10.
+    # 2 numeric + 1 logic + 1 disclosure + 2 external (1 signal + 1 claim) = 6
     assert len(added_results) == 6, (
         f"Expected 6 results, got {len(added_results)}. Check for duplicates!"
     )
+
+    # Verify numeric findings use NormalizedFinding fields
+    numeric_results = [r for r in added_results if r.category == "numeric"]
+    assert len(numeric_results) == 2
+    for r in numeric_results:
+        assert r.description is not None
+        assert r.severity is not None
+        assert r.reasoning is not None
+        assert "check_type" in (r.reasoning or "").lower() or "formula" in (r.reasoning or "").lower()
+
+    # Verify external signal findings parsed from JSON strings
+    external_results = [r for r in added_results if r.category == "external"]
+    assert len(external_results) == 2
+    # One should be signal, one claim verification
+    descriptions = [r.description for r in external_results]
+    assert any("S&P" in d for d in descriptions), "External signal not parsed"
+    assert any("CONTRADICTED" in d for d in descriptions), "Claim verification not parsed"
 
     print("\n✅ Processor Contract Test Passed!")
 
@@ -206,16 +230,19 @@ async def test_processor_empty_findings_contract():
     mock_job.status = "processing"
     db.get.return_value = mock_job
 
-    # 3. Define State with EMPTY findings
+    # 3. Define State with EMPTY findings (matches current schemas)
     contract_empty_state = {
         "numeric_validation": {
-            "legacy_numeric_issue_reviewer_output": {"findings": []},
-            "in_table_issue_aggregator_output": {"issues": []},
+            "numeric_validation_output": {"issues": []},
         },
         "logic_consistency": {"logic_consistency_reviewer_output": {"findings": []}},
         "disclosure_compliance": {"disclosure_reviewer_output": {"findings": []}},
         "external_signal": {
-            "external_signal_findings_aggregator_output": {"findings": []},
+            "external_signal_findings_aggregator_output": {
+                "external_signals": "[]",
+                "claim_verifications": "[]",
+                "error": None,
+            },
         },
     }
 

@@ -1,7 +1,5 @@
 """Document processing service with agent pipeline integration."""
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -14,21 +12,10 @@ from veritas_ai_agent import app
 from app.config import get_settings
 from app.models.finding import AgentResult as AgentResultModel
 from app.models.job import Job
+from app.schemas.finding import NormalizedFinding
+from app.services.adapters import ADAPTER_REGISTRY, AgentAdapter
 from app.services.dummy_agent.dummy_agent_service import DummyAgentService
 from app.services.websocket_manager import manager
-
-
-@dataclass
-class AgentConfig:
-    """Configuration for agent detection and findings extraction."""
-
-    agent_id: str
-    completion_check: Callable[
-        [dict[str, Any]], list[dict] | None
-    ]  # Function to extract findings
-    error_check: Callable[[dict[str, Any]], dict | None]  # Function to check for errors
-    category: str  # Database category
-    db_transformer: Callable[[dict], dict]  # Transform finding data for DB
 
 
 class DocumentProcessor:
@@ -36,193 +23,15 @@ class DocumentProcessor:
 
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.agent_configs = self._initialize_agent_configs()
 
-    def _initialize_agent_configs(self) -> list[AgentConfig]:
-        """Define configuration for all agents."""
-        return [
-            AgentConfig(
-                agent_id="numeric_validation",
-                completion_check=lambda state: self._get_numeric_findings(state),
-                error_check=lambda state: self._check_standard_error(
-                    self._get_agent_namespace(state, "numeric_validation"),
-                    [
-                        "legacy_numeric_fsli_extractor_output",
-                        "legacy_numeric_issue_reviewer_output",
-                        "table_extractor_output",
-                        "in_table_issue_aggregator_output",
-                    ],
-                ),
-                category="numeric",
-                db_transformer=lambda f: {
-                    "description": f.get("summary", "")
-                    or f.get("issue_description", ""),
-                    "severity": f.get("severity", "medium"),
-                    "source_refs": f.get("source_refs", []),
-                    "reasoning": (
-                        f"Expected: {f.get('expected_value')}, "
-                        f"Actual: {f.get('actual_value')}, "
-                        f"Discrepancy: {f.get('discrepancy')}"
-                        if f.get("expected_value")
-                        else f.get("issue_description", "")
-                    ),
-                },
-            ),
-            AgentConfig(
-                agent_id="logic_consistency",
-                completion_check=lambda state: self._get_nested_findings(
-                    state, "logic_consistency", "logic_consistency_reviewer_output"
-                ),
-                error_check=lambda state: self._check_standard_error(
-                    self._get_agent_namespace(state, "logic_consistency"),
-                    [
-                        "logic_consistency_detector_output",
-                        "logic_consistency_reviewer_output",
-                    ],
-                ),
-                category="logic",
-                db_transformer=lambda f: {
-                    "description": f.get("contradiction", ""),
-                    "severity": f.get("severity", "medium"),
-                    "source_refs": f.get("source_refs", []),
-                    "reasoning": f"Claim: {f.get('claim', '')}\n\nReasoning: {f.get('reasoning', '')}",
-                },
-            ),
-            AgentConfig(
-                agent_id="disclosure_compliance",
-                completion_check=lambda state: self._get_nested_findings(
-                    state, "disclosure_compliance", "disclosure_reviewer_output"
-                ),
-                error_check=lambda state: self._check_standard_error(
-                    self._get_agent_namespace(state, "disclosure_compliance"),
-                    ["disclosure_scanner_output", "disclosure_reviewer_output"],
-                ),
-                category="disclosure",
-                db_transformer=lambda f: {
-                    "description": f"{f.get('reference', '')}: {f.get('requirement', '')}",
-                    "severity": f.get("severity", "medium"),
-                    "source_refs": [],
-                    "reasoning": f"Standard: {f.get('standard')}\n"
-                    f"ID: {f.get('disclosure_id')}\n"
-                    f"requirement: {f.get('reference', '')}: {f.get('requirement', '')}",
-                },
-            ),
-            AgentConfig(
-                agent_id="external_signal",
-                completion_check=lambda state: self._get_nested_findings(
-                    state,
-                    "external_signal",
-                    "external_signal_findings_aggregator_output",
-                ),
-                error_check=lambda state: self._check_standard_error(
-                    self._get_agent_namespace(state, "external_signal"),
-                    [
-                        "external_signal_internet_to_report_output",
-                        "external_signal_report_to_internet_output",
-                        "external_signal_findings_aggregator_output",
-                    ],
-                ),
-                category="external",
-                db_transformer=lambda f: self._transform_unified_external_finding(f),
-            ),
-        ]
-
+    @staticmethod
     def _get_agent_namespace(
-        self, state: dict[str, Any], agent_id: str
+        state: dict[str, Any], agent_id: str
     ) -> dict[str, Any]:
         """Get the state namespace for an agent, or return the state itself if not namespaced."""
         if agent_id in state and isinstance(state[agent_id], dict):
             return state[agent_id]
         return state
-
-    def _get_nested_findings(
-        self, state: dict[str, Any], agent_id: str, output_key: str
-    ) -> list[dict] | None:
-        """Extract findings from a potentially namespaced state."""
-        ns = self._get_agent_namespace(state, agent_id)
-        output = ns.get(output_key)
-        if isinstance(output, dict):
-            # General case: findings list in "findings" key
-            return output.get("findings")
-        return None
-
-    def _get_numeric_findings(self, state: dict[str, Any]) -> list[dict] | None:
-        """Aggregate numeric findings from both legacy and in-table pipelines."""
-        ns = self._get_agent_namespace(state, "numeric_validation")
-        findings = []
-
-        # Legacy findings
-        legacy_output = ns.get("legacy_numeric_issue_reviewer_output")
-        if isinstance(legacy_output, dict):
-            legacy_findings = legacy_output.get("findings", [])
-            if legacy_findings:
-                findings.extend(legacy_findings)
-
-        # In-table findings
-        in_table_output = ns.get("in_table_issue_aggregator_output")
-        if isinstance(in_table_output, dict):
-            in_table_issues = in_table_output.get("issues", [])
-            if in_table_issues:
-                findings.extend(in_table_issues)
-
-        if findings:
-            return findings
-
-        # Check if we at least saw the output keys, implying the agent ran but found nothing
-        if (
-            ns.get("legacy_numeric_issue_reviewer_output") is not None
-            or ns.get("in_table_issue_aggregator_output") is not None
-        ):
-            return []
-
-        return None
-
-    def _check_standard_error(
-        self, state: dict[str, Any], keys: list[str]
-    ) -> dict | None:
-        """Check for AgentError in standard output keys."""
-        for key in keys:
-            data = state.get(key)
-            if isinstance(data, dict):
-                # Check for direct error field (from AgentError schema)
-                if data.get("error") and isinstance(data["error"], dict):
-                    return data["error"]
-                # Check directly if the output itself is an error (fallback)
-                if data.get("is_error"):
-                    return data
-        return None
-
-    def _aggregate_disclosure_findings(
-        self, state: dict[str, Any]
-    ) -> list[dict] | None:
-        """Aggregate disclosure findings from all standards."""
-        disclosure_keys = [
-            k for k in state.keys() if k.startswith("disclosure_findings:")
-        ]
-        if not disclosure_keys:
-            return None
-
-        findings = []
-        for key in disclosure_keys:
-            disclosure_data = state.get(key, {})
-            if isinstance(disclosure_data, dict):
-                findings_list = disclosure_data.get("findings", [])
-                if isinstance(findings_list, list):
-                    findings.extend(findings_list)
-        return findings if findings else None
-
-    def _transform_unified_external_finding(self, finding: dict) -> dict:
-        """Transform unified external finding for database storage."""
-        return {
-            "description": finding.get("summary", ""),
-            "severity": finding.get("severity", "medium"),
-            "source_refs": finding.get("source_urls", []),
-            "reasoning": (
-                f"Type: {finding.get('finding_type', '')}\n"
-                f"Category: {finding.get('category', '')}\n\n"
-                f"{finding.get('details', '')}"
-            ),
-        }
 
     async def _send_websocket_message(
         self, job_id: UUID, message_type: str, agent_id: str
@@ -245,39 +54,39 @@ class DocumentProcessor:
     async def _save_agent_results_to_db(
         self,
         job_id: UUID,
-        config: AgentConfig,
-        findings: list[dict] | None,
+        adapter: AgentAdapter,
+        findings: list[NormalizedFinding] | None,
         error: dict | None,
     ):
         """Save results (findings or error) to database immediately."""
         if error:
-            # Save error result
             result = AgentResultModel(
                 job_id=job_id,
-                agent_id=config.agent_id,
-                category=config.category,
+                agent_id=adapter.agent_id,
+                category=adapter.category,
                 error=error.get("error_message", str(error)),
                 raw_data=error,
             )
             self.db.add(result)
             print(
-                f"      💾 Saved ERROR to DB for agent '{config.agent_id}'", flush=True
+                f"      💾 Saved ERROR to DB for agent '{adapter.agent_id}'", flush=True
             )
 
         elif findings:
-            # Save each finding result
-            for finding_data in findings:
-                transformed = config.db_transformer(finding_data)
+            for nf in findings:
                 result = AgentResultModel(
                     job_id=job_id,
-                    agent_id=config.agent_id,
-                    category=config.category,
-                    raw_data=finding_data,
-                    **transformed,
+                    agent_id=adapter.agent_id,
+                    category=adapter.category,
+                    raw_data=nf.model_dump(),
+                    description=nf.description,
+                    severity=nf.severity,
+                    source_refs=nf.source_refs,
+                    reasoning=nf.reasoning,
                 )
                 self.db.add(result)
             print(
-                f"      💾 Saved {len(findings)} findings to DB for agent '{config.agent_id}'",
+                f"      💾 Saved {len(findings)} findings to DB for agent '{adapter.agent_id}'",
                 flush=True,
             )
 
@@ -285,15 +94,15 @@ class DocumentProcessor:
             # findings is empty list -> Save empty success result
             result = AgentResultModel(
                 job_id=job_id,
-                agent_id=config.agent_id,
-                category=config.category,
+                agent_id=adapter.agent_id,
+                category=adapter.category,
                 raw_data={},
                 description=None,
                 severity=None,
             )
             self.db.add(result)
             print(
-                f"      💾 Saved EMPTY result to DB for agent '{config.agent_id}'",
+                f"      💾 Saved EMPTY result to DB for agent '{adapter.agent_id}'",
                 flush=True,
             )
 
@@ -309,22 +118,14 @@ class DocumentProcessor:
         specific_agent: str | None = None,
         is_final: bool = False,
     ):
-        """Check agent states and send WebSocket notifications.
-
-        Args:
-            job_id: The job ID
-            state: Current accumulated state
-            agents_started: Set of agent IDs that have started
-            agents_completed: Set of agent IDs that have completed
-            specific_agent: If provided, only check this specific agent for findings.
-            is_final: Whether this is a final event for specific_agent
-        """
-        # We always check for errors for all agents that have started but not completed
-        for config in self.agent_configs:
-            agent_id = config.agent_id
+        """Check agent states and send WebSocket notifications."""
+        for adapter in ADAPTER_REGISTRY.values():
+            agent_id = adapter.agent_id
             if agent_id in agents_started and agent_id not in agents_completed:
+                ns = self._get_agent_namespace(state, agent_id)
+
                 # Check for errors on every event
-                error = config.error_check(state)
+                error = adapter.extract_error(ns)
 
                 # Check for findings only if this is the final event for this specific agent
                 findings = None
@@ -333,7 +134,7 @@ class DocumentProcessor:
                 )
 
                 if is_agent_final:
-                    findings = config.completion_check(state)
+                    findings = adapter.extract_findings(ns)
 
                 # Check if we have a definitive result (error present OR findings is not None)
                 if error or (
@@ -343,33 +144,32 @@ class DocumentProcessor:
                 ):
                     agents_completed.add(agent_id)
 
-                    # Unified save call - logic handled inside
                     await self._save_agent_results_to_db(
-                        job_id, config, findings, error
+                        job_id, adapter, findings, error
                     )
 
-                    # Unified notification
                     await self._send_websocket_message(
                         job_id, "agent_completed", agent_id
                     )
 
-    def _extract_all_findings(self, state: dict[str, Any]) -> dict[str, list[dict]]:
+    def _extract_all_findings(self, state: dict[str, Any]) -> dict[str, list[NormalizedFinding]]:
         """Extract findings for all agents from final state."""
-        findings_by_agent = {}
+        findings_by_agent: dict[str, list[NormalizedFinding]] = {}
 
-        for config in self.agent_configs:
-            findings = config.completion_check(state)
+        for adapter in ADAPTER_REGISTRY.values():
+            ns = self._get_agent_namespace(state, adapter.agent_id)
+            findings = adapter.extract_findings(ns)
             if findings and isinstance(findings, list):
-                findings_by_agent[config.agent_id] = findings
-                print(f"   📋 {config.agent_id}: {len(findings)} findings", flush=True)
+                findings_by_agent[adapter.agent_id] = findings
+                print(f"   📋 {adapter.agent_id}: {len(findings)} findings", flush=True)
             else:
-                findings_by_agent[config.agent_id] = []
-                print(f"   📋 {config.agent_id}: 0 findings", flush=True)
+                findings_by_agent[adapter.agent_id] = []
+                print(f"   📋 {adapter.agent_id}: 0 findings", flush=True)
 
         return findings_by_agent
 
     async def _save_findings_to_database(
-        self, job_id: UUID, findings_by_agent: dict[str, list[dict]]
+        self, job_id: UUID, findings_by_agent: dict[str, list[NormalizedFinding]]
     ):
         """Save any remaining findings to database (fallback for agents that didn't notify)."""
         from sqlalchemy import select
@@ -381,35 +181,32 @@ class DocumentProcessor:
         )
 
         saved_count = 0
-        for config in self.agent_configs:
-            findings = findings_by_agent.get(config.agent_id)
+        for adapter in ADAPTER_REGISTRY.values():
+            findings = findings_by_agent.get(adapter.agent_id)
 
-            # If findings is None, skip (maybe agent didn't run or produce valid output)
             if findings is None:
                 continue
 
-            # Check if ANY result (findings or error/empty) already exists for this agent
+            # Check if ANY result already exists for this agent
             stmt = select(AgentResultModel).where(
                 AgentResultModel.job_id == job_id,
-                AgentResultModel.agent_id == config.agent_id,
+                AgentResultModel.agent_id == adapter.agent_id,
             )
             result = await self.db.execute(stmt)
             existing_results = result.scalars().all()
 
             if existing_results:
                 print(
-                    f"   ⏭️  Skipping agent '{config.agent_id}' (already saved)",
+                    f"   ⏭️  Skipping agent '{adapter.agent_id}' (already saved)",
                     flush=True,
                 )
                 continue
 
-            # Save findings (or empty result) if not already present
             if not findings:
-                # Save empty result
                 result = AgentResultModel(
                     job_id=job_id,
-                    agent_id=config.agent_id,
-                    category=config.category,
+                    agent_id=adapter.agent_id,
+                    category=adapter.category,
                     raw_data={},
                     description=None,
                     severity=None,
@@ -417,14 +214,16 @@ class DocumentProcessor:
                 self.db.add(result)
                 saved_count += 1
             else:
-                for finding_data in findings:
-                    transformed = config.db_transformer(finding_data)
+                for nf in findings:
                     result = AgentResultModel(
                         job_id=job_id,
-                        agent_id=config.agent_id,
-                        category=config.category,
-                        raw_data=finding_data,
-                        **transformed,
+                        agent_id=adapter.agent_id,
+                        category=adapter.category,
+                        raw_data=nf.model_dump(),
+                        description=nf.description,
+                        severity=nf.severity,
+                        source_refs=nf.source_refs,
+                        reasoning=nf.reasoning,
                     )
                     self.db.add(result)
                     saved_count += 1
@@ -470,7 +269,6 @@ class DocumentProcessor:
                 )
                 print(f"{'🎭' * 40}\n", flush=True)
 
-                # Use dummy agent service (mimics InMemoryRunner interface)
                 print("\n🚀 Initializing dummy agent service...", flush=True)
                 runner = DummyAgentService(app=app)
                 print("✅ Dummy runner initialized successfully", flush=True)
@@ -487,7 +285,6 @@ class DocumentProcessor:
                 )
                 print(f"{'🤖' * 40}\n", flush=True)
 
-                # Real agent mode: Initialize ADK runner
                 print("\n🚀 Initializing ADK runner with app...", flush=True)
                 runner = InMemoryRunner(app=app)
                 print("✅ Runner initialized successfully", flush=True)
@@ -510,6 +307,8 @@ class DocumentProcessor:
             print(f"{'=' * 80}\n", flush=True)
 
             event_count = 0
+            adapter_agent_ids = set(ADAPTER_REGISTRY.keys())
+
             async for event in runner.run_async(
                 user_id=session.user_id,
                 session_id=session.id,
@@ -517,13 +316,13 @@ class DocumentProcessor:
             ):
                 event_count += 1
 
-                # Mark all agents as started on the very first event to ensure frontend is ready
+                # Mark all agents as started on the very first event
                 if event_count == 1:
                     print("🚀 Starting all agents...", flush=True)
-                    for config in self.agent_configs:
-                        agents_started.add(config.agent_id)
+                    for agent_id in adapter_agent_ids:
+                        agents_started.add(agent_id)
                         await self._send_websocket_message(
-                            job_id, "agent_started", config.agent_id
+                            job_id, "agent_started", agent_id
                         )
 
                 print(
@@ -546,16 +345,12 @@ class DocumentProcessor:
                 specific_agent = None
 
                 if is_final and hasattr(event, "branch") and event.branch:
-                    # Identify which agent this branch belongs to
                     branch_parts = event.branch.split(".")
-                    config_agent_ids = {c.agent_id for c in self.agent_configs}
                     for part in reversed(branch_parts):
-                        if part in config_agent_ids:
+                        if part in adapter_agent_ids:
                             specific_agent = part
                             break
 
-                # Call check_and_notify on EVERY event for error detection
-                # findings will only be checked if is_final=True and specific_agent matches
                 await self._check_and_notify_agents(
                     job_id,
                     final_state,
@@ -637,8 +432,5 @@ class DocumentProcessor:
             job.status = "failed"
             job.error_message = str(e)
             await self.db.commit()
-
-            # Note: We rely on job status update for pipeline errors
-            # agent_error message is deprecated
 
             raise

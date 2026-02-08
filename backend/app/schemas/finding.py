@@ -1,8 +1,28 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
+
+
+class NormalizedFinding(BaseModel):
+    """Canonical finding shape — shared contract between adapters and DB layer."""
+
+    description: str
+    severity: str  # "high" | "medium" | "low"
+    reasoning: str
+    source_refs: list[str] = []
+
+
+class AgentResultEnvelope(BaseModel):
+    """Uniform wrapper for any agent's output."""
+
+    agent_id: str
+    category: str
+    status: Literal["success", "error"] = "success"
+    findings: list[NormalizedFinding] = []
+    error_message: str | None = None
+    error_type: str | None = None
 
 
 class AgentResultBase(BaseModel):
