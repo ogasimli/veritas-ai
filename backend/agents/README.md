@@ -1,6 +1,6 @@
 # Veritas AI Agent Validation Pipeline 🛡️
 
-The Veritas AI Agent is a sophisticated multi-agent system designed to automate the audit and validation of financial reports. It leverages the **Google Agent Development Kit (ADK)** and **Gemini 2.0/3.0** models to perform distinct types of validation in parallel, orchestrating a team of specialized sub-agents.
+The Veritas AI Agent is a sophisticated multi-agent system designed to automate the audit and validation of financial reports. It leverages the **Google Agent Development Kit (ADK)** and **Gemini 3.0 Pro/Flash** models to perform distinct types of validation in parallel, orchestrating a team of specialized sub-agents.
 
 ## 🌟 High-Level Overview
 
