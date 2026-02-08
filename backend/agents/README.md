@@ -4,9 +4,9 @@ The Veritas AI Agent is a sophisticated multi-agent system designed to automate 
 
 ## 🌟 High-Level Overview
 
-The system is built as a **sophisticated Multi-Agent System (MAS)**, where autonomous agents collaborate to decompose the complex task of financial auditing into manageable, specialized domains. Unlike monolithic approaches, this architecture allows each agent to employ distinct reasoning strategies—such as Map-Reduce for large datasets, multi-pass refinement for subtle logic checks, and recursive research for external validation.
+The system is built as a **sophisticated Multi-Agent System (MAS)**, where autonomous agents collaborate to decompose the complex task of validation of financial reports into manageable, specialized domains. Unlike monolithic approaches, this architecture allows each agent to employ distinct reasoning strategies—such as Map-Reduce for large datasets, multi-pass refinement for subtle logic checks, and recursive research for external validation.
 
-Before any audit work begins, a **Document Validator** acts as a cost-efficient gate. It combines fast deterministic pre-flight checks (content length, presence of tabular data) with a lightweight LLM classifier to reject documents that are clearly not financial in nature — preventing the expensive downstream pipeline from running on irrelevant uploads.
+Before any validation work begins, a **Document Validator** acts as a cost-efficient gate. It combines fast deterministic pre-flight checks (content length, presence of tabular data) with a lightweight LLM classifier to reject documents that are clearly not financial in nature — preventing the expensive downstream pipeline from running on irrelevant uploads.
 
 At the core is the **Audit Orchestrator**, a central hub that dispatches the financial report to four parallel expert pipelines. Each pipeline operates independently with its own tools and sub-agents, focusing on a specific validation vertical (Numeric, Logic, Compliance, and External Signals). The Orchestrator then aggregates their independent findings into a single, comprehensive audit report.
 
@@ -94,7 +94,7 @@ graph TD
 This is the most complex pipeline. It first extracts tables programmatically (no LLM, zero hallucination risk), assigns semantic names via an LLM, then splits into two parallel streams:
 
 -   **In-Table Pipeline**: Checks internal consistency within each table (column sums, row totals, rollforward logic). Uses **FanOut** to process tables in batches. An "anchor formula" pattern lets the LLM generate one formula template per table, which Python then replicates across all rows/columns deterministically — combining LLM reasoning with deterministic execution.
--   **Cross-Table Pipeline**: Checks relationships between tables (e.g., does Net Income on the Income Statement match the Cash Flow Statement?). Uses **MultiPassRefinement** detectors (one per financial statement type) to find subtle cross-references, followed by a **FanOut** reviewer to filter false positives.
+-   **Cross-Table Pipeline**: Checks relationships between tables (e.g., does profit before tax on the Income Statement match the Cash Flow Statement?). This pipeline is also capable of finding multi-factorial cross table relationships (i.e opening and closing current income tax payable from balance sheet, income tax expense from income statement is used to derive income taxes paid in cash flow statement). Uses **MultiPassRefinement** detectors (one per financial statement type) to find subtle cross-references, followed by a **FanOut** reviewer to filter false positives.
 
 An aggregator deduplicates findings from both streams and produces the final report.
 
@@ -131,13 +131,13 @@ graph TD
 ---
 
 ### 2. Logic Consistency Agent
-**Goal**: Find semantic contradictions — e.g., text says "revenue increased" but the table shows a decrease.
+**Goal**: Find semantic contradictions — e.g., "We have no single customer over 10%" vs "Customer A represents 15%".
 
-**What's special**: Uses **MultiPassRefinement** (3 parallel chains x 3 sequential passes) for the detection stage. Each pass sees the previous pass's findings and refines them, allowing the model to dig deeper into subtle contradictions that a single-shot prompt would miss. The three parallel chains explore independently to maximize coverage.
+**What's special**: Uses **MultiPassRefinement** (3 parallel chains x 3 sequential passes) for the detection stage. Each pass sees the previous pass's findings and explores further search space, allowing the model to dig deeper into subtle contradictions that a single-shot prompt would miss. The three parallel chains explore independently to maximize coverage.
 
 Detected contradictions include narrative-to-data mismatches, business logic violations, impossible scenarios, and temporal inconsistencies.
 
-A **FanOut** reviewer then independently verifies each finding and assigns severity, filtering out false positives (e.g., industry-specific norms, seasonal effects).
+A **FanOut** reviewer (1 reviewer per 3 claim max) then independently verifies thinking deeper about each finding (exploitation) and assigns severity, filtering out false positives (e.g., industry-specific norms, seasonal effects).
 
 ```mermaid
 graph TD

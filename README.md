@@ -5,49 +5,50 @@
 <h1 align="center">Veritas AI</h1>
 
 <p align="center">
-  <strong>The AI Co-Auditor That Eliminates Inconsistencies in Financial Reports</strong>
+  <strong>The AI Co-Auditor That spots Inconsistencies in Financial Reports (significantly better than any current SoA practices)</strong>
 </p>
 
 <p align="center">
-  Automated validation of financial reports using multi-agent AI — because manual reconciliation across 100+ page documents doesn't scale.
+  Automated validation of financial reports using multi-agent AI system — as manual (with excel) reconciliation across 100+ page documents is prone to human error and doesn't scale.
 </p>
 
 ---
 
 ## The Problem
 
-Financial auditing faces a critical challenge that hasn't been solved by traditional software:
+Financial auditing faces a critical challenge that hasn't been solved by traditional practices and software:
 
-**Financial statements are complex documents with deeply interconnected data**. A single error in one table can cascade across footnotes, disclosures, management discussions, and other statements. Yet auditors are still manually cross-referencing hundreds of pages to find these inconsistencies.
+**Financial statements are complex documents with deeply interconnected data**. A single error in one table can cascade across footnotes, disclosures, management discussions, and other statements. Yet auditors are still manually cross-referencing hundreds of pages, audit partners simulate the statements' whole story and nuances in their head, technical teams walk through the enormous space of accounting treatments and compliance requirements to find these inconsistencies.
 
 ### Specific Pain Points
 
 1. **In-Table & Cross-Table Reconciliation is Manual, Tedious and Error-Prone**
-   - Totals and subtotals within a table must match the sum of their components
-   - Income Statement figures must tie to Cash Flow Statements
+   - Totals and subtotals within every table must match the sum of their components
+   - Primary statements and disclosure notes must indirectly tie to Cash Flow Statements
    - Footnote disclosures must match primary statement line items
    - MD&A narratives must align with actual financial data
-   - One analyst can spend days just on cross-referencing
+   - One analyst can spend a day just cross-referencing
 
 2. **Logical Contradictions Go Unnoticed**
-   - Text says "revenue increased 15%" but tables show 8% decline
-   - Seasonal business patterns ignored in year-over-year comparisons
-   - Industry-specific accounting treatments misapplied
-   - These require domain expertise AND tedious verification
+   - Sanity checks for arithmetically correct info (f.e do margins expand while input costs (inflation) rise?)
+   - Does the text contradict itself? (e.g., "We have no single customer over 10%" vs "Customer A represents 15%")
+   - Contradictions that arise considering combined multiple nuances from the report (f.e economic and business practice, valuation practice, IFRS, internal control nuances all at once)
+   - These require deep domain expertise AND tedious verification. An audit partner would spend days on a report.
 
-3. **Regulatory Compliance is a Moving Target**
-   - IFRS/IAS standards require specific disclosures
+3. **Accounting Compliance is a Moving Target**
+   - IFRS/IAS 9 (as well as tax and other mandatory) standards require specific disclosures
+   - Industry-specific accounting treatments misapplied
    - Missing a single disclosure requirement = audit failure
    - Checklists are static; business contexts are dynamic
-   - Manual verification is time-consuming and incomplete
+   - A day is spent by senior auditor for disclosure checklist and days to weeks by senior technical expert for IFRS compliance review
 
 4. **External Events Slip Through the Cracks**
    - Public lawsuits, regulatory actions, or material acquisitions
-   - Often disclosed in press releases but missing from financials
+   - Sometimes disclosed in press releases but missing from financials
    - Requires continuous monitoring of multiple external sources
-   - Impossible to scale without automation
+   - Impossible to scale without automation, currently dealt poorly
 
-**The cost?** Delayed audits, regulatory penalties, reputational damage, and — worst case — investor lawsuits from material misstatements.
+**The cost?** Delayed audits, mistakes in financial statements which might lead to regulatory penalties, reputational damage and investor lawsuits.
 
 ---
 
@@ -55,7 +56,7 @@ Financial auditing faces a critical challenge that hasn't been solved by traditi
 
 ### Traditional Audit Software
 
-Traditional tools focus on **data extraction and sampling**. They can detect mathematical errors within a single dataset, but they can't:
+Traditional tools of pre LLM and agentic AI era focus on **data extraction, sampling, basic reconciliations**. They can detect mathematical errors within a single dataset, but they can't:
 - Understand semantic relationships between tables, text and numbers
 - Detect logical contradictions across document sections
 - Adapt to context-specific accounting treatments
@@ -94,7 +95,7 @@ Veritas AI uses a **multi-agent orchestration architecture** where autonomous sp
 
 1. **Deterministic Tools Own the Numbers, LLMs Own the Meaning**
    - Mathematical calculations run in Python (zero hallucination risk)
-   - LLMs generate formula templates; deterministic engine executes them
+   - Specialized LLMs generate formula templates; deterministic engine executes them
    - Semantic analysis and contradiction detection reserved for language models
 
 2. **Parallel Specialization Over Monolithic Reasoning**
@@ -103,7 +104,7 @@ Veritas AI uses a **multi-agent orchestration architecture** where autonomous sp
    - Findings aggregated and deduplicated at the orchestrator level
 
 3. **Multi-Pass Refinement for Subtle Issues**
-   - Logic Consistency Agent uses 3 chains × 3 passes — each pass refines the previous
+   - Logic Consistency Agent uses 3 chains × 3 passes — each pass refines the previous applying "exploration then exploitation" logic
    - Cross-Table Numeric checks use Map-Reduce with reviewer verification
    - Disclosure Compliance dynamically creates one agent per applicable standard
 
@@ -117,15 +118,15 @@ Veritas AI uses a **multi-agent orchestration architecture** where autonomous sp
 ## Key Features
 
 ### Numeric Validation
-- **In-Table Checks**: Verify row/column sums, rollforwards, percentage calculations
-- **Cross-Table Reconciliation**: Ensure Net Income, Cash Flow, and Balance Sheet consistency
+- **In-Table Checks**: Verify row/column sums, roll forwards, percentage calculations
+- **Cross-Table Reconciliation**: Ensure one step and multi-step reconciliations across related tables (very expertise intensive)
 - **Anchor Formula Pattern**: LLM generates one formula template, Python replicates across all rows/columns
 
 ### Logic Consistency Detection
 - **Narrative-to-Data Mismatches**: "Revenue increased" vs. actual decrease in tables
 - **Business Logic Violations**: Impossible scenarios (negative depreciation, etc.)
 - **Temporal Inconsistencies**: Year-over-year comparisons that ignore seasonal effects
-- **Multi-Pass Refinement**: 3 independent chains, 3 sequential refinement passes each
+- **Multi-Pass Refinement**: 3 independent chains, 3 sequential refinements (using thought signatures) each following the exploration=>verification=>exploitation logic.
 
 ### Disclosure Compliance (IFRS/IAS)
 - **Dynamic Standard Detection**: Identifies which IFRS/IAS standards apply to the business
