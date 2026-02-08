@@ -40,6 +40,7 @@ from google.genai import types
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from .prompt import HORIZONTAL_INSTRUCTION, VERTICAL_INSTRUCTION
 from .schema import HorizontalVerticalCheckAgentOutput
@@ -95,7 +96,7 @@ def _create_check_fan_out_agent(
 
         return LlmAgent(
             name=f"{name}_{index}",
-            model="gemini-3-pro-preview",
+            model=GEMINI_PRO,
             instruction=batch_instruction,
             output_schema=HorizontalVerticalCheckAgentOutput,
             output_key=output_key,
@@ -106,9 +107,7 @@ def _create_check_fan_out_agent(
                 )
             ),
             generate_content_config=types.GenerateContentConfig(
-                http_options=types.HttpOptions(
-                    retry_options=get_default_retry_config()
-                )
+                http_options=types.HttpOptions(retry_options=get_default_retry_config())
             ),
         )
 
@@ -119,7 +118,6 @@ def _create_check_fan_out_agent(
             create_agent=_create_agent,
             output_key=output_key,
             results_field="formulas",
-            batch_size=None,
         ),
     )
 

@@ -35,7 +35,6 @@ class FanOutConfig:
     output_key: str
 
     # === Optional Fields ===
-    batch_size: int | None = None  # None = all parallel; int = sequential batches
     aggregate: Callable[[list[dict]], Any] | None = None
     results_field: str = "findings"
     empty_message: str | None = None

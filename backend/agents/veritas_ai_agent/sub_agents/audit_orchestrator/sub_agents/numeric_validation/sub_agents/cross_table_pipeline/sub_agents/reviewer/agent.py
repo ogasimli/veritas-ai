@@ -13,13 +13,12 @@ from veritas_ai_agent.shared.callbacks import strip_injected_context
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from .prompt import get_reviewer_instruction
 from .schema import CrossTableReviewerOutput
 
-_FINDINGS_BATCH_SIZE = int(
-    os.environ.get("CROSS_TABLE_REVIEWER_BATCH_SIZE", "5")
-)
+_FINDINGS_BATCH_SIZE = int(os.environ.get("CROSS_TABLE_REVIEWER_BATCH_SIZE", "5"))
 
 _DETECTOR_OUTPUT_KEYS = [
     "balance_sheet_cross_table_inconsistency_detector_output",
@@ -48,13 +47,11 @@ def _prepare_work_items(state: dict[str, Any]) -> list[list[dict]]:
     return batches
 
 
-def _create_reviewer_agent(
-    index: int, batch: list[dict], output_key: str
-) -> LlmAgent:
+def _create_reviewer_agent(index: int, batch: list[dict], output_key: str) -> LlmAgent:
     """Create a reviewer LlmAgent for one batch of findings."""
     return LlmAgent(
         name=f"CrossTableReviewerBatch_{index}",
-        model="gemini-3-pro-preview",
+        model=GEMINI_PRO,
         instruction=get_reviewer_instruction(json.dumps(batch, indent=2)),
         include_contents="none",
         output_key=output_key,
@@ -68,9 +65,7 @@ def _create_reviewer_agent(
             )
         ),
         generate_content_config=types.GenerateContentConfig(
-            http_options=types.HttpOptions(
-                retry_options=get_default_retry_config()
-            )
+            http_options=types.HttpOptions(retry_options=get_default_retry_config())
         ),
     )
 
@@ -82,7 +77,6 @@ reviewer_agent = FanOutAgent(
         create_agent=_create_reviewer_agent,
         output_key="cross_table_reviewer_output",
         results_field="findings",
-        batch_size=3,
         empty_message="No cross-table findings to review.",
     ),
 )

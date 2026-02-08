@@ -36,7 +36,9 @@ def _create_config() -> MultiPassRefinementConfig:
         chain_idx: int,
     ) -> Callable[[InvocationContext], str]:
         """Dynamic instruction based on existence of prior findings."""
-        findings_key = f"LogicConsistencyDetector_chain_{chain_idx}_accumulated_findings"
+        findings_key = (
+            f"LogicConsistencyDetector_chain_{chain_idx}_accumulated_findings"
+        )
 
         def instruction_provider(ctx: InvocationContext) -> str:
             findings = ctx.session.state.get(findings_key, [])

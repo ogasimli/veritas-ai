@@ -5,12 +5,13 @@ import os
 from typing import Any
 
 from google.adk.agents import LlmAgent
-from google.genai import types
 from google.adk.planners.built_in_planner import BuiltInPlanner
+from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from .callbacks import strip_injected_context
 from .prompt import get_reviewer_instruction
@@ -40,7 +41,7 @@ def _create_reviewer_agent(index: int, batch: list[dict], output_key: str) -> Ll
     """Create a reviewer LlmAgent for one batch of findings."""
     return LlmAgent(
         name=f"LogicConsistencyReviewerBatch_{index}",
-        model="gemini-3-pro-preview",
+        model=GEMINI_PRO,
         instruction=get_reviewer_instruction(json.dumps(batch, indent=2)),
         include_contents="none",
         output_key=output_key,
@@ -65,7 +66,6 @@ reviewer_agent = FanOutAgent(
         create_agent=_create_reviewer_agent,
         output_key="logic_consistency_reviewer_output",
         results_field="findings",
-        batch_size=3,  # Run at most 3 agents in parallel (each agent processes 3 findings)
         empty_message="No detector findings to review.",
     ),
 )

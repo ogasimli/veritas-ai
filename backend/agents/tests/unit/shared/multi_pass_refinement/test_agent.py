@@ -223,6 +223,8 @@ async def test_findings_collection_logic():
 
 def test_model_config_resolution():
     """Test that models are correctly specified in agent configs."""
+    from veritas_ai_agent.shared.model_config import GEMINI_PRO
+
     config = _create_mock_config()
 
     # 1. Default model
@@ -232,7 +234,7 @@ def test_model_config_resolution():
     assert agent.parallel_agent is not None
     chain_sequence = agent.parallel_agent.sub_agents[0]
     pass_agent = chain_sequence.sub_agents[0]
-    assert pass_agent.model == "gemini-3-pro-preview"
+    assert pass_agent.model == GEMINI_PRO
 
     # 2. Custom chain model
     chain_config = MultiPassRefinementLlmAgentConfig(

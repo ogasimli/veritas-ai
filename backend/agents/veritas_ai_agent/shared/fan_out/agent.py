@@ -1,18 +1,21 @@
 """FanOutAgent: generic parallel work distribution pattern.
 
 Reads input from state, splits into work items, creates an LlmAgent per item,
-runs them in parallel (optionally batched for rate limits), and aggregates
+runs them concurrently (throttled by a global semaphore), and aggregates
 results back into state.
 
-This agent follows Google ADK's recommended pattern for dynamic parallel workflows:
-ParallelAgent instances are created at runtime inside _run_async_impl based on
-runtime data, rather than being registered statically in __init__.
+Concurrency is controlled by a process-wide ``asyncio.Semaphore`` whose limit
+is set via the ``FANOUT_MAX_CONCURRENCY`` environment variable (default: 10).
+This prevents exceeding Gemini API rate limits regardless of how many
+FanOutAgent instances are active.
 """
 
+import asyncio
 import logging
+import os
 from collections.abc import AsyncGenerator
 
-from google.adk.agents import BaseAgent, ParallelAgent
+from google.adk.agents import BaseAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 from google.genai import types
@@ -21,9 +24,23 @@ from .config import FanOutConfig
 
 logger = logging.getLogger(__name__)
 
+_MAX_CONCURRENCY = int(os.environ.get("FANOUT_MAX_CONCURRENCY", "10"))
+_semaphore: asyncio.Semaphore | None = None
+
+
+def _get_semaphore() -> asyncio.Semaphore:
+    """Lazily create the semaphore on first use (must happen inside an event loop)."""
+    global _semaphore
+    if _semaphore is None:
+        _semaphore = asyncio.Semaphore(_MAX_CONCURRENCY)
+    return _semaphore
+
 
 class FanOutAgent(BaseAgent):
-    """Reusable agent that fans out work items to parallel LlmAgents.
+    """Reusable agent that fans out work items to concurrent LlmAgents.
+
+    Concurrency across all FanOutAgent instances in the process is capped by
+    a shared ``asyncio.Semaphore`` (configured via ``FANOUT_MAX_CONCURRENCY``).
 
     Parameters
     ----------
@@ -82,25 +99,22 @@ class FanOutAgent(BaseAgent):
             agents.append(agent)
             output_keys.append(key)
 
-        # 4. Build ParallelAgent wrappers (batched if needed)
-        batch_size = self.config.batch_size or len(agents)
-        parallel_agents = []
-        for start in range(0, len(agents), batch_size):
-            batch = agents[start : start + batch_size]
-            parallel = ParallelAgent(
-                name=f"{self.name}_batch_{start // batch_size}",
-                sub_agents=batch,
-            )
-            parallel_agents.append(parallel)
+        # 4. Run all agents concurrently, throttled by global semaphore
+        semaphore = _get_semaphore()
 
-        # 5. Execute (sequential across batches, parallel within each batch)
-        # Note: ParallelAgent instances are not registered to self.sub_agents as per
-        # ADK best practices for dynamic agent creation (see Google ADK documentation)
-        for parallel in parallel_agents:
-            async for event in parallel.run_async(ctx):
+        async def _run_agent(agent: BaseAgent) -> list[Event]:
+            async with semaphore:
+                events = []
+                async for event in agent.run_async(ctx):
+                    events.append(event)
+                return events
+
+        tasks = [asyncio.create_task(_run_agent(agent)) for agent in agents]
+        for completed in asyncio.as_completed(tasks):
+            for event in await completed:
                 yield event
 
-        # 6. Collect & normalize outputs
+        # 5. Collect & normalize outputs
         outputs = []
         for key in output_keys:
             output = state.get(key)
@@ -110,7 +124,7 @@ class FanOutAgent(BaseAgent):
                 output = output.model_dump()
             outputs.append(output)
 
-        # 7. Aggregate
+        # 6. Aggregate
         if self.config.aggregate:
             result = self.config.aggregate(outputs)
         else:
@@ -122,11 +136,12 @@ class FanOutAgent(BaseAgent):
         state[self.config.output_key] = result
 
         logger.info(
-            "%s: processed %d work items, produced %d %s",
+            "%s: processed %d work items, produced %d %s (max_concurrency=%d)",
             self.name,
             len(items),
             len(result.get(self.config.results_field, []))
             if isinstance(result, dict)
             else "N/A",
             self.config.results_field,
+            _MAX_CONCURRENCY,
         )

@@ -12,7 +12,6 @@ from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validatio
     logic_reconciliation_formula_inferer,
 )
 
-
 # --- Helper ---
 
 
@@ -86,10 +85,12 @@ class TestPrepareWorkItems:
             "logic_reconciliation_check_screener_output": {
                 "candidate_table_indexes": [1]
             },
-            "extracted_tables": json.dumps([
-                {"table_index": 0, "content": "T0"},
-                {"table_index": 1, "content": "T1"},
-            ]),
+            "extracted_tables": json.dumps(
+                [
+                    {"table_index": 0, "content": "T0"},
+                    {"table_index": 1, "content": "T1"},
+                ]
+            ),
         }
 
         result = _prepare_work_items(state)
@@ -214,23 +215,35 @@ class TestFanOutAgentWiring:
     """Test the module-level FanOutAgent instance configuration."""
 
     def test_agent_name(self):
-        assert logic_reconciliation_formula_inferer.name == "LogicReconciliationFormulaInferer"
+        assert (
+            logic_reconciliation_formula_inferer.name
+            == "LogicReconciliationFormulaInferer"
+        )
 
     def test_output_key(self):
-        assert logic_reconciliation_formula_inferer.config.output_key == "logic_reconciliation_formula_inferer_output"
+        assert (
+            logic_reconciliation_formula_inferer.config.output_key
+            == "logic_reconciliation_formula_inferer_output"
+        )
 
     def test_results_field(self):
         assert logic_reconciliation_formula_inferer.config.results_field == "formulas"
 
-    def test_batch_size_none(self):
-        assert logic_reconciliation_formula_inferer.config.batch_size is None
-
     def test_empty_message(self):
-        assert logic_reconciliation_formula_inferer.config.empty_message == "No candidate tables for logic reconciliation."
+        assert (
+            logic_reconciliation_formula_inferer.config.empty_message
+            == "No candidate tables for logic reconciliation."
+        )
 
     def test_callbacks_wired(self):
-        assert logic_reconciliation_formula_inferer.config.prepare_work_items is _prepare_work_items
-        assert logic_reconciliation_formula_inferer.config.create_agent is _create_table_agent
+        assert (
+            logic_reconciliation_formula_inferer.config.prepare_work_items
+            is _prepare_work_items
+        )
+        assert (
+            logic_reconciliation_formula_inferer.config.create_agent
+            is _create_table_agent
+        )
 
     @pytest.mark.asyncio
     async def test_early_exit_no_candidates(self):
@@ -247,7 +260,9 @@ class TestFanOutAgentWiring:
         async for event in logic_reconciliation_formula_inferer._run_async_impl(ctx):
             events.append(event)
 
-        assert ctx.session.state["logic_reconciliation_formula_inferer_output"] == {"formulas": []}
+        assert ctx.session.state["logic_reconciliation_formula_inferer_output"] == {
+            "formulas": []
+        }
         assert len(events) == 1
         assert "No candidate tables" in events[0].content.parts[0].text
 
@@ -274,7 +289,7 @@ class TestFanOutAgentWiring:
         }
 
         with patch(
-            "google.adk.agents.ParallelAgent.run_async",
+            "google.adk.agents.base_agent.BaseAgent.run_async",
             return_value=AsyncIterator(),
         ):
             async for _ in logic_reconciliation_formula_inferer._run_async_impl(ctx):

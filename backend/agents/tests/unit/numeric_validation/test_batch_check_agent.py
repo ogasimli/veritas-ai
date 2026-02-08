@@ -1,6 +1,5 @@
 import json
 
-import pytest
 from google.adk.agents import LlmAgent
 
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent import (
@@ -15,7 +14,6 @@ from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validatio
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.utils import (
     chunk_tables,
 )
-
 
 # ---------------------------------------------------------------------------
 # chunk_tables utility tests (unchanged)
@@ -126,7 +124,9 @@ class TestCreateAgent:
     def _get_create_agent(self):
         """Get the _create_agent closure from a FanOutAgent."""
         agent = _create_check_fan_out_agent(
-            "TestCheck", "Instruction with {extracted_tables} placeholder", "test_output"
+            "TestCheck",
+            "Instruction with {extracted_tables} placeholder",
+            "test_output",
         )
         return agent.config.create_agent
 
@@ -176,7 +176,6 @@ class TestFanOutAgentWiring:
         assert agent.name == "VerticalCheckAgent"
         assert agent.config.output_key == "vertical_check_output"
         assert agent.config.results_field == "formulas"
-        assert agent.config.batch_size is None
         assert agent.config.aggregate is None
         assert agent.config.prepare_work_items is _prepare_work_items
 
@@ -185,7 +184,6 @@ class TestFanOutAgentWiring:
         assert agent.name == "HorizontalCheckAgent"
         assert agent.config.output_key == "horizontal_check_output"
         assert agent.config.results_field == "formulas"
-        assert agent.config.batch_size is None
         assert agent.config.aggregate is None
         assert agent.config.prepare_work_items is _prepare_work_items
 
@@ -198,9 +196,6 @@ class TestFanOutAgentWiring:
 
     def test_vertical_uses_vertical_instruction(self):
         """Vertical agent uses VERTICAL_INSTRUCTION template."""
-        from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
-            VERTICAL_INSTRUCTION,
-        )
 
         agent = create_vertical_check_agent()
         sub = agent.config.create_agent(0, [{"table_index": 0}], "key")
@@ -211,9 +206,6 @@ class TestFanOutAgentWiring:
 
     def test_horizontal_uses_horizontal_instruction(self):
         """Horizontal agent uses HORIZONTAL_INSTRUCTION template."""
-        from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
-            HORIZONTAL_INSTRUCTION,
-        )
 
         agent = create_horizontal_check_agent()
         sub = agent.config.create_agent(0, [{"table_index": 0}], "key")

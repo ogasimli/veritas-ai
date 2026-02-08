@@ -6,6 +6,7 @@ from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from . import prompt
 from .schema import ExternalSignalReportToInternetOutput
@@ -14,7 +15,7 @@ from .tools import verify_claims_tool
 # Create LlmAgent with Deep Research verification tool
 report_to_internet_agent = LlmAgent(
     name="ExternalSignalReportToInternet",
-    model="gemini-3-pro-preview",
+    model=GEMINI_PRO,
     instruction=prompt.INSTRUCTION,
     tools=[FunctionTool(verify_claims_tool)],
     output_key="external_signal_report_to_internet_output",

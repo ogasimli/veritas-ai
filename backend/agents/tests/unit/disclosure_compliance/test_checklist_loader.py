@@ -26,7 +26,9 @@ def test_normalize_code():
     read_data="standards:\n  IAS 1:\n  - name: Cat1\n    disclosures:\n    - id: 1\n  IFRS 6:\n  - name: Cat2\n    disclosures:\n    - id: 2",
 )
 def test_load_standard_checklist_exact(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import (
+        checklist_loader,
+    )
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -54,7 +56,9 @@ standards:
 """,
 )
 def test_load_standard_checklist_normalized(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import (
+        checklist_loader,
+    )
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -84,7 +88,9 @@ def test_load_standard_checklist_normalized(mock_file, mock_path):
     read_data="standards:\n  IAS 1:\n  - name: Cat1\n    disclosures:\n    - id: 1",
 )
 def test_load_standard_checklist_not_found(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import (
+        checklist_loader,
+    )
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -96,7 +102,9 @@ def test_load_standard_checklist_not_found(mock_file, mock_path):
     "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
 )
 def test_load_standard_checklist_file_missing(mock_path):
-    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import (
+        checklist_loader,
+    )
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = False

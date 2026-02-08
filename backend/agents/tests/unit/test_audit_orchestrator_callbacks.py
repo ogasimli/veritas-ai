@@ -42,7 +42,10 @@ async def test_invalid_document_short_circuits(mock_callback_context):
 
     assert result is not None
     assert result.role == "model"
-    assert "not a financial statement" in result.parts[0].text
+    assert result.parts is not None and len(result.parts) > 0
+    first_part_text = result.parts[0].text
+    assert first_part_text is not None
+    assert "not a financial statement" in first_part_text
     assert mock_callback_context.state["validation_rejected"] is True
 
 

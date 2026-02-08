@@ -1,12 +1,12 @@
 """Unit tests for the generic FanOutAgent."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
-from veritas_ai_agent.shared.fan_out.agent import FanOutAgent
+from veritas_ai_agent.shared.fan_out.agent import FanOutAgent, _get_semaphore
 from veritas_ai_agent.shared.fan_out.config import FanOutConfig
 
 # --- Test Helpers ---
@@ -14,6 +14,25 @@ from veritas_ai_agent.shared.fan_out.config import FanOutConfig
 
 class MockOutput(BaseModel):
     findings: list[dict] = Field(default_factory=list)
+
+
+def _make_agent_factory():
+    """Return an agent factory that records calls and returns mock agents."""
+    calls = []
+
+    def factory(index, item, output_key):
+        calls.append((index, item, output_key))
+        agent = MagicMock(spec=LlmAgent)
+        agent.name = f"test_item_{index}"
+
+        async def _noop_run_async(ctx):
+            return
+            yield  # makes this an async generator
+
+        agent.run_async = _noop_run_async
+        return agent
+
+    return factory, calls
 
 
 class AsyncIterator:
@@ -30,23 +49,6 @@ class AsyncIterator:
             return next(self.iter)
         except StopIteration:
             raise StopAsyncIteration from None
-
-
-def _make_agent_factory():
-    """Return an agent factory that records calls and returns real LlmAgents."""
-    calls = []
-
-    def factory(index, item, output_key):
-        calls.append((index, item, output_key))
-        return LlmAgent(
-            name=f"test_item_{index}",
-            model="gemini-3-pro-preview",
-            instruction=f"Process item {index}",
-            output_key=output_key,
-            output_schema=MockOutput,
-        )
-
-    return factory, calls
 
 
 def _create_config(**overrides) -> FanOutConfig:
@@ -72,7 +74,6 @@ def test_initialization():
     assert agent.config is not None
     assert agent.config.output_key == "test_output"
     assert agent.config.results_field == "findings"
-    assert agent.config.batch_size is None
     assert agent.config.aggregate is None
     assert agent.config.empty_message is None
 
@@ -80,14 +81,12 @@ def test_initialization():
 def test_initialization_with_overrides():
     custom_aggregate = lambda outputs: {"custom": True}  # noqa: E731
     config = _create_config(
-        batch_size=3,
         results_field="formulas",
         empty_message="Nothing to do.",
         aggregate=custom_aggregate,
     )
     agent = FanOutAgent(name="CustomFanOut", config=config)
 
-    assert agent.config.batch_size == 3
     assert agent.config.results_field == "formulas"
     assert agent.config.empty_message == "Nothing to do."
     assert agent.config.aggregate is custom_aggregate
@@ -157,7 +156,7 @@ async def test_early_exit_custom_results_field():
     assert ctx.session.state["test_output"] == {"formulas": []}
 
 
-# --- Agent Creation & Parallel Execution Tests ---
+# --- Agent Creation & Concurrent Execution Tests ---
 
 
 @pytest.mark.asyncio
@@ -173,12 +172,8 @@ async def test_creates_agents_with_correct_output_keys():
     ctx = MagicMock()
     ctx.session.state = {}
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     assert len(calls) == 3
     assert calls[0] == (0, "item_a", "TestFanOut_item_0")
@@ -187,80 +182,34 @@ async def test_creates_agents_with_correct_output_keys():
 
 
 @pytest.mark.asyncio
-async def test_all_parallel_when_no_batch_size():
-    """With batch_size=None, all agents run in a single ParallelAgent."""
+async def test_all_agents_run_concurrently():
+    """All agents are launched concurrently (throttled by semaphore)."""
+    factory, calls = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b", "c"],
+        create_agent=factory,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
 
     ctx = MagicMock()
     ctx.session.state = {}
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ) as mock_parallel_run:
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
-    # Single ParallelAgent wrapping all 3 agents (called once)
-    mock_parallel_run.assert_called_once()
+    # All 3 agents were created and run
+    assert len(calls) == 3
 
     # Dynamic agents not registered to self.sub_agents (ADK best practice)
     assert agent.sub_agents == []
 
 
 @pytest.mark.asyncio
-async def test_batched_execution():
-    """With batch_size=2 and 5 items, creates 3 sequential batches."""
-    config = _create_config(
-        prepare_work_items=lambda state: list(range(5)),
-        batch_size=2,
-    )
-    agent = FanOutAgent(name="TestFanOut", config=config)
-
-    ctx = MagicMock()
-    ctx.session.state = {}
-
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ) as mock_parallel_run:
-        async for _ in agent._run_async_impl(ctx):
-            pass
-
-    # 3 batches: [0,1], [2,3], [4] - each batch runs sequentially
-    assert mock_parallel_run.call_count == 3
-
-    # Dynamic agents not registered to self.sub_agents (ADK best practice)
-    assert agent.sub_agents == []
-
-
-@pytest.mark.asyncio
-async def test_batch_size_1_sequential():
-    """batch_size=1 means fully sequential (one agent per batch)."""
-    config = _create_config(
-        prepare_work_items=lambda state: ["x", "y"],
-        batch_size=1,
-    )
-    agent = FanOutAgent(name="TestFanOut", config=config)
-
-    ctx = MagicMock()
-    ctx.session.state = {}
-
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ) as mock_parallel_run:
-        async for _ in agent._run_async_impl(ctx):
-            pass
-
-    # Two batches (one agent each), executed sequentially
-    assert mock_parallel_run.call_count == 2
-
-    # Dynamic agents not registered to self.sub_agents (ADK best practice)
-    assert agent.sub_agents == []
+async def test_semaphore_is_shared():
+    """The global semaphore is reused across calls."""
+    sem1 = _get_semaphore()
+    sem2 = _get_semaphore()
+    assert sem1 is sem2
 
 
 # --- Output Collection & Aggregation Tests ---
@@ -269,8 +218,10 @@ async def test_batch_size_1_sequential():
 @pytest.mark.asyncio
 async def test_default_aggregation():
     """Default aggregation concatenates results_field lists from all outputs."""
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b"],
+        create_agent=factory,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
 
@@ -281,12 +232,8 @@ async def test_default_aggregation():
         "TestFanOut_item_1": {"findings": [{"id": 3}]},
     }
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     result = ctx.session.state["test_output"]
     assert result == {"findings": [{"id": 1}, {"id": 2}, {"id": 3}]}
@@ -295,8 +242,10 @@ async def test_default_aggregation():
 @pytest.mark.asyncio
 async def test_default_aggregation_custom_results_field():
     """Default aggregation uses configured results_field."""
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b"],
+        create_agent=factory,
         results_field="formulas",
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
@@ -307,12 +256,8 @@ async def test_default_aggregation_custom_results_field():
         "TestFanOut_item_1": {"formulas": [{"expr": "c-d"}, {"expr": "e*f"}]},
     }
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     result = ctx.session.state["test_output"]
     assert result == {"formulas": [{"expr": "a+b"}, {"expr": "c-d"}, {"expr": "e*f"}]}
@@ -326,8 +271,10 @@ async def test_custom_aggregation():
         total = sum(len(o.get("findings", [])) for o in outputs)
         return {"summary": f"{total} findings", "findings": []}
 
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b"],
+        create_agent=factory,
         aggregate=custom_aggregate,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
@@ -338,12 +285,8 @@ async def test_custom_aggregation():
         "TestFanOut_item_1": {"findings": [{"id": 2}, {"id": 3}]},
     }
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     result = ctx.session.state["test_output"]
     assert result == {"summary": "3 findings", "findings": []}
@@ -352,8 +295,10 @@ async def test_custom_aggregation():
 @pytest.mark.asyncio
 async def test_pydantic_output_normalization():
     """Pydantic model outputs are converted to dicts via model_dump()."""
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a"],
+        create_agent=factory,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
 
@@ -363,12 +308,8 @@ async def test_pydantic_output_normalization():
         "TestFanOut_item_0": MockOutput(findings=[{"id": 1}]),
     }
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     result = ctx.session.state["test_output"]
     assert result == {"findings": [{"id": 1}]}
@@ -377,8 +318,10 @@ async def test_pydantic_output_normalization():
 @pytest.mark.asyncio
 async def test_none_outputs_skipped():
     """If a sub-agent produces no output (None in state), it's skipped."""
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b", "c"],
+        create_agent=factory,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
 
@@ -389,12 +332,8 @@ async def test_none_outputs_skipped():
         "TestFanOut_item_2": {"findings": [{"id": 3}]},
     }
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     result = ctx.session.state["test_output"]
     assert result == {"findings": [{"id": 1}, {"id": 3}]}
@@ -405,13 +344,14 @@ async def test_none_outputs_skipped():
 
 @pytest.mark.asyncio
 async def test_dynamic_agents_not_registered_statically():
-    """ParallelAgents are created dynamically at runtime, not registered to sub_agents.
+    """Agents are created dynamically at runtime, not registered to sub_agents.
 
     This follows Google ADK best practices for dynamic parallel workflows.
     """
+    factory, _ = _make_agent_factory()
     config = _create_config(
         prepare_work_items=lambda state: ["a", "b"],
-        batch_size=1,
+        create_agent=factory,
     )
     agent = FanOutAgent(name="TestFanOut", config=config)
 
@@ -421,18 +361,11 @@ async def test_dynamic_agents_not_registered_statically():
     ctx = MagicMock()
     ctx.session.state = {}
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ) as mock_parallel_run:
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     # After execution, sub_agents remains empty (dynamic agents not registered)
     assert agent.sub_agents == []
-
-    # But ParallelAgent.run_async was called twice (once per batch)
-    assert mock_parallel_run.call_count == 2
 
 
 # --- Full Flow Test ---
@@ -462,19 +395,11 @@ async def test_full_flow():
 
     # Pre-populate state with expected outputs (simulating what sub-agents would write)
     # FanOutAgent creates output keys as "{agent_name}_item_{i}"
-    ctx.session.state["Reviewer_item_0"] = {
-        "findings": [{"id": 1, "reviewed": True}]
-    }
-    ctx.session.state["Reviewer_item_1"] = {
-        "findings": [{"id": 2, "reviewed": True}]
-    }
+    ctx.session.state["Reviewer_item_0"] = {"findings": [{"id": 1, "reviewed": True}]}
+    ctx.session.state["Reviewer_item_1"] = {"findings": [{"id": 2, "reviewed": True}]}
 
-    with patch(
-        "google.adk.agents.ParallelAgent.run_async",
-        return_value=AsyncIterator(),
-    ):
-        async for _ in agent._run_async_impl(ctx):
-            pass
+    async for _ in agent._run_async_impl(ctx):
+        pass
 
     # Factory called once per finding
     assert len(calls) == 2

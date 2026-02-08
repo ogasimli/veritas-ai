@@ -4,7 +4,9 @@ import dotenv
 import pytest
 from google.adk.runners import InMemoryRunner
 
-from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation import root_agent
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation import (
+    root_agent,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -19,6 +19,7 @@ from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from . import prompt
 from .callbacks import after_agent_callback, before_agent_callback
@@ -30,7 +31,7 @@ from .schema import TableNamerOutput
 
 table_namer_agent = LlmAgent(
     name="TableNamer",
-    model="gemini-3-pro-preview",
+    model=GEMINI_PRO,
     instruction=prompt.INSTRUCTION,
     output_key="table_namer_output",
     output_schema=TableNamerOutput,

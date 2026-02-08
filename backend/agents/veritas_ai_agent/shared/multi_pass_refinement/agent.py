@@ -134,7 +134,7 @@ class MultiPassRefinementAgent(BaseAgent):
             pass_output_key = f"{agent_name}_chain_{chain_idx}_pass_{pass_idx}_output"
 
             # Create closure for this specific pass
-            def make_after_pass_callback(current_pass_key: str):
+            def make_after_pass_callback(current_pass_key: str, current_pass_idx: int):
                 def after_pass_callback(callback_context: CallbackContext) -> None:
                     """Append findings from current pass to accumulated list."""
                     # Call user's callback first if provided
@@ -157,7 +157,7 @@ class MultiPassRefinementAgent(BaseAgent):
                         "%s chain %d pass %d: accumulated %d findings",
                         agent_name,
                         chain_idx,
-                        pass_idx,
+                        current_pass_idx,
                         len(callback_context.state[accumulated_key]),
                     )
 
@@ -170,7 +170,9 @@ class MultiPassRefinementAgent(BaseAgent):
                 "instruction": chain_config.get_instruction(chain_idx),
                 "output_schema": chain_config.output_schema,
                 "output_key": pass_output_key,
-                "after_agent_callback": make_after_pass_callback(pass_output_key),
+                "after_agent_callback": make_after_pass_callback(
+                    pass_output_key, pass_idx
+                ),
                 "planner": chain_config.planner,
                 "generate_content_config": chain_config.generate_content_config,
                 "before_agent_callback": chain_config.before_agent_callback,

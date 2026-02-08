@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
 from google.adk.agents import LlmAgent
 from google.adk.models.llm_request import LlmRequest
 from google.genai import types
@@ -15,7 +14,6 @@ from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.logic_consistency
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.logic_consistency.sub_agents.reviewer.callbacks import (
     strip_injected_context,
 )
-
 
 # --- Helper ---
 
@@ -110,7 +108,9 @@ class TestStripInjectedContext:
         """Should detect 'For context:' even if it's not the first part."""
         llm_request = LlmRequest(
             contents=[
-                _make_content("user", ["preamble", "For context:", "[Agent] said: data"]),
+                _make_content(
+                    "user", ["preamble", "For context:", "[Agent] said: data"]
+                ),
             ]
         )
         strip_injected_context(MagicMock(), llm_request)
@@ -249,14 +249,8 @@ class TestFanOutAgentWiring:
     def test_results_field(self):
         assert reviewer_agent.config.results_field == "findings"
 
-    def test_batch_size(self):
-        assert reviewer_agent.config.batch_size == 3
-
     def test_empty_message(self):
-        assert (
-            reviewer_agent.config.empty_message
-            == "No detector findings to review."
-        )
+        assert reviewer_agent.config.empty_message == "No detector findings to review."
 
     def test_callbacks_wired(self):
         assert reviewer_agent.config.prepare_work_items is _prepare_work_items

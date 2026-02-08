@@ -11,6 +11,7 @@ from google.genai import types
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from ...tools.checklist_loader import load_standard_checklist
 from .prompt import get_verifier_instruction
@@ -89,7 +90,7 @@ def create_disclosure_verifier_agent(
 
     return LlmAgent(
         name=name,
-        model="gemini-3-pro-preview",
+        model=GEMINI_PRO,
         instruction=full_instruction,
         output_key=output_key,
         output_schema=DisclosureVerifierOutput,
@@ -112,7 +113,6 @@ disclosure_verifier_agent = FanOutAgent(
         create_agent=_create_verifier_agent,
         output_key="disclosure_all_findings",
         results_field="findings",
-        batch_size=4,
         empty_message="No applicable standards found to verify.",
     ),
 )

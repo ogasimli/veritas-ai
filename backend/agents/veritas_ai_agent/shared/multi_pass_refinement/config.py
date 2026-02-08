@@ -8,6 +8,8 @@ from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 from pydantic import BaseModel
 
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
+
 
 @dataclass
 class MultiPassRefinementLlmAgentConfig:
@@ -22,7 +24,7 @@ class MultiPassRefinementLlmAgentConfig:
     get_instruction: Callable  # For chain: Callable[[int], str], For aggregator: Callable[[str], str]
 
     # Optional fields with defaults
-    model: str = "gemini-3-pro-preview"
+    model: str = GEMINI_PRO
     planner: BuiltInPlanner | None = None
     generate_content_config: types.GenerateContentConfig | None = None
 

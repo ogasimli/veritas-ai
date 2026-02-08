@@ -10,6 +10,7 @@ from google.genai import types
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.fan_out import FanOutAgent, FanOutConfig
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
+from veritas_ai_agent.shared.model_config import GEMINI_PRO
 
 from .prompt import get_table_instruction
 from .schema import LogicCheckAgentOutput
@@ -53,7 +54,7 @@ def _create_table_agent(index: int, work_item: Any, output_key: str) -> LlmAgent
     table_envelope = json.dumps({"tables": [work_item]})
     return LlmAgent(
         name=f"LogicReconciliationFormulaInfererTableAgent_{index}",
-        model="gemini-3-pro-preview",
+        model=GEMINI_PRO,
         instruction=get_table_instruction(table_envelope),
         output_schema=LogicCheckAgentOutput,
         output_key=output_key,
@@ -76,7 +77,6 @@ logic_reconciliation_formula_inferer = FanOutAgent(
         create_agent=_create_table_agent,
         output_key="logic_reconciliation_formula_inferer_output",
         results_field="formulas",
-        batch_size=None,
         empty_message="No candidate tables for logic reconciliation.",
     ),
 )
