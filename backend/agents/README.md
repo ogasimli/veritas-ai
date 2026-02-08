@@ -45,9 +45,7 @@ graph TD
     subgraph "Disclosure Compliance (Regulatory)"
         DC --> DC_Scanner[Standard Scanner]
         DC_Scanner --> DC_Verifier["Verifier (Fan-Out)"]
-        DC_Verifier -->|One Agent Per Standard| DC_Check[Standard Checker]
-        DC_Check --> DC_VerAgg[Verifier Aggregator]
-        DC_VerAgg --> DC_Reviewer[Reviewer]
+        DC_Verifier --> DC_Reviewer[Reviewer]
     end
 
     %% External Signal Pipeline

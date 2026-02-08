@@ -175,16 +175,19 @@ flowchart TD
 
     Backend --> Frontend
     Frontend -->|Display Results| User
-
-    style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style Backend fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style Validator fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style Orchestrator fill:#fff9c4,stroke:#f57c00,stroke-width:2px
-    style Agent1 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style Agent2 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style Agent3 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style Agent4 fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    style Aggregator fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    style User fill:#2196F3,stroke:#0D47A1,stroke-width:3px,color:#fff
+    style Frontend fill:#42A5F5,stroke:#1565C0,stroke-width:3px,color:#fff
+    style Backend fill:#FF9800,stroke:#E65100,stroke-width:3px,color:#fff
+    style Validator fill:#AB47BC,stroke:#4A148C,stroke-width:3px,color:#fff
+    style Orchestrator fill:#FFA726,stroke:#E65100,stroke-width:3px,color:#000
+    style Agent1 fill:#66BB6A,stroke:#1B5E20,stroke-width:3px,color:#fff
+    style Agent2 fill:#66BB6A,stroke:#1B5E20,stroke-width:3px,color:#fff
+    style Agent3 fill:#66BB6A,stroke:#1B5E20,stroke-width:3px,color:#fff
+    style Agent4 fill:#66BB6A,stroke:#1B5E20,stroke-width:3px,color:#fff
+    style Aggregator fill:#FF7043,stroke:#BF360C,stroke-width:3px,color:#fff
+    style Storage fill:#78909C,stroke:#37474F,stroke-width:3px,color:#fff
+    style DB fill:#455A64,stroke:#263238,stroke-width:2px,color:#fff
+    style GCS fill:#455A64,stroke:#263238,stroke-width:2px,color:#fff
 ```
 
 ### Deep-Dive Technical Documentation
