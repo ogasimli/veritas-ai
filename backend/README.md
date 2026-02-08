@@ -138,13 +138,21 @@ Edit `.env` with your configuration:
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/veritas
 
 # Google Cloud Storage bucket name (leave empty for local storage)
-GCS_BUCKET=veritas-ai-documents
+GCS_BUCKET=
 
 # Debug mode (true/false)
-DEBUG=false
+DEBUG=true
 
 # Dummy agent mode for frontend testing without hitting MAS (true/false)
 USE_DUMMY_AGENTS=false
+
+# Agent configuration
+GOOGLE_GENAI_USE_VERTEXAI=FALSE
+VERITAS_AGENT_MODE=orchestrator
+NUMERIC_VALIDATION_AGENT_MODE=all
+GEMINI_PRO_MODEL=gemini-3-flash-preview
+GEMINI_FLASH_MODEL=gemini-3-flash-preview
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ### 3. Start Local Database
@@ -292,16 +300,30 @@ make deploy
 ```
 
 This executes `scripts/deploy_infra.sh`, which:
-1. Builds the Docker image
-2. Pushes to Google Container Registry
-3. Deploys to Cloud Run with environment variables
-4. Configures health checks and concurrency settings
+1. Enables required GCP APIs (Cloud Run, Cloud SQL, Secret Manager, Artifact Registry, Storage)
+2. Creates a GCS bucket for document storage
+3. Provisions a Cloud SQL PostgreSQL 15 instance (or reuses existing)
+4. Creates the database and application user
+5. Stores secrets (DB password, DB URL, Gemini API key) in Secret Manager
+6. Builds the Docker image via Cloud Build and pushes to Artifact Registry
+7. Deploys to Cloud Run with secrets and environment variables injected
+
+The deploy script reads agent configuration from `backend/.env` — including `GEMINI_API_KEY`, model names, and agent mode settings. Sensitive values are stored in Secret Manager; non-sensitive config is set as Cloud Run env vars.
 
 ### Environment Variables (Production)
 
-Set these in Cloud Run configuration:
-- `DATABASE_URL` — Managed PostgreSQL connection string
-- `GCS_BUCKET` — Production GCS bucket name
-- `GEMINI_API_KEY` — Google AI API key
-- `DEBUG` — Set to `false`
+These are automatically configured by `deploy_infra.sh`:
+
+| Variable | Source | Description |
+|----------|--------|-------------|
+| `DATABASE_URL` | Secret Manager | Cloud SQL connection string |
+| `GEMINI_API_KEY` | Secret Manager | Gemini API key for agent pipeline |
+| `GCS_BUCKET` | Env var | GCS bucket for document storage |
+| `DEBUG` | Env var | Set to `false` in production |
+| `GOOGLE_GENAI_USE_VERTEXAI` | Env var | Vertex AI routing toggle |
+| `VERITAS_AGENT_MODE` | Env var | Agent mode (orchestrator, numeric_validation, etc.) |
+| `NUMERIC_VALIDATION_AGENT_MODE` | Env var | Numeric pipeline mode (all, in_table_pipeline, cross_table_pipeline) |
+| `GEMINI_PRO_MODEL` | Env var | Gemini Pro model override (if set in .env) |
+| `GEMINI_FLASH_MODEL` | Env var | Gemini Flash model override (if set in .env) |
+| `ALLOWED_ORIGINS` | Env var | CORS allowed origins (update after frontend deploy) |
 

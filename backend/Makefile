@@ -60,8 +60,6 @@ lint:
 # Deploy to Cloud Run (integration with agents/Makefile flow + Backend API)
 deploy:
 	./scripts/deploy_infra.sh
-# 	agent deployment is optional, shouldn't run always
-# 	$(MAKE) -C agents deploy-all
 
 # ==============================================================================
 # Run Google ADK Web Playground

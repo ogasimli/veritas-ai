@@ -1,6 +1,6 @@
 # Veritas AI Agent Validation Pipeline 🛡️
 
-The Veritas AI Agent is a sophisticated multi-agent system designed to automate the audit and validation of financial reports. It leverages the **Google Agent Development Kit (ADK)** and **Gemini 3.0 Pro/Flash** models to perform distinct types of validation in parallel, orchestrating a team of specialized sub-agents.
+The Veritas AI Agent is a sophisticated multi-agent system designed to automate the audit and validation of financial reports. It leverages the **Google Agent Development Kit (ADK)** and **Gemini 3 Pro/Flash** models to perform distinct types of validation in parallel, orchestrating a team of specialized sub-agents.
 
 ## 🌟 High-Level Overview
 
@@ -215,9 +215,9 @@ The pipeline uses three Gemini models, chosen based on task complexity:
 ## 🛠️ How to Build and Run
 
 ### Prerequisites
--   **Python 3.10+**
+-   **Python 3.11+**
 -   **[uv](https://astral.sh/uv/)** (Fast Python package manager)
--   **Gemini API Key** 
+-   **Gemini API Key**
 
 ### 1. Installation
 Clone the repo and install dependencies:
@@ -230,9 +230,15 @@ make install
 Create a `.env` file in `backend/agents/`:
 ```env
 GEMINI_API_KEY=your-gemini-api-key
-# Optional: Use specific mode
-# VERITAS_AGENT_MODE=orchestrator
+GOOGLE_GENAI_USE_VERTEXAI=FALSE
+VERITAS_AGENT_MODE=orchestrator
+NUMERIC_VALIDATION_AGENT_MODE=all
+# Optional: Override model names (defaults defined in code)
+# GEMINI_PRO_MODEL=gemini-3-pro-preview
+# GEMINI_FLASH_MODEL=gemini-3-flash-preview
 ```
+
+When deploying as part of the full backend (`make deploy` from project root or from `backend/` directory), the deploy script reads agent config from `backend/.env` instead and injects it into Cloud Run.
 
 ### 3. Run Locally (Playground)
 Launch the ADK Playground to chat with the agent:
@@ -244,7 +250,10 @@ make playground
 -   Type "Analyze this report".
 
 ### 4. Deployment
-Deploy to Google Cloud Run:
+Agents are deployed as part of the backend — run `make deploy` from the project root or `backend/`.
+
+To deploy agents independently to Cloud Run (e.g., as standalone services):
 ```bash
-make deploy
+cd backend/agents
+make deploy-all
 ```

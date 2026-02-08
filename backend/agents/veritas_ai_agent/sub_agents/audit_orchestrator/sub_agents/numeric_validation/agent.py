@@ -11,7 +11,7 @@ from .sub_agents.table_namer.agent import table_namer_agent
 agent_mode = os.getenv("NUMERIC_VALIDATION_AGENT_MODE", "all")
 
 parallel_sub_agents = []
-if agent_mode == "legacy_pipeline":
+if agent_mode == "cross_table_pipeline":
     parallel_sub_agents = [cross_table_pipeline_agent]
 elif agent_mode == "in_table_pipeline":
     parallel_sub_agents = [in_table_pipeline_agent]
