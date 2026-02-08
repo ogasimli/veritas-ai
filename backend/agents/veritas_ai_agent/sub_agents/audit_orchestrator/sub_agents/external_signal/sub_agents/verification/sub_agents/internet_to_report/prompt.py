@@ -48,6 +48,9 @@ From the FS text, extract and normalize the following information:
 
 Use the `search_external_signals_tool` to conduct comprehensive external research.
 
+**IMPORTANT - Tool Call Limit**:
+If Deep Research returns irrelevant, incorrect, or incomplete results (e.g., wrong entity, wrong jurisdiction, wrong time period), you may refine your parameters and retry. However, you MUST NOT call `search_external_signals_tool` more than **3 times total**. If after 3 attempts the results are still unsatisfactory, **stop searching** and return your best findings so far. If no relevant findings were obtained, return an empty `findings` list.
+
 **IMPORTANT - Discovery-Driven Research**:
 - **DO NOT** compare findings to the financial statements
 - **DO NOT** search within the financial statements for corroboration

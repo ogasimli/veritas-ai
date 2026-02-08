@@ -132,6 +132,9 @@ The Central Bank refinancing rate is assumed at 9.75%.”
 
 Once you've extracted verifiable claims, use the verify_claims_tool to trigger Deep Research verification.
 
+**IMPORTANT - Tool Call Limit**:
+If Deep Research returns irrelevant, incorrect, or incomplete results (e.g., wrong entity, wrong jurisdiction, wrong time period), you may refine your claims and retry. However, you MUST NOT call `verify_claims_tool` more than **3 times total**. If after 3 attempts the results are still unsatisfactory, **stop** and mark all remaining unverified claims as `CANNOT_VERIFY`.
+
 Provide the extracted claims to the verify_claims_tool. Deep Research will:
 1. Search authoritative sources for each claim
 2. Determine verification status for each claim: VERIFIED, CONTRADICTED, or CANNOT_VERIFY
