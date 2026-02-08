@@ -2,7 +2,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from veritas_ai_agent.sub_agents.disclosure_compliance.tools.checklist_loader import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader import (
     _normalize_code,
     load_standard_checklist,
 )
@@ -18,7 +18,7 @@ def test_normalize_code():
 
 
 @patch(
-    "veritas_ai_agent.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
+    "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
 )
 @patch(
     "builtins.open",
@@ -26,7 +26,7 @@ def test_normalize_code():
     read_data="standards:\n  IAS 1:\n  - name: Cat1\n    disclosures:\n    - id: 1\n  IFRS 6:\n  - name: Cat2\n    disclosures:\n    - id: 2",
 )
 def test_load_standard_checklist_exact(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -36,7 +36,7 @@ def test_load_standard_checklist_exact(mock_file, mock_path):
 
 
 @patch(
-    "veritas_ai_agent.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
+    "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
 )
 @patch(
     "builtins.open",
@@ -54,7 +54,7 @@ standards:
 """,
 )
 def test_load_standard_checklist_normalized(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -76,7 +76,7 @@ def test_load_standard_checklist_normalized(mock_file, mock_path):
 
 
 @patch(
-    "veritas_ai_agent.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
+    "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
 )
 @patch(
     "builtins.open",
@@ -84,7 +84,7 @@ def test_load_standard_checklist_normalized(mock_file, mock_path):
     read_data="standards:\n  IAS 1:\n  - name: Cat1\n    disclosures:\n    - id: 1",
 )
 def test_load_standard_checklist_not_found(mock_file, mock_path):
-    from veritas_ai_agent.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = True
@@ -93,10 +93,10 @@ def test_load_standard_checklist_not_found(mock_file, mock_path):
 
 
 @patch(
-    "veritas_ai_agent.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
+    "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools.checklist_loader.CHECKLIST_PATH"
 )
 def test_load_standard_checklist_file_missing(mock_path):
-    from veritas_ai_agent.sub_agents.disclosure_compliance.tools import checklist_loader
+    from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.tools import checklist_loader
 
     checklist_loader._CHECKLIST_CACHE = None
     mock_path.exists.return_value = False

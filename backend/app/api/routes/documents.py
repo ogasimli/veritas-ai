@@ -13,6 +13,8 @@ from app.schemas.job import JobRead
 from app.services.extractor import ExtractorService
 from app.services.processor import DocumentProcessor
 from app.services.storage import StorageService, get_storage_service
+from app.services.websocket_manager import manager
+from app.utils.validators import validate_document_content
 
 router = APIRouter()
 
@@ -49,6 +51,33 @@ async def process_document_task(
             markdown = extractor.extract_markdown(content)
             print(f"✅ Extracted {len(markdown)} characters of markdown")
             print(f"   Preview (first 200 chars): {markdown[:200]}...")
+
+            # 2.5. Deterministic content validation
+            print("🔍 Step 2.5: Validating document content...")
+            is_valid, error_msg = validate_document_content(markdown)
+
+            if not is_valid:
+                print(f"❌ {error_msg}")
+
+                # Update Job status to failed
+                job_stmt = select(Job).where(Job.id == job_id)
+                job_result = await db.execute(job_stmt)
+                job = job_result.scalar_one_or_none()
+                if job:
+                    job.status = "failed"
+                    job.error_message = error_msg
+                    await db.commit()
+
+                await manager.send_to_audit(
+                    str(job_id),
+                    {
+                        "type": "validation_failed",
+                        "error": error_msg,
+                    },
+                )
+                return
+
+            print("✅ Document content validation passed")
 
             # 3. Update Document record
             print("💾 Step 3: Updating document record in database...")

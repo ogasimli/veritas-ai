@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 from veritas_ai_agent.schemas import BaseAgentOutput
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
     TargetCell,
 )
 

@@ -9,13 +9,13 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks import (
     after_in_table_parallel_callback,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
     TargetCell,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
     HorizontalVerticalCheckAgentOutput,
     HorizontalVerticalCheckInferredFormula,
 )
@@ -231,7 +231,7 @@ class TestAfterInTableParallelCallback:
         }
 
         with patch(
-            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
+            "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
         ) as mock_logger:
             after_in_table_parallel_callback(ctx)
 
@@ -435,7 +435,7 @@ class TestDynamicReplication:
         ] = {"table_index": 0, "row_index": 1, "col_index": 0}
 
         with patch(
-            "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction"
+            "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction"
         ) as mock_detect:
             # We mock detect to ensure it's called
             def side_effect(f_item):
@@ -505,11 +505,11 @@ class TestDynamicReplication:
         # We need to ensure that the mocked return value is indeed None
         with (
             patch(
-                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction",
+                "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction",
                 return_value=None,
             ) as mock_detect,
             patch(
-                "veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
+                "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.logger"
             ) as mock_logger,
         ):
             after_in_table_parallel_callback(ctx)

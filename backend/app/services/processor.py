@@ -583,6 +583,24 @@ class DocumentProcessor:
                 flush=True,
             )
 
+            # Check if validation rejected the document
+            validator_output = final_state.get("document_validator_output")
+            if validator_output and not validator_output.get(
+                "is_valid_financial_document", True
+            ):
+                print("❌ Document rejected by DocumentValidator agent", flush=True)
+                job.status = "failed"
+                job.error_message = "Document is not a valid financial statement."
+                await self.db.commit()
+                await manager.send_to_audit(
+                    str(job_id),
+                    {
+                        "type": "validation_failed",
+                        "error": job.error_message,
+                    },
+                )
+                return  # Skip findings extraction
+
             # Extract and save findings
             print("\n📦 Extracting findings from session state...", flush=True)
             findings_by_agent = self._extract_all_findings(final_state)

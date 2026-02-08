@@ -2,7 +2,7 @@
 
 import json
 
-from veritas_ai_agent.sub_agents.external_signal.deep_research_client import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.deep_research_client import (
     DeepResearchClient,
 )
 

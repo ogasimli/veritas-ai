@@ -16,7 +16,7 @@ from typing import Any
 
 from google.adk.agents.callback_context import CallbackContext
 
-from veritas_ai_agent.sub_agents.numeric_validation.table_extraction import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.table_extraction import (
     extract_tables_from_markdown,
     tables_to_json,
 )

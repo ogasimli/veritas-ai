@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from google.adk.agents import LlmAgent
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.logic_reconciliation_check.sub_agents.fan_out.agent import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.logic_reconciliation_check.sub_agents.fan_out.agent import (
     _create_table_agent,
     _prepare_work_items,
     logic_reconciliation_formula_inferer,

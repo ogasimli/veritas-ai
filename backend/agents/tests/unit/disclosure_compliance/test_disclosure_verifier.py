@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from google.adk.agents import LlmAgent
 
-from veritas_ai_agent.sub_agents.disclosure_compliance.sub_agents.verifier.agent import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.sub_agents.verifier.agent import (
     _create_verifier_agent,
     _prepare_work_items,
     disclosure_verifier_agent,
@@ -56,7 +56,7 @@ class TestPrepareWorkItems:
         assert result == []
 
     @patch(
-        "veritas_ai_agent.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
+        "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
     )
     def test_loads_checklists_for_standards(self, mock_load):
         """Should load checklist for each standard and return tuples."""
@@ -77,7 +77,7 @@ class TestPrepareWorkItems:
         assert mock_load.call_count == 2
 
     @patch(
-        "veritas_ai_agent.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
+        "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
     )
     def test_skips_missing_checklist_with_warning(self, mock_load, caplog):
         """Should skip standards without checklists and log a warning."""
@@ -100,7 +100,7 @@ class TestPrepareWorkItems:
         assert "Skipping IFRS 99" in caplog.text
 
     @patch(
-        "veritas_ai_agent.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
+        "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
     )
     def test_all_standards_skipped_returns_empty(self, mock_load, caplog):
         """Should return [] when all standards fail checklist loading."""
@@ -235,7 +235,7 @@ class TestFanOutAgentWiring:
 
     @pytest.mark.asyncio
     @patch(
-        "veritas_ai_agent.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
+        "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.disclosure_compliance.sub_agents.verifier.agent.load_standard_checklist"
     )
     async def test_full_flow_aggregation(self, mock_load):
         """End-to-end: prepare -> create -> execute -> aggregate findings."""

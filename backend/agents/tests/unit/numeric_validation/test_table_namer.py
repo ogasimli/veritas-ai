@@ -11,12 +11,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.table_namer.callbacks import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.table_namer.callbacks import (
     _parse_namer_output,
     after_agent_callback,
     before_agent_callback,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.table_namer.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.table_namer.schema import (
     TableNameAssignment,
     TableNamerOutput,
 )

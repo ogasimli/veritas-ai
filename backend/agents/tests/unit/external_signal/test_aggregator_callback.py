@@ -4,14 +4,14 @@ import json
 
 import pytest
 
-from veritas_ai_agent.sub_agents.external_signal.sub_agents.aggregator.callbacks import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.sub_agents.aggregator.callbacks import (
     after_aggregator_callback,
 )
-from veritas_ai_agent.sub_agents.external_signal.sub_agents.aggregator.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.sub_agents.aggregator.schema import (
     ExternalSignalFindingsAggregatorOutput,
     ReconciledExternalSignal,
 )
-from veritas_ai_agent.sub_agents.external_signal.sub_agents.verification.sub_agents.report_to_internet.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.sub_agents.verification.sub_agents.report_to_internet.schema import (
     ExternalSignalClaimVerification,
     ExternalSignalReportToInternetOutput,
 )

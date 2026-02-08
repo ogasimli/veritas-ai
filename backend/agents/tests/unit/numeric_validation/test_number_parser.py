@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from veritas_ai_agent.sub_agents.numeric_validation.table_extraction.number_parser import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.table_extraction.number_parser import (
     detect_locale,
     parse_cell_value,
     process_dataframe,

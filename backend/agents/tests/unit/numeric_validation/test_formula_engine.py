@@ -6,7 +6,7 @@ inside the engine.
 
 from typing import ClassVar
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.formula_engine import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.formula_engine import (
     evaluate_formula_with_tables,
 )
 

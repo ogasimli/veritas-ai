@@ -7,12 +7,12 @@ from google.adk.agents import LlmAgent
 from google.adk.models.llm_request import LlmRequest
 from google.genai import types
 
-from veritas_ai_agent.sub_agents.logic_consistency.sub_agents.reviewer.agent import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.logic_consistency.sub_agents.reviewer.agent import (
     _create_reviewer_agent,
     _prepare_work_items,
     reviewer_agent,
 )
-from veritas_ai_agent.sub_agents.logic_consistency.sub_agents.reviewer.callbacks import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.logic_consistency.sub_agents.reviewer.callbacks import (
     strip_injected_context,
 )
 

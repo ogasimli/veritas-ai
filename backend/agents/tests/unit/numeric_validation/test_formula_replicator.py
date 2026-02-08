@@ -6,16 +6,16 @@ Tests cover:
 - Edge cases: empty target cells, non-numeric source cells, etc.
 """
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
     replicate_formulas,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.schema import (
     TargetCell,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.logic_reconciliation_check.sub_agents.fan_out.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.logic_reconciliation_check.sub_agents.fan_out.schema import (
     LogicInferredFormula,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
     HorizontalVerticalCheckInferredFormula,
 )
 
@@ -442,7 +442,7 @@ class TestEdgeCases:
         assert 2 in cols
 
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.formula_replicator import (
     detect_replication_direction,
 )
 

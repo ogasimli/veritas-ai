@@ -16,13 +16,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.aggregator.callbacks import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.aggregator.callbacks import (
     _evaluate_cross_table,
     _evaluate_in_table,
     _extract_formula_string,
     before_agent_callback,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.aggregator.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.aggregator.schema import (
     AggregatorOutput,
     NumericIssue,
 )

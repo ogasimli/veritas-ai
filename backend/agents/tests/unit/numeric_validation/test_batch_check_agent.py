@@ -3,16 +3,16 @@ import json
 import pytest
 from google.adk.agents import LlmAgent
 
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.agent import (
     _create_check_fan_out_agent,
     _prepare_work_items,
     create_horizontal_check_agent,
     create_vertical_check_agent,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.schema import (
     HorizontalVerticalCheckAgentOutput,
 )
-from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.utils import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.utils import (
     chunk_tables,
 )
 
@@ -198,7 +198,7 @@ class TestFanOutAgentWiring:
 
     def test_vertical_uses_vertical_instruction(self):
         """Vertical agent uses VERTICAL_INSTRUCTION template."""
-        from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
+        from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
             VERTICAL_INSTRUCTION,
         )
 
@@ -211,7 +211,7 @@ class TestFanOutAgentWiring:
 
     def test_horizontal_uses_horizontal_instruction(self):
         """Horizontal agent uses HORIZONTAL_INSTRUCTION template."""
-        from veritas_ai_agent.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
+        from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.sub_agents.vertical_horizontal_check.prompt import (
             HORIZONTAL_INSTRUCTION,
         )
 

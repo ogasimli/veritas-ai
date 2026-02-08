@@ -5,7 +5,7 @@ mocked.  That is the point of this module: the extraction path must be
 deterministic and hallucination-free end-to-end.
 """
 
-from veritas_ai_agent.sub_agents.numeric_validation.table_extraction.extractor import (
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.table_extraction.extractor import (
     extract_tables_from_markdown,
     tables_to_json,
 )
