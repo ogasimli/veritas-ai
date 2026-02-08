@@ -6,7 +6,7 @@ from typing import Any
 import yaml
 
 CHECKLIST_PATH = (
-    Path(__file__).parent.parent.parent.parent
+    Path(__file__).resolve().parents[5]
     / "data"
     / "ifrs_disclosure_checklist.yaml"
 )
