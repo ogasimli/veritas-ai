@@ -5,12 +5,6 @@ environment variables:
 
     GEMINI_PRO_MODEL   - defaults to "gemini-3-pro-preview"
     GEMINI_FLASH_MODEL - defaults to "gemini-3-flash-preview"
-
-Usage::
-
-    from veritas_ai_agent.shared.model_config import GEMINI_PRO, GEMINI_FLASH
-
-    agent = LlmAgent(model=GEMINI_PRO, ...)
 """
 
 import os

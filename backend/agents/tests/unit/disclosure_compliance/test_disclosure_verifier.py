@@ -196,24 +196,29 @@ class TestFanOutAgentWiring:
         assert disclosure_verifier_agent.name == "DisclosureVerifier"
 
     def test_output_key(self):
+        assert disclosure_verifier_agent.config is not None
         assert disclosure_verifier_agent.config.output_key == "disclosure_all_findings"
 
     def test_results_field(self):
+        assert disclosure_verifier_agent.config is not None
         assert disclosure_verifier_agent.config.results_field == "findings"
 
     def test_empty_message(self):
+        assert disclosure_verifier_agent.config is not None
         assert (
             disclosure_verifier_agent.config.empty_message
             == "No applicable standards found to verify."
         )
 
     def test_callbacks_wired(self):
+        assert disclosure_verifier_agent.config is not None
         assert (
             disclosure_verifier_agent.config.prepare_work_items is _prepare_work_items
         )
         assert disclosure_verifier_agent.config.create_agent is _create_verifier_agent
 
     def test_no_custom_aggregate(self):
+        assert disclosure_verifier_agent.config is not None
         assert disclosure_verifier_agent.config.aggregate is None
 
     @pytest.mark.asyncio

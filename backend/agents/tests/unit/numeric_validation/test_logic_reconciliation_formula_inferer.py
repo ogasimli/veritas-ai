@@ -196,6 +196,7 @@ class TestCreateTableAgent:
         agent = _create_table_agent(0, table, "key")
 
         # The instruction should contain the envelope JSON
+        assert isinstance(agent.instruction, str)
         assert "test_content" in agent.instruction
         assert "tables" in agent.instruction
 
@@ -205,6 +206,7 @@ class TestCreateTableAgent:
         agent = _create_table_agent(0, table, "key")
 
         expected_envelope = json.dumps({"tables": [table]})
+        assert isinstance(agent.instruction, str)
         assert expected_envelope in agent.instruction
 
 
@@ -221,21 +223,25 @@ class TestFanOutAgentWiring:
         )
 
     def test_output_key(self):
+        assert logic_reconciliation_formula_inferer.config is not None
         assert (
             logic_reconciliation_formula_inferer.config.output_key
             == "logic_reconciliation_formula_inferer_output"
         )
 
     def test_results_field(self):
+        assert logic_reconciliation_formula_inferer.config is not None
         assert logic_reconciliation_formula_inferer.config.results_field == "formulas"
 
     def test_empty_message(self):
+        assert logic_reconciliation_formula_inferer.config is not None
         assert (
             logic_reconciliation_formula_inferer.config.empty_message
             == "No candidate tables for logic reconciliation."
         )
 
     def test_callbacks_wired(self):
+        assert logic_reconciliation_formula_inferer.config is not None
         assert (
             logic_reconciliation_formula_inferer.config.prepare_work_items
             is _prepare_work_items

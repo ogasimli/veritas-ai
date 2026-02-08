@@ -87,6 +87,7 @@ def test_initialization_with_overrides():
     )
     agent = FanOutAgent(name="CustomFanOut", config=config)
 
+    assert agent.config is not None
     assert agent.config.results_field == "formulas"
     assert agent.config.empty_message == "Nothing to do."
     assert agent.config.aggregate is custom_aggregate

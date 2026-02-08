@@ -5,7 +5,7 @@ from google.genai import types
 
 from veritas_ai_agent.shared.error_handler import default_model_error_handler
 from veritas_ai_agent.shared.llm_config import get_default_retry_config
-from veritas_ai_agent.shared.model_config import GEMINI_FLASH
+from veritas_ai_agent.shared.model_name_config import GEMINI_FLASH
 
 from . import prompt
 from .schema import DocumentValidatorOutput

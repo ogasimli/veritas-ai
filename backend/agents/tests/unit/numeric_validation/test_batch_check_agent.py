@@ -128,6 +128,7 @@ class TestCreateAgent:
             "Instruction with {extracted_tables} placeholder",
             "test_output",
         )
+        assert agent.config is not None
         return agent.config.create_agent
 
     def test_returns_llm_agent(self):
@@ -174,6 +175,7 @@ class TestFanOutAgentWiring:
     def test_vertical_agent_config(self):
         agent = create_vertical_check_agent()
         assert agent.name == "VerticalCheckAgent"
+        assert agent.config is not None
         assert agent.config.output_key == "vertical_check_output"
         assert agent.config.results_field == "formulas"
         assert agent.config.aggregate is None
@@ -182,6 +184,7 @@ class TestFanOutAgentWiring:
     def test_horizontal_agent_config(self):
         agent = create_horizontal_check_agent()
         assert agent.name == "HorizontalCheckAgent"
+        assert agent.config is not None
         assert agent.config.output_key == "horizontal_check_output"
         assert agent.config.results_field == "formulas"
         assert agent.config.aggregate is None
@@ -191,6 +194,8 @@ class TestFanOutAgentWiring:
         """Both agents have a create_agent callback wired."""
         v_agent = create_vertical_check_agent()
         h_agent = create_horizontal_check_agent()
+        assert v_agent.config is not None
+        assert h_agent.config is not None
         assert callable(v_agent.config.create_agent)
         assert callable(h_agent.config.create_agent)
 
@@ -198,6 +203,7 @@ class TestFanOutAgentWiring:
         """Vertical agent uses VERTICAL_INSTRUCTION template."""
 
         agent = create_vertical_check_agent()
+        assert agent.config is not None
         sub = agent.config.create_agent(0, [{"table_index": 0}], "key")
         # The instruction should contain vertical-specific content
         assert "Vertical Logic Auditor" in sub.instruction
@@ -208,6 +214,7 @@ class TestFanOutAgentWiring:
         """Horizontal agent uses HORIZONTAL_INSTRUCTION template."""
 
         agent = create_horizontal_check_agent()
+        assert agent.config is not None
         sub = agent.config.create_agent(0, [{"table_index": 0}], "key")
         # The instruction should contain horizontal-specific content
         assert "Horizontal Logic Auditor" in sub.instruction

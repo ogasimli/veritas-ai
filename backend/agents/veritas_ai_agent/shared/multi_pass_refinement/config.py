@@ -8,7 +8,7 @@ from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 from pydantic import BaseModel
 
-from veritas_ai_agent.shared.model_config import GEMINI_PRO
+from veritas_ai_agent.shared.model_name_config import GEMINI_PRO
 
 
 @dataclass

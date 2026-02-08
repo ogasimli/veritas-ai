@@ -58,6 +58,7 @@ class TestStripInjectedContext:
         strip_injected_context(MagicMock(), llm_request)
 
         assert len(llm_request.contents) == 1
+        assert llm_request.contents[0].parts is not None
         assert llm_request.contents[0].parts[0].text == "Analyze the document"
 
     def test_preserves_non_context_content(self):
@@ -83,6 +84,7 @@ class TestStripInjectedContext:
         strip_injected_context(MagicMock(), llm_request)
 
         assert len(llm_request.contents) == 1
+        assert llm_request.contents[0].parts is not None
         assert llm_request.contents[0].parts[0].text == "Actual input"
 
     def test_ignores_model_role_with_for_context(self):
@@ -222,6 +224,7 @@ class TestCreateReviewerAgent:
     def test_instruction_contains_batch_findings(self):
         batch = [{"fsli_name": "Revenue", "claim": "test claim"}]
         agent = _create_reviewer_agent(0, batch, "key")
+        assert isinstance(agent.instruction, str)
         assert "Revenue" in agent.instruction
         assert "test claim" in agent.instruction
 
@@ -229,6 +232,7 @@ class TestCreateReviewerAgent:
         """Instruction should only contain the batch findings, not all findings."""
         batch = [{"fsli_name": "Revenue", "claim": "batch claim"}]
         agent = _create_reviewer_agent(0, batch, "key")
+        assert isinstance(agent.instruction, str)
         assert "batch claim" in agent.instruction
         # Other findings not in this batch should not appear
         assert "other_fsli" not in agent.instruction
@@ -244,17 +248,22 @@ class TestFanOutAgentWiring:
         assert reviewer_agent.name == "LogicConsistencyReviewer"
 
     def test_output_key(self):
+        assert reviewer_agent.config is not None
         assert reviewer_agent.config.output_key == "logic_consistency_reviewer_output"
 
     def test_results_field(self):
+        assert reviewer_agent.config is not None
         assert reviewer_agent.config.results_field == "findings"
 
     def test_empty_message(self):
+        assert reviewer_agent.config is not None
         assert reviewer_agent.config.empty_message == "No detector findings to review."
 
     def test_callbacks_wired(self):
+        assert reviewer_agent.config is not None
         assert reviewer_agent.config.prepare_work_items is _prepare_work_items
         assert reviewer_agent.config.create_agent is _create_reviewer_agent
 
     def test_no_custom_aggregate(self):
+        assert reviewer_agent.config is not None
         assert reviewer_agent.config.aggregate is None

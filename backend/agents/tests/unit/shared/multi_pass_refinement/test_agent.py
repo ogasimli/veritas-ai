@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import BaseModel
 
+from veritas_ai_agent.shared.model_name_config import GEMINI_PRO
 from veritas_ai_agent.shared.multi_pass_refinement.agent import (
     MultiPassRefinementAgent,
 )
@@ -223,8 +224,6 @@ async def test_findings_collection_logic():
 
 def test_model_config_resolution():
     """Test that models are correctly specified in agent configs."""
-    from veritas_ai_agent.shared.model_config import GEMINI_PRO
-
     config = _create_mock_config()
 
     # 1. Default model
