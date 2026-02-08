@@ -31,24 +31,28 @@ const COLOR_CLASSES = {
     border: 'border-blue-200 dark:border-blue-800',
     text: 'text-blue-700 dark:text-blue-300',
     icon: 'text-blue-500',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
   },
   purple: {
     bg: 'bg-purple-50 dark:bg-purple-900/20',
     border: 'border-purple-200 dark:border-purple-800',
     text: 'text-purple-700 dark:text-purple-300',
     icon: 'text-purple-500',
+    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
   },
   orange: {
     bg: 'bg-orange-50 dark:bg-orange-900/20',
     border: 'border-orange-200 dark:border-orange-800',
     text: 'text-orange-700 dark:text-orange-300',
     icon: 'text-orange-500',
+    badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
   },
   teal: {
     bg: 'bg-teal-50 dark:bg-teal-900/20',
     border: 'border-teal-200 dark:border-teal-800',
     text: 'text-teal-700 dark:text-teal-300',
     icon: 'text-teal-500',
+    badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
   },
 }
 
@@ -74,18 +78,23 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
 
   return (
     <div
-      className={`rounded-lg border ${colors.border} ${colors.bg} overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md`}
+      className={`flex max-h-[600px] flex-col rounded-lg border ${colors.border} ${colors.bg} overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md`}
     >
       {/* Header */}
-      <div className={`border-b ${colors.border} p-4`}>
+      <div className={`shrink-0 border-b ${colors.border} p-4`}>
         <div className="flex items-center gap-2">
           <span className={`material-icons ${colors.icon}`}>{config.icon}</span>
           <h3 className={`font-semibold ${colors.text}`}>{config.label}</h3>
+          {status === 'complete' && findings.length > 0 && (
+            <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-medium ${colors.badge}`}>
+              {findings.length}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {status === 'processing' && (
           <div className="flex items-center justify-center py-8">
             <div className="flex flex-col items-center gap-2">
