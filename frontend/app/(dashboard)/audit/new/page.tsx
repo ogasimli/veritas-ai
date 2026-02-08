@@ -68,7 +68,7 @@ export default function NewAuditPage() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <FileUploadZone
               label="Current Year (Required)"
-              onUpload={(file) => setCurrentYearFile(file)}
+              onFileChange={(file) => setCurrentYearFile(file)}
             />
             <div className="relative overflow-hidden rounded-lg">
               {/* Overlay */}
@@ -96,7 +96,7 @@ export default function NewAuditPage() {
               <div className="pointer-events-none grayscale filter">
                 <FileUploadZone
                   label="Prior Year (Optional)"
-                  onUpload={(file) => setPriorYearFile(file)}
+                  onFileChange={(file) => setPriorYearFile(file)}
                 />
               </div>
             </div>
@@ -126,7 +126,7 @@ export default function NewAuditPage() {
               <div className="pointer-events-none grayscale filter">
                 <FileUploadZone
                   label="Internal Memos (Optional)"
-                  onUpload={(file) => setMemosFile(file)}
+                  onFileChange={(file) => setMemosFile(file)}
                 />
               </div>
             </div>

@@ -6,15 +6,15 @@ import { z } from 'zod'
 
 const fileSchema = z.object({
   name: z.string().endsWith('.docx', 'Only .docx files are allowed'),
-  size: z.number().max(10 * 1024 * 1024, 'File must be less than 10MB'),
+  size: z.number().max(20 * 1024 * 1024, 'File must be less than 20MB'),
 })
 
 interface FileUploadZoneProps {
   label: string
-  onUpload: (file: File) => Promise<void> | void
+  onFileChange: (file: File | null) => void
 }
 
-export function FileUploadZone({ label, onUpload }: FileUploadZoneProps) {
+export function FileUploadZone({ label, onFileChange }: FileUploadZoneProps) {
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,13 +37,14 @@ export function FileUploadZone({ label, onUpload }: FileUploadZoneProps) {
       if (!result.success) {
         setError(result.error.issues[0].message)
         setFile(null)
+        onFileChange(null)
         return
       }
 
       setFile(droppedFile)
-      await onUpload(droppedFile)
+      onFileChange(droppedFile)
     },
-    [onUpload]
+    [onFileChange]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

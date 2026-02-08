@@ -19,7 +19,7 @@ from app.utils.validators import validate_document_content
 router = APIRouter()
 
 # File size limit in MB
-MAX_FILE_SIZE_MB = 50
+MAX_FILE_SIZE_MB = 20
 
 
 async def process_document_task(

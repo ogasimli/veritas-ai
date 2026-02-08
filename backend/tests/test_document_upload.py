@@ -11,7 +11,7 @@ client = TestClient(app)
 
 
 def test_upload_document_exceeds_size_limit():
-    """Test that uploading a file larger than 50MB returns a 413 error."""
+    """Test that uploading a file larger than 20MB returns a 413 error."""
     # Setup Mock DB
     mock_db = MagicMock()
     mock_db.execute = AsyncMock()
@@ -38,9 +38,9 @@ def test_upload_document_exceeds_size_limit():
     app.dependency_overrides[get_storage_service] = override_get_storage
 
     try:
-        # Create a file larger than 50MB (51MB)
-        # We'll create 51 * 1024 * 1024 bytes = 53,477,376 bytes
-        large_file_size = 51 * 1024 * 1024
+        # Create a file larger than 20MB (21MB)
+        # We'll create 21 * 1024 * 1024 bytes = 22,020,096 bytes
+        large_file_size = 21 * 1024 * 1024
         large_content = b"x" * large_file_size
 
         # Create a file-like object
@@ -55,8 +55,8 @@ def test_upload_document_exceeds_size_limit():
         # Assert that we get a 413 error
         assert response.status_code == 413
         assert "exceeds the maximum allowed size" in response.json()["detail"]
-        assert "51.00MB" in response.json()["detail"]
-        assert "50MB" in response.json()["detail"]
+        assert "21.00MB" in response.json()["detail"]
+        assert "20MB" in response.json()["detail"]
 
         # Verify that upload_file was NOT called (since we failed validation)
         mock_storage.upload_file.assert_not_called()
@@ -67,7 +67,7 @@ def test_upload_document_exceeds_size_limit():
 
 
 def test_upload_document_within_size_limit():
-    """Test that uploading a file smaller than 50MB succeeds."""
+    """Test that uploading a file smaller than 20MB succeeds."""
     # Setup Mock DB
     mock_db = MagicMock()
     mock_db.execute = AsyncMock()
@@ -142,8 +142,8 @@ def test_upload_document_within_size_limit():
         app.dependency_overrides = {}
 
 
-def test_upload_document_edge_case_exactly_50mb():
-    """Test that uploading a file exactly at the 50MB limit succeeds."""
+def test_upload_document_edge_case_exactly_20mb():
+    """Test that uploading a file exactly at the 20MB limit succeeds."""
     # Setup Mock DB
     mock_db = MagicMock()
     mock_db.execute = AsyncMock()
@@ -190,8 +190,8 @@ def test_upload_document_edge_case_exactly_50mb():
     app.dependency_overrides[get_storage_service] = override_get_storage
 
     try:
-        # Create a file exactly 50MB
-        exact_file_size = 50 * 1024 * 1024
+        # Create a file exactly 20MB
+        exact_file_size = 20 * 1024 * 1024
         exact_content = b"x" * exact_file_size
 
         # Create a file-like object
@@ -205,7 +205,7 @@ def test_upload_document_edge_case_exactly_50mb():
                 files={"file": ("exact_test.docx", file_data, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
             )
 
-            # Assert that the upload succeeds (50MB is at the limit, not over)
+            # Assert that the upload succeeds (20MB is at the limit, not over)
             assert response.status_code == 200
             assert response.json()["name"] == "Report #1"
             assert response.json()["status"] == "processing"
