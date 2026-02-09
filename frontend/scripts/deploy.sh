@@ -67,9 +67,21 @@ FRONTEND_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" -
 echo "✅ Frontend Deployment Complete!"
 echo "Service URL: $FRONTEND_URL"
 
-# Update backend CORS to allow this frontend origin
-echo "Updating backend ALLOWED_ORIGINS to $FRONTEND_URL..."
+# Update backend CORS to allow this frontend origin.
+# Cloud Run exposes services on multiple URL formats, so we read them all from
+# the run.googleapis.com/urls annotation to avoid CORS mismatches.
+ALLOWED_ORIGINS=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" \
+    --format='value(metadata.annotations."run.googleapis.com/urls")' \
+    | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)))" 2>/dev/null \
+    || true)
+if [ -z "$ALLOWED_ORIGINS" ]; then
+    ALLOWED_ORIGINS="*"
+    echo "⚠️  Could not read service URLs from Cloud Run annotations."
+    echo "  ALLOWED_ORIGINS defaulting to '*'. Update manually if needed."
+fi
+
+echo "Updating backend ALLOWED_ORIGINS to $ALLOWED_ORIGINS..."
 gcloud run services update "$BACKEND_SERVICE_NAME" \
     --region "$REGION" \
-    --update-env-vars "ALLOWED_ORIGINS=$FRONTEND_URL"
+    --update-env-vars "^||^ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
 echo "✅ Backend ALLOWED_ORIGINS updated."

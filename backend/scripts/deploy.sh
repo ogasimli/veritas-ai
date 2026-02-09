@@ -176,15 +176,21 @@ gcloud builds submit --tag "$IMAGE_URL" .
 
 echo "Deploying Container..."
 # Build env vars dynamically — only include overrides if set in .env
-# Auto-detect frontend URL for CORS if frontend is already deployed
-FRONTEND_URL=$(gcloud run services describe "veritas-ai-frontend${SUFFIX}" --region "$REGION" --format='value(status.url)' 2>/dev/null || true)
-ALLOWED_ORIGINS="${FRONTEND_URL:-*}"
-ENV_VARS="GCS_BUCKET=${BUCKET_NAME},DEBUG=false,ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
-[ -n "$GOOGLE_GENAI_USE_VERTEXAI" ] && ENV_VARS="${ENV_VARS},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI}"
-[ -n "$GEMINI_PRO_MODEL" ] && ENV_VARS="${ENV_VARS},GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL}"
-[ -n "$GEMINI_FLASH_MODEL" ] && ENV_VARS="${ENV_VARS},GEMINI_FLASH_MODEL=${GEMINI_FLASH_MODEL}"
-[ -n "$VERITAS_AGENT_MODE" ] && ENV_VARS="${ENV_VARS},VERITAS_AGENT_MODE=${VERITAS_AGENT_MODE}"
-[ -n "$NUMERIC_VALIDATION_AGENT_MODE" ] && ENV_VARS="${ENV_VARS},NUMERIC_VALIDATION_AGENT_MODE=${NUMERIC_VALIDATION_AGENT_MODE}"
+# Auto-detect frontend URL for CORS if frontend is already deployed.
+# Cloud Run exposes services on multiple URL formats, so we read them all from
+# the run.googleapis.com/urls annotation to avoid CORS mismatches.
+FRONTEND_SERVICE="veritas-ai-frontend${SUFFIX}"
+ALLOWED_ORIGINS=$(gcloud run services describe "$FRONTEND_SERVICE" --region "$REGION" \
+    --format='value(metadata.annotations."run.googleapis.com/urls")' 2>/dev/null \
+    | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)))" 2>/dev/null || true)
+ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-*}"
+# Use || as delimiter so commas in ALLOWED_ORIGINS don't break parsing
+ENV_VARS="^||^GCS_BUCKET=${BUCKET_NAME}||DEBUG=false||ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
+[ -n "$GOOGLE_GENAI_USE_VERTEXAI" ] && ENV_VARS="${ENV_VARS}||GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI}"
+[ -n "$GEMINI_PRO_MODEL" ] && ENV_VARS="${ENV_VARS}||GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL}"
+[ -n "$GEMINI_FLASH_MODEL" ] && ENV_VARS="${ENV_VARS}||GEMINI_FLASH_MODEL=${GEMINI_FLASH_MODEL}"
+[ -n "$VERITAS_AGENT_MODE" ] && ENV_VARS="${ENV_VARS}||VERITAS_AGENT_MODE=${VERITAS_AGENT_MODE}"
+[ -n "$NUMERIC_VALIDATION_AGENT_MODE" ] && ENV_VARS="${ENV_VARS}||NUMERIC_VALIDATION_AGENT_MODE=${NUMERIC_VALIDATION_AGENT_MODE}"
 
 gcloud run deploy "$SERVICE_NAME" \
     --image "$IMAGE_URL" \
