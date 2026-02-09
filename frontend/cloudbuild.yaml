@@ -2,8 +2,6 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_API_URL=$_BACKEND_URL'
       - '-t'
       - '$_IMAGE_URL'
       - '.'

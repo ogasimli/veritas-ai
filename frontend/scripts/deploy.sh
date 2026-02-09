@@ -48,11 +48,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$FRONTEND_DIR"
 
-# Build with backend URL as build arg
+# Build environment-agnostic image (API URL injected at runtime)
 echo "Submitting build to Cloud Build..."
 gcloud builds submit \
     --config=cloudbuild.yaml \
-    --substitutions=_IMAGE_URL="$IMAGE_URL",_BACKEND_URL="$BACKEND_URL" \
+    --substitutions=_IMAGE_URL="$IMAGE_URL" \
     .
 
 echo "Deploying Container..."
@@ -61,7 +61,9 @@ gcloud run deploy "$SERVICE_NAME" \
     --region "$REGION" \
     --platform managed \
     --allow-unauthenticated \
-    --timeout=3600
+    --timeout=3600 \
+    --set-env-vars "NEXT_PUBLIC_API_URL=${BACKEND_URL}" \
+    --max-instances 5
 
 FRONTEND_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
 echo "✅ Frontend Deployment Complete!"

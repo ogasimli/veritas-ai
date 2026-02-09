@@ -2,7 +2,7 @@
 # Veritas AI - Project Makefile
 # ==============================================================================
 
-.PHONY: playground install dev test lint deploy deploy-backend deploy-frontend teardown teardown-backend teardown-frontend extract-docx
+.PHONY: playground install dev test lint deploy deploy-backend deploy-frontend promote promote-backend promote-frontend teardown teardown-backend teardown-frontend extract-docx
 
 #  Run Google ADK Web Playground
 playground:
@@ -57,6 +57,17 @@ deploy-frontend:
 deploy:
 	$(MAKE) deploy-backend
 	$(MAKE) deploy-frontend
+
+# Promote staging images to production (no rebuild)
+# Usage: make promote | make promote-backend | make promote-frontend
+promote:
+	./scripts/promote.sh
+
+promote-backend:
+	./scripts/promote.sh --backend-only
+
+promote-frontend:
+	./scripts/promote.sh --frontend-only
 
 # Tear down Cloud Run services
 # Usage: make teardown [env=staging]

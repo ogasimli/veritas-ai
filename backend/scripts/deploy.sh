@@ -84,12 +84,19 @@ fi
 # ==============================================================================
 echo "Configuring Secrets..."
 
-# Helper to create/update secret
+# Helper to create/update secret (skips if value unchanged)
 create_secret() {
     local name=$1
     local value=$2
     if ! gcloud secrets describe "$name" >/dev/null 2>&1; then
         gcloud secrets create "$name" --replication-policy="automatic"
+    else
+        local current
+        current=$(gcloud secrets versions access latest --secret="$name" 2>/dev/null) || true
+        if [ "$current" = "$value" ]; then
+            echo "Secret $name unchanged, skipping."
+            return
+        fi
     fi
     echo -n "$value" | gcloud secrets versions add "$name" --data-file=-
 }
@@ -200,7 +207,8 @@ gcloud run deploy "$SERVICE_NAME" \
     --timeout=3600 \
     --add-cloudsql-instances="$INSTANCE_CONNECTION_NAME" \
     --set-secrets="DATABASE_URL=VERITAS_DB_URL:latest,GEMINI_API_KEY=VERITAS_GEMINI_API_KEY:latest" \
-    --set-env-vars="$ENV_VARS"
+    --set-env-vars="$ENV_VARS" \
+    --max-instances 5
 
 echo ""
 echo "✅ Deployment Complete!"
