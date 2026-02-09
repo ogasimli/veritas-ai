@@ -112,14 +112,16 @@ async def process_document_task(
                 os.unlink(temp_file_path)
 
             # Update Job status to failed
-            job_stmt = select(Job).where(Job.id == job_id)
-            job_result = await db.execute(job_stmt)
-            job = job_result.scalar_one_or_none()
-            if job:
-                job.status = "failed"
-                job.error_message = str(e)
-                await db.commit()
-            raise
+            try:
+                job_stmt = select(Job).where(Job.id == job_id)
+                job_result = await db.execute(job_stmt)
+                job = job_result.scalar_one_or_none()
+                if job:
+                    job.status = "failed"
+                    job.error_message = str(e)
+                    await db.commit()
+            except Exception as db_err:
+                print(f"   ⚠️ Failed to update job status: {db_err}")
 
 
 @router.post("/upload", response_model=JobRead)
