@@ -206,13 +206,16 @@ make db-stop
 - `GET /api/health` — Health check endpoint
 
 ### Documents
-- `POST /api/v1/documents/upload` — Upload a financial report (DOCX only; PDF coming soon)
-- `GET /api/v1/documents/{document_id}` — Retrieve document metadata
-- `GET /api/v1/documents/{document_id}/download` — Download original document
+- `POST /api/v1/documents/upload` — Upload a financial report (DOCX) and start audit job
 
 ### Jobs
-- `GET /api/v1/jobs/{job_id}` — Get audit job status and results
-- `GET /api/v1/jobs/{job_id}/findings` — Retrieve detailed findings
+- `GET /api/v1/jobs/` — List all audit jobs
+- `GET /api/v1/jobs/{job_id}` — Get job status and metadata
+- `GET /api/v1/jobs/{job_id}/results` — Get all agent results for a job
+- `GET /api/v1/jobs/{job_id}/results/agent/{agent_id}` — Get results for specific agent
+- `GET /api/v1/jobs/{job_id}/debug` — Download ADK debug YAML file (for troubleshooting)
+- `PATCH /api/v1/jobs/{job_id}` — Update job metadata
+- `DELETE /api/v1/jobs/{job_id}` — Delete a job
 
 ### WebSockets
 - `WS /ws/jobs/{job_id}` — Real-time progress updates during audit execution

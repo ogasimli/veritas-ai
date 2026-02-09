@@ -1,6 +1,8 @@
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -83,6 +85,32 @@ async def get_agent_results(
     results = result.scalars().all()
 
     return results
+
+
+@router.get("/{job_id}/debug")
+async def get_job_debug_log(job_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Get ADK debug YAML file for a specific job."""
+    # First verify job exists
+    stmt_job = select(Job).where(Job.id == job_id)
+    result_job = await db.execute(stmt_job)
+    job = result_job.scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Look for debug file
+    debug_file = Path.cwd() / f"adk_debug_{job_id}.yaml"
+    if not debug_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Debug file not found for job {job_id}. File may have been cleaned up or job did not complete.",
+        )
+
+    return FileResponse(
+        path=str(debug_file),
+        filename=f"adk_debug_{job_id}.yaml",
+        media_type="application/x-yaml",
+    )
 
 
 @router.patch("/{job_id}", response_model=JobRead)
