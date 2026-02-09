@@ -245,15 +245,17 @@ class ExternalSignalAdapter(AgentAdapter):
                         elif isinstance(src, str):
                             source_refs.append(src)
 
+                summary = signal.get("summary", "")
+                not_found = signal.get("evidence_not_found_statement", "")
+                reasoning_parts = [summary]
+                if not_found:
+                    reasoning_parts.append(not_found)
+
                 findings.append(
                     NormalizedFinding(
                         description=signal.get("signal_title", ""),
                         severity=signal.get("severity", "medium"),
-                        reasoning=(
-                            f"{signal.get('summary', '')}\n\n"
-                            f"Gap: {signal.get('gap_classification', '')}\n"
-                            f"Reflected in FS: {signal.get('evidence_reflected_in_fs', '')}"
-                        ),
+                        reasoning="\n\n".join(reasoning_parts),
                         source_refs=source_refs,
                     )
                 )
@@ -269,14 +271,20 @@ class ExternalSignalAdapter(AgentAdapter):
 
         if isinstance(claims, list):
             for claim in claims:
+                evidence = claim.get("evidence_summary", "")
+                discrepancy = claim.get("discrepancy", "")
+                reasoning_parts = []
+                if evidence:
+                    reasoning_parts.append(evidence)
+                if discrepancy:
+                    reasoning_parts.append(discrepancy)
+
                 findings.append(
                     NormalizedFinding(
-                        description=f"{claim.get('claim_text', '')}: {claim.get('verification_status', '')}",
+                        description=(claim.get("claim_text", "") or "")[:1].upper()
+                        + (claim.get("claim_text", "") or "")[1:],
                         severity=claim.get("severity", "medium"),
-                        reasoning=(
-                            f"Evidence: {claim.get('evidence_summary', '')}\n\n"
-                            f"Discrepancy: {claim.get('discrepancy', '')}"
-                        ),
+                        reasoning="\n\n".join(reasoning_parts),
                         source_refs=claim.get("source_urls", []),
                     )
                 )

@@ -246,7 +246,7 @@ async def test_processor_extraction_contract():
     # One should be signal, one claim verification
     descriptions = [r.description for r in external_results]
     assert any("S&P" in d for d in descriptions), "External signal not parsed"
-    assert any("CONTRADICTED" in d for d in descriptions), (
+    assert any("Company closed Seattle facility" in d for d in descriptions), (
         "Claim verification not parsed"
     )
 
