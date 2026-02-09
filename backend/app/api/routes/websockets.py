@@ -7,8 +7,8 @@ from app.services.websocket_manager import manager
 router = APIRouter()
 
 
-@router.websocket("/ws/audit/{audit_id}")
-async def websocket_endpoint(audit_id: str, websocket: WebSocket):
+@router.websocket("/ws/jobs/{job_id}")
+async def websocket_endpoint(job_id: str, websocket: WebSocket):
     """
     WebSocket endpoint for real-time audit progress updates.
 
@@ -17,11 +17,11 @@ async def websocket_endpoint(audit_id: str, websocket: WebSocket):
     completes or the client disconnects.
 
     Args:
-        audit_id: The audit ID to subscribe to
+        job_id: The job ID to subscribe to
         websocket: The WebSocket connection
     """
     # Accept and track the connection
-    await manager.connect(audit_id, websocket)
+    await manager.connect(job_id, websocket)
 
     try:
         # Keep connection alive - client can send heartbeats if needed
@@ -30,4 +30,4 @@ async def websocket_endpoint(audit_id: str, websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         # Clean up when client disconnects
-        manager.disconnect(audit_id, websocket)
+        manager.disconnect(job_id, websocket)

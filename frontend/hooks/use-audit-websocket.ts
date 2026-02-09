@@ -141,7 +141,7 @@ export function useAuditWebSocket(auditId: string | null) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const wsUrl = apiUrl.replace(/^http/, 'ws')
-      const websocket = new WebSocket(`${wsUrl}/ws/audit/${auditId}`)
+      const websocket = new WebSocket(`${wsUrl}/ws/jobs/${auditId}`)
 
       websocket.onopen = () => {
         console.log('WebSocket connected')

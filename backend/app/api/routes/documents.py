@@ -68,7 +68,7 @@ async def process_document_task(
                     job.error_message = error_msg
                     await db.commit()
 
-                await manager.send_to_audit(
+                await manager.send_to_job(
                     str(job_id),
                     {
                         "type": "validation_failed",

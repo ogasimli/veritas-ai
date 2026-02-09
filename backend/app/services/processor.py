@@ -54,7 +54,7 @@ class DocumentProcessor:
         print(f"   {log_prefix} Agent '{agent_id}' {status_msg}", flush=True)
         print("      📤 Sending WebSocket message", flush=True)
 
-        await manager.send_to_audit(str(job_id), message)
+        await manager.send_to_job(str(job_id), message)
 
     async def _save_agent_results_to_db(
         self,
@@ -424,7 +424,7 @@ class DocumentProcessor:
                 job.status = "failed"
                 job.error_message = "Document is not a valid financial statement."
                 await self.db.commit()
-                await manager.send_to_audit(
+                await manager.send_to_job(
                     str(job_id),
                     {
                         "type": "validation_failed",
@@ -446,7 +446,7 @@ class DocumentProcessor:
 
             # Send audit complete message
             print("📤 Sending 'audit_complete' WebSocket message...", flush=True)
-            await manager.send_to_audit(
+            await manager.send_to_job(
                 str(job_id),
                 {
                     "type": "audit_complete",
