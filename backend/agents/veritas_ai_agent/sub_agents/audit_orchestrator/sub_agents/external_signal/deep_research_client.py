@@ -1,14 +1,15 @@
 """Deep Research async client wrapper for Gemini Interactions API.
 
-Concurrency is controlled by a process-wide ``asyncio.Semaphore`` whose limit
-is set via the ``DEEP_RESEARCH_MAX_CONCURRENCY`` environment variable
-(default: 1, matching Deep Research's 1 RPM limit). This allows callers to
-run in parallel while the semaphore serializes actual Deep Research operations.
+Rate-limit safety is enforced by a process-wide ``RateLimiter`` that
+guarantees at least 65 s (configurable via ``DEEP_RESEARCH_MIN_INTERVAL``)
+between consecutive ``interactions.create`` calls.  An ``asyncio.Lock``
+serializes callers while the limiter sleeps, so parallel agents (e.g.
+internet-to-report and report-to-internet running under a ParallelAgent)
+naturally queue without exceeding the Deep Research RPM quota.
 
-Rate-limit safety: ``run_research`` uses a 60 s minimum backoff between
-retries so that sequential attempts never exceed 1 RPM.  There is
-intentionally **no** tenacity retry on ``_create_interaction`` /
-``_get_interaction`` — rapid inner retries would defeat the RPM guard.
+The Google ``genai`` SDK's built-in HTTP retries are disabled
+(``HttpRetryOptions(attempts=1)``) so that *only* ``run_research``'s
+own retry loop — which respects the rate-limiter — triggers new API calls.
 """
 
 import asyncio
@@ -18,23 +19,16 @@ import time
 from typing import TypedDict
 
 from google import genai
+from google.genai import types
+
+from veritas_ai_agent.shared.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
 
-_MAX_CONCURRENCY = int(os.environ.get("DEEP_RESEARCH_MAX_CONCURRENCY", "1"))
-_semaphore: asyncio.Semaphore | None = None
+# Minimum seconds between consecutive interactions.create calls.
+_MIN_INTERVAL = float(os.environ.get("DEEP_RESEARCH_MIN_INTERVAL", "65"))
 
-
-def _get_semaphore() -> asyncio.Semaphore:
-    """Lazily create the semaphore on first use (must happen inside an event loop)."""
-    global _semaphore
-    if _semaphore is None:
-        _semaphore = asyncio.Semaphore(_MAX_CONCURRENCY)
-        logger.info(
-            "Deep Research concurrency semaphore initialized (max_concurrency=%d)",
-            _MAX_CONCURRENCY,
-        )
-    return _semaphore
+_rate_limiter = RateLimiter(_MIN_INTERVAL, name="DeepResearchRateLimiter")
 
 
 class DeepResearchResult(TypedDict):
@@ -46,23 +40,26 @@ class DeepResearchResult(TypedDict):
     error: str | None
 
 
+# SDK retry disabled — we handle retries in run_research.
+_NO_RETRY = types.HttpRetryOptions(attempts=1)
+
+
 class DeepResearchClient:
     """Client for Gemini Deep Research with robust error handling and async polling.
 
-    All instances share a process-wide semaphore (configured via
-    ``DEEP_RESEARCH_MAX_CONCURRENCY``, default 1) so that concurrent callers
-    are serialized at the Deep Research level while remaining parallel elsewhere.
+    All instances share a process-wide rate limiter so that concurrent callers
+    are serialized *and* spaced at least ``DEEP_RESEARCH_MIN_INTERVAL`` seconds
+    apart (default 60 s, matching the 1 RPM quota).
     """
 
     def __init__(self):
-        """Initialize Deep Research client."""
+        """Initialize Deep Research client with SDK retries disabled."""
         api_key = os.getenv("GEMINI_API_KEY")
+        http_options = types.HttpOptions(retry_options=_NO_RETRY)
         if api_key:
-            # Use AI Studio (Google Generative AI)
-            self.client = genai.Client(api_key=api_key)
+            self.client = genai.Client(api_key=api_key, http_options=http_options)
         else:
-            # Fallback to Vertex AI (Default)
-            self.client = genai.Client()
+            self.client = genai.Client(http_options=http_options)
 
     async def _create_interaction(self, **kwargs):
         """Create a Deep Research interaction (no retry — handled by run_research)."""
@@ -186,22 +183,20 @@ class DeepResearchClient:
         query: str,
         timeout_minutes: int = 10,
         max_retries: int = 3,
-        initial_backoff_seconds: float = 60,
-        backoff_multiplier: float = 1,
         enable_thinking_summaries: bool = True,
     ) -> DeepResearchResult:
         """
-        Execute Deep Research with retry and exponential backoff.
+        Execute Deep Research with retry logic.
 
-        On timeout or failure, retries with a fixed 60 s backoff between
-        attempts to respect the Deep Research 1 RPM rate limit.
+        On failure, retries up to *max_retries* times.  The process-wide rate
+        limiter automatically enforces a 60 s gap between ``create`` calls,
+        so callers never exceed the 1 RPM quota — even when two agents retry
+        back-to-back through the shared limiter.
 
         Args:
             query: Research question
             timeout_minutes: Max time per attempt (default 10min, API max is 60min)
             max_retries: Total number of attempts (default 3)
-            initial_backoff_seconds: Wait before first retry (default 60s for 1 RPM)
-            backoff_multiplier: Multiplier applied each retry (default 1x = fixed)
             enable_thinking_summaries: Stream intermediate thoughts
 
         Returns:
@@ -209,21 +204,19 @@ class DeepResearchClient:
         """
         total_start = time.time()
         last_result = None
-        semaphore = _get_semaphore()
 
         for attempt in range(1, max_retries + 1):
             logger.info(
-                "Deep Research attempt %d/%d (timeout: %d min, waiting for semaphore...)",
+                "Deep Research attempt %d/%d (timeout: %d min, waiting for rate limiter...)",
                 attempt,
                 max_retries,
                 timeout_minutes,
             )
 
-            # Acquire semaphore to respect RPM limits; released after each
-            # attempt so backoff sleep doesn't block other callers.
-            async with semaphore:
+            # Rate limiter ensures ≥60 s between create calls across all callers.
+            async with _rate_limiter:
                 logger.info(
-                    "Deep Research semaphore acquired for attempt %d/%d",
+                    "Deep Research rate limiter acquired for attempt %d/%d",
                     attempt,
                     max_retries,
                 )
@@ -244,20 +237,18 @@ class DeepResearchClient:
                     )
                 return result
 
-            # Don't backoff after the last attempt
+            # Don't wait after the last attempt
             if attempt < max_retries:
-                backoff = initial_backoff_seconds * (
-                    backoff_multiplier ** (attempt - 1)
-                )
                 logger.warning(
-                    "Deep Research attempt %d/%d %s (%s). Retrying in %.0fs...",
+                    "Deep Research attempt %d/%d %s (%s). Retrying...",
                     attempt,
                     max_retries,
                     result["status"],
                     result["error"],
-                    backoff,
                 )
-                await asyncio.sleep(backoff)
+                # No explicit sleep needed — the rate limiter will enforce
+                # the 60 s gap when we re-enter ``async with _rate_limiter``
+                # on the next iteration.
             else:
                 logger.error(
                     "Deep Research exhausted all %d attempts. Last status: %s, total time: %.1fs",

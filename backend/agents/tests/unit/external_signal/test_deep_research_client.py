@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -10,12 +11,13 @@ import pytest
 _MODULE = "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.deep_research_client"
 
 # Patch genai before importing the module to avoid real API client creation.
-with patch(f"{_MODULE}.genai") as _mock_genai:
+with patch(f"{_MODULE}.genai") as _mock_genai, patch(f"{_MODULE}.types"):
     _mock_genai.Client.return_value = AsyncMock()
     from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.deep_research_client import (
         DeepResearchClient,
-        _get_semaphore,
     )
+
+from veritas_ai_agent.shared.rate_limiter import RateLimiter
 
 
 def _get_module():
@@ -43,64 +45,98 @@ def _make_interaction(
 
 
 @pytest.fixture(autouse=True)
-def _reset_semaphore():
-    """Reset the module-level semaphore before each test."""
+def _reset_rate_limiter():
+    """Reset the module-level rate limiter before each test."""
     mod = _get_module()
-    mod._semaphore = None
+    mod._rate_limiter = RateLimiter(0)  # no delay for tests
     yield
-    mod._semaphore = None
+    mod._rate_limiter = RateLimiter(0)
 
 
 @pytest.fixture
 def client():
     """Create a DeepResearchClient with a mocked genai.Client."""
-    with patch(f"{_MODULE}.genai") as mock_genai:
+    with patch(f"{_MODULE}.genai") as mock_genai, patch(f"{_MODULE}.types"):
         mock_genai.Client.return_value = AsyncMock()
         c = DeepResearchClient()
     return c
 
 
 # ---------------------------------------------------------------------------
-# Semaphore tests
+# RateLimiter tests
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_semaphore_lazy_init():
-    """Semaphore is created on first call to _get_semaphore."""
-    sem = _get_semaphore()
-    assert isinstance(sem, asyncio.Semaphore)
+async def test_rate_limiter_lazy_lock_init():
+    """Lock is created on first acquire."""
+    rl = RateLimiter(0)
+    assert rl._lock is None
+    async with rl:
+        assert rl._lock is not None
 
 
 @pytest.mark.asyncio
-async def test_semaphore_is_singleton():
-    """Repeated calls return the same semaphore instance."""
-    sem1 = _get_semaphore()
-    sem2 = _get_semaphore()
-    assert sem1 is sem2
+async def test_rate_limiter_enforces_interval():
+    """Rate limiter sleeps to enforce minimum interval."""
+    rl = RateLimiter(min_interval=100)
+    # Simulate a previous call that just happened
+    rl._lock = asyncio.Lock()
+    rl._last_call = time.monotonic()
+
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        async with rl:
+            pass
+
+    # Should have slept for ~100s (minus tiny elapsed time)
+    assert mock_sleep.call_count == 1
+    slept = mock_sleep.call_args[0][0]
+    assert slept > 90  # close to 100
 
 
 @pytest.mark.asyncio
-async def test_semaphore_default_concurrency():
-    """Default concurrency is 1."""
-    sem = _get_semaphore()
-    # Semaphore with value 1: acquiring once should succeed, second should block.
-    acquired = sem._value  # internal attribute; 1 means one slot free
-    assert acquired == 1
+async def test_rate_limiter_no_sleep_on_first_call():
+    """First call should not sleep (no previous call timestamp)."""
+    rl = RateLimiter(min_interval=60)
+
+    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        async with rl:
+            pass
+
+    mock_sleep.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_semaphore_respects_env_var():
-    """DEEP_RESEARCH_MAX_CONCURRENCY env var controls concurrency."""
-    mod = _get_module()
+async def test_rate_limiter_records_timestamp_on_release():
+    """Release records the monotonic timestamp."""
+    rl = RateLimiter(min_interval=0)
+    before = time.monotonic()
+    async with rl:
+        pass
+    after = time.monotonic()
 
-    with patch.dict("os.environ", {"DEEP_RESEARCH_MAX_CONCURRENCY": "5"}):
-        original = mod._MAX_CONCURRENCY
-        mod._MAX_CONCURRENCY = 5
-        mod._semaphore = None
-        sem = _get_semaphore()
-        assert sem._value == 5
-        mod._MAX_CONCURRENCY = original
+    assert before <= rl._last_call <= after
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_serializes_callers():
+    """Two concurrent callers are serialized by the lock."""
+    rl = RateLimiter(min_interval=0)
+    call_order = []
+
+    async def caller(name):
+        async with rl:
+            call_order.append(f"start-{name}")
+            await asyncio.sleep(0.02)
+            call_order.append(f"end-{name}")
+
+    await asyncio.gather(caller("A"), caller("B"))
+
+    # Must be serialized: start-X, end-X, start-Y, end-Y
+    assert call_order[0].startswith("start-")
+    assert call_order[1].startswith("end-")
+    assert call_order[2].startswith("start-")
+    assert call_order[3].startswith("end-")
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +198,7 @@ async def test_single_attempt_timeout(client):
     with patch("asyncio.sleep", new_callable=AsyncMock):
         with patch(f"{_MODULE}.time") as mock_time:
             mock_time.time.side_effect = [0, 600]
+            mock_time.monotonic = time.monotonic
             result = await client._run_single_attempt(query="test", timeout_minutes=5)
 
     assert result["status"] == "timeout"
@@ -238,7 +275,7 @@ async def test_run_research_success_first_attempt(client):
 
 @pytest.mark.asyncio
 async def test_run_research_retries_on_timeout(client):
-    """Retries with backoff on timeout, succeeds on second attempt."""
+    """Retries on timeout, succeeds on second attempt."""
     timeout_result = {
         "result": None,
         "duration_seconds": 300.0,
@@ -254,18 +291,10 @@ async def test_run_research_retries_on_timeout(client):
 
     client._run_single_attempt = AsyncMock(side_effect=[timeout_result, success_result])
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        result = await client.run_research(
-            query="test",
-            max_retries=3,
-            initial_backoff_seconds=15,
-            backoff_multiplier=2,
-        )
+    result = await client.run_research(query="test", max_retries=3)
 
     assert result["status"] == "completed"
     assert client._run_single_attempt.call_count == 2
-    # First backoff: 15 * (2 ** 0) = 15s
-    mock_sleep.assert_called_once_with(15)
 
 
 @pytest.mark.asyncio
@@ -288,20 +317,10 @@ async def test_run_research_retries_on_failure(client):
         side_effect=[failed_result, failed_result, success_result]
     )
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        result = await client.run_research(
-            query="test",
-            max_retries=3,
-            initial_backoff_seconds=10,
-            backoff_multiplier=2,
-        )
+    result = await client.run_research(query="test", max_retries=3)
 
     assert result["status"] == "completed"
     assert client._run_single_attempt.call_count == 3
-    # First backoff: 10 * (2 ** 0) = 10s, second: 10 * (2 ** 1) = 20s
-    assert mock_sleep.call_count == 2
-    mock_sleep.assert_any_call(10)
-    mock_sleep.assert_any_call(20)
 
 
 @pytest.mark.asyncio
@@ -316,48 +335,15 @@ async def test_run_research_exhausts_all_retries(client):
 
     client._run_single_attempt = AsyncMock(return_value=timeout_result)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        result = await client.run_research(
-            query="test",
-            max_retries=3,
-            initial_backoff_seconds=15,
-            backoff_multiplier=2,
-        )
+    result = await client.run_research(query="test", max_retries=3)
 
     assert result["status"] == "timeout"
     assert client._run_single_attempt.call_count == 3
-    # Backoff after attempt 1 and 2, not after attempt 3
-    assert mock_sleep.call_count == 2
 
 
 @pytest.mark.asyncio
-async def test_run_research_exponential_backoff_values(client):
-    """Verify exact exponential backoff timing."""
-    timeout_result = {
-        "result": None,
-        "duration_seconds": 300.0,
-        "status": "timeout",
-        "error": "timeout",
-    }
-
-    client._run_single_attempt = AsyncMock(return_value=timeout_result)
-
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        await client.run_research(
-            query="test",
-            max_retries=3,
-            initial_backoff_seconds=15,
-            backoff_multiplier=2,
-        )
-
-    # 15 * 2^0 = 15, 15 * 2^1 = 30
-    calls = [c.args[0] for c in mock_sleep.call_args_list]
-    assert calls == [15, 30]
-
-
-@pytest.mark.asyncio
-async def test_run_research_no_backoff_after_last_attempt(client):
-    """No sleep after the final failed attempt."""
+async def test_run_research_no_retry_after_last_attempt(client):
+    """No retry after the final failed attempt."""
     failed_result = {
         "result": None,
         "duration_seconds": 10.0,
@@ -366,12 +352,10 @@ async def test_run_research_no_backoff_after_last_attempt(client):
     }
 
     client._run_single_attempt = AsyncMock(return_value=failed_result)
+    result = await client.run_research(query="test", max_retries=1)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        await client.run_research(query="test", max_retries=1)
-
-    # Only 1 attempt, no backoff
-    assert mock_sleep.call_count == 0
+    assert result["status"] == "failed"
+    assert client._run_single_attempt.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -386,21 +370,20 @@ async def test_run_research_total_duration_updated(client):
 
     client._run_single_attempt = AsyncMock(return_value=timeout_result)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
-        result = await client.run_research(query="test", max_retries=2)
+    result = await client.run_research(query="test", max_retries=2)
 
     # duration_seconds should be updated by run_research (total time)
     assert result["duration_seconds"] >= 0
 
 
 # ---------------------------------------------------------------------------
-# Semaphore concurrency tests
+# Rate limiter integration with run_research
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_semaphore_serializes_concurrent_calls(client):
-    """Two concurrent run_research calls are serialized by the semaphore."""
+async def test_rate_limiter_serializes_concurrent_research(client):
+    """Two concurrent run_research calls are serialized by the rate limiter."""
     call_order = []
 
     async def mock_attempt(query, timeout_minutes=5, enable_thinking_summaries=True):
@@ -416,7 +399,6 @@ async def test_semaphore_serializes_concurrent_calls(client):
 
     client._run_single_attempt = mock_attempt
 
-    # Run two calls concurrently
     results = await asyncio.gather(
         client.run_research(query="A", max_retries=1),
         client.run_research(query="B", max_retries=1),
@@ -425,8 +407,7 @@ async def test_semaphore_serializes_concurrent_calls(client):
     assert results[0]["status"] == "completed"
     assert results[1]["status"] == "completed"
 
-    # With semaphore=1, calls must be serialized: one must fully complete
-    # before the other starts
+    # Calls must be serialized: start-X, end-X, start-Y, end-Y
     assert call_order[0].startswith("start-")
     assert call_order[1].startswith("end-")
     assert call_order[2].startswith("start-")
@@ -434,14 +415,13 @@ async def test_semaphore_serializes_concurrent_calls(client):
 
 
 @pytest.mark.asyncio
-async def test_semaphore_released_during_backoff(client):
-    """Semaphore is released during retry backoff, allowing other callers."""
+async def test_rate_limiter_releases_between_retries(client):
+    """Rate limiter is released between retries, allowing other callers."""
     events = []
 
     async def mock_attempt(query, timeout_minutes=5, enable_thinking_summaries=True):
         events.append(f"run-{query}")
         if query == "slow" and len([e for e in events if e == "run-slow"]) == 1:
-            # First attempt of "slow" fails
             return {
                 "result": None,
                 "duration_seconds": 1.0,
@@ -457,20 +437,15 @@ async def test_semaphore_released_during_backoff(client):
 
     client._run_single_attempt = mock_attempt
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
-        results = await asyncio.gather(
-            client.run_research(
-                query="slow", max_retries=2, initial_backoff_seconds=0.01
-            ),
-            client.run_research(query="fast", max_retries=1),
-        )
+    results = await asyncio.gather(
+        client.run_research(query="slow", max_retries=2),
+        client.run_research(query="fast", max_retries=1),
+    )
 
-    # Both should eventually succeed
     assert results[0]["status"] == "completed"
     assert results[1]["status"] == "completed"
 
-    # "fast" should be able to run while "slow" is in backoff
-    # (i.e., "fast" doesn't have to wait for all of "slow"'s retries)
+    # "fast" should be able to run while "slow" is between retries
     assert "run-fast" in events
 
 
@@ -493,12 +468,3 @@ def test_default_max_retries_is_3(client):
 
     sig = inspect.signature(client.run_research)
     assert sig.parameters["max_retries"].default == 3
-
-
-def test_default_backoff_config(client):
-    """Default backoff is 60s fixed to respect 1 RPM limit."""
-    import inspect
-
-    sig = inspect.signature(client.run_research)
-    assert sig.parameters["initial_backoff_seconds"].default == 60
-    assert sig.parameters["backoff_multiplier"].default == 1
