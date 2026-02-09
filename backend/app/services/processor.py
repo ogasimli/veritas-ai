@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+import re
 from uuid import UUID
 
 from google.adk.runners import InMemoryRunner
@@ -16,6 +17,11 @@ from app.schemas.finding import NormalizedFinding
 from app.services.adapters import ADAPTER_REGISTRY, AgentAdapter
 from app.services.dummy_agent.dummy_agent_service import DummyAgentService
 from app.services.websocket_manager import manager
+
+
+def _to_snake_case(name: str) -> str:
+    """Convert PascalCase or camelCase to snake_case."""
+    return re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', name).lower()
 
 
 class DocumentProcessor:
@@ -347,8 +353,9 @@ class DocumentProcessor:
                 if is_final and hasattr(event, "branch") and event.branch:
                     branch_parts = event.branch.split(".")
                     for part in reversed(branch_parts):
-                        if part in adapter_agent_ids:
-                            specific_agent = part
+                        normalized = _to_snake_case(part)
+                        if normalized in adapter_agent_ids:
+                            specific_agent = normalized
                             break
 
                 await self._check_and_notify_agents(

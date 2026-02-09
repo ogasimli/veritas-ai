@@ -93,9 +93,34 @@ export function useAuditWebSocket(auditId: string | null) {
           break
         }
 
-        case 'audit_complete':
+        case 'audit_complete': {
           console.log('Audit processing complete')
+          if (auditId) {
+            const allBackendAgentIds = [
+              'numeric_validation',
+              'logic_consistency',
+              'disclosure_compliance',
+              'external_signal',
+            ]
+            setAgentStatuses((prev) => {
+              // For any agents still in 'processing', fetch their results from DB
+              for (const backendId of allBackendAgentIds) {
+                const key = mapAgentId(backendId)
+                if (prev[key] === 'processing') {
+                  loadAgentResults(auditId, backendId).then((newResults) => {
+                    const hasError = newResults.some((r: AgentResult) => !!r.error)
+                    setAgentStatuses((p) => ({
+                      ...p,
+                      [key]: hasError ? 'error' : 'complete',
+                    }))
+                  })
+                }
+              }
+              return prev
+            })
+          }
           break
+        }
 
         default:
           console.log('Unknown message type:', data)

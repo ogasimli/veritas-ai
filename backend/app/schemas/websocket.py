@@ -22,15 +22,6 @@ class AgentCompletedMessage(BaseModel):
     timestamp: str  # ISO format
 
 
-class AgentErrorMessage(BaseModel):
-    """Message sent when an agent encounters an error."""
-
-    type: Literal["agent_error"]
-    agent_id: str
-    error: str
-    timestamp: str  # ISO format
-
-
 class AuditCompleteMessage(BaseModel):
     """Message sent when the entire audit is complete."""
 
