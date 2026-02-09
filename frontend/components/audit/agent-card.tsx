@@ -233,7 +233,7 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-white">
                   {finding.title || 'Untitled Finding'}
                 </h4>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                <p className="mt-1 whitespace-pre-line text-xs text-slate-600 dark:text-slate-400">
                   {finding.description}
                 </p>
               </div>
