@@ -10,9 +10,8 @@ interface SidebarProps {
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-80 flex-shrink-0 transform border-r border-slate-200 bg-white transition-transform dark:border-slate-700 dark:bg-slate-900 lg:static lg:translate-x-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}
+      className={`fixed inset-y-0 left-0 z-50 w-80 flex-shrink-0 transform border-r border-slate-200 bg-white transition-transform dark:border-slate-700 dark:bg-slate-900 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
     >
       <div className="flex h-full flex-col">
         {/* Logo Section */}
@@ -30,7 +29,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 Veritas AI
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                INTEGRITY AT SCALE
+                TRUST AT SCALE
               </p>
             </div>
           </div>
