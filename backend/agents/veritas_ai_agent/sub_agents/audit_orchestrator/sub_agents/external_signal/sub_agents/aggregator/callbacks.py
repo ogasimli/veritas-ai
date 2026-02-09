@@ -29,8 +29,11 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
     - Sort both lists by severity: high → medium → low
     """
     state = callback_context.state
-    output_key = "external_signal_findings_aggregator_output"
-    aggregator_output: ExternalSignalFindingsAggregatorOutput = state.get(output_key)
+    raw_output_key = "external_signal_findings_aggregator_output"
+    processed_output_key = "external_signal_processed_output"
+    aggregator_output: ExternalSignalFindingsAggregatorOutput = state.get(
+        raw_output_key
+    )
 
     if not aggregator_output:
         return
@@ -137,7 +140,7 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
         else getattr(aggregator_output, "error", None)
     )
 
-    state[output_key] = ExternalSignalFindingsAggregatorOutput(
+    state[processed_output_key] = ExternalSignalFindingsAggregatorOutput(
         error=existing_error,
         external_signals=json.dumps(sorted_signals),
         claim_verifications=json.dumps(sorted_verifications),

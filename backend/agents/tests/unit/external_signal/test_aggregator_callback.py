@@ -119,9 +119,7 @@ async def test_callback_with_full_data(mock_callback_context):
     await after_aggregator_callback(mock_callback_context)
 
     # Verify results (raw dictionary since .model_dump() is used in callback)
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
 
     # Parse back the JSON string fields to verify contents
     result_signals = json.loads(result_dict["external_signals"])
@@ -177,9 +175,7 @@ async def test_callback_filters_verified_with_discrepancy(mock_callback_context)
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_verifications = json.loads(result_dict["claim_verifications"])
 
     # Should keep the verification because it has a discrepancy
@@ -218,9 +214,7 @@ async def test_callback_filters_unclear_external_signals(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_signals = json.loads(result_dict["external_signals"])
 
     # Should keep signal with "Unclear" status
@@ -302,9 +296,7 @@ async def test_callback_sorting_by_severity(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_signals = json.loads(result_dict["external_signals"])
 
     # Should be sorted: high, medium, low
@@ -323,9 +315,7 @@ async def test_callback_handles_missing_aggregator_output(mock_callback_context)
     await after_aggregator_callback(mock_callback_context)
 
     # State should remain empty
-    assert (
-        "external_signal_findings_aggregator_output" not in mock_callback_context.state
-    )
+    assert "external_signal_processed_output" not in mock_callback_context.state
 
 
 @pytest.mark.asyncio
@@ -359,9 +349,7 @@ async def test_callback_handles_missing_report_to_internet(mock_callback_context
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_signals = json.loads(result_dict["external_signals"])
     result_verifications = json.loads(result_dict["claim_verifications"])
 
@@ -386,9 +374,7 @@ async def test_callback_with_empty_lists(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_signals = json.loads(result_dict["external_signals"])
     result_verifications = json.loads(result_dict["claim_verifications"])
 
@@ -414,9 +400,7 @@ async def test_callback_preserves_error_field(mock_callback_context):
 
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
 
     # Should preserve error field
     assert result_dict["error"] is not None
@@ -446,9 +430,7 @@ async def test_callback_handles_report_output_without_verifications_attr(
     # Should not raise an exception
     await after_aggregator_callback(mock_callback_context)
 
-    result_dict = mock_callback_context.state[
-        "external_signal_findings_aggregator_output"
-    ]
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_verifications = json.loads(result_dict["claim_verifications"])
 
     assert len(result_verifications) == 0

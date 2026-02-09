@@ -21,6 +21,9 @@ class AgentAdapter(ABC):
     category: ClassVar[str]
     output_keys: ClassVar[list[str]]  # State keys that indicate this agent ran
     error_keys: ClassVar[list[str]]  # State keys to check for errors
+    # When True, completion is detected by output_keys appearing in state_delta
+    # instead of the is_final flag on events.
+    detect_via_state_delta: ClassVar[bool] = False
 
     @abstractmethod
     def extract_findings(
@@ -188,24 +191,28 @@ class DisclosureComplianceAdapter(AgentAdapter):
 class ExternalSignalAdapter(AgentAdapter):
     """Adapter for the external signal findings aggregator.
 
-    Reads ``external_signal_findings_aggregator_output`` which contains
-    ``external_signals`` and ``claim_verifications`` as JSON strings
-    (written by ``after_aggregator_callback``).
+    Reads ``external_signal_processed_output`` — the post-processed output
+    written by ``after_aggregator_callback`` (filtered, sorted, with claim
+    verifications merged from report_to_internet).
+
+    Uses ``detect_via_state_delta`` so the processor triggers on the callback
+    event's state_delta rather than the LlmAgent's ``is_final`` event.
     """
 
     agent_id: ClassVar[str] = "external_signal"
     category: ClassVar[str] = "external"
-    output_keys: ClassVar[list[str]] = ["external_signal_findings_aggregator_output"]
+    output_keys: ClassVar[list[str]] = ["external_signal_processed_output"]
     error_keys: ClassVar[list[str]] = [
         "external_signal_internet_to_report_output",
         "external_signal_report_to_internet_output",
         "external_signal_findings_aggregator_output",
     ]
+    detect_via_state_delta: ClassVar[bool] = True
 
     def extract_findings(
         self, agent_state: dict[str, Any]
     ) -> list[NormalizedFinding] | None:
-        output = agent_state.get("external_signal_findings_aggregator_output")
+        output = agent_state.get("external_signal_processed_output")
         if not isinstance(output, dict):
             return None
 

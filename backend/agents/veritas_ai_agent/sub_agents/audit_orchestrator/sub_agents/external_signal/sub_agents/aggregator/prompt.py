@@ -7,9 +7,6 @@ You are an aggregator agent that performs **financial statement reconciliation**
 ### Internet-to-Report Findings (External Signals)
 {external_signal_internet_to_report_output}
 
-### Report-to-Internet Findings (Claim Verifications)
-{external_signal_report_to_internet_output}
-
 ### Financial Statement (FS)
 {document_markdown}
 

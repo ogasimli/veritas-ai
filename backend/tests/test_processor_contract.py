@@ -97,7 +97,7 @@ async def test_processor_extraction_contract():
             }
         },
         "external_signal": {
-            "external_signal_findings_aggregator_output": {
+            "external_signal_processed_output": {
                 "external_signals": json.dumps(
                     [
                         {
@@ -140,6 +140,50 @@ async def test_processor_extraction_contract():
                 ),
                 "error": None,
             }
+        },
+        # Top-level key for state_delta detection (callback writes here)
+        "external_signal_processed_output": {
+            "external_signals": json.dumps(
+                [
+                    {
+                        "signal_title": "S&P downgraded company to Selective Default",
+                        "signal_type": ["financing_distress"],
+                        "entities_involved": ["Veritas Technologies"],
+                        "event_date": "2024-11-15",
+                        "sources": json.dumps(
+                            [
+                                {
+                                    "url": "https://spglobal.com/ratings",
+                                    "publisher": "S&P Global",
+                                }
+                            ]
+                        ),
+                        "summary": "S&P downgraded Veritas to SD after distressed debt exchange.",
+                        "expected_fs_impact_area": ["Notes"],
+                        "expected_fs_impact_notes_expected": ["Subsequent events"],
+                        "expected_fs_impact_rationale": "Material credit event requires disclosure.",
+                        "evidence_reflected_in_fs": "No",
+                        "evidence_search_terms_used": ["downgrade", "S&P"],
+                        "evidence_not_found_statement": "No mention of credit downgrade.",
+                        "gap_classification": "POTENTIAL_OMISSION",
+                        "severity": "high",
+                    }
+                ]
+            ),
+            "claim_verifications": json.dumps(
+                [
+                    {
+                        "claim_text": "Company closed Seattle facility",
+                        "claim_category": "operational",
+                        "verification_status": "CONTRADICTED",
+                        "evidence_summary": "No public records confirm this facility exists.",
+                        "source_urls": ["https://example.com/records"],
+                        "discrepancy": "Facility cannot be verified",
+                        "severity": "high",
+                    }
+                ]
+            ),
+            "error": None,
         },
     }
 
@@ -252,11 +296,17 @@ async def test_processor_empty_findings_contract():
         "logic_consistency": {"logic_consistency_reviewer_output": {"findings": []}},
         "disclosure_compliance": {"disclosure_reviewer_output": {"findings": []}},
         "external_signal": {
-            "external_signal_findings_aggregator_output": {
+            "external_signal_processed_output": {
                 "external_signals": "[]",
                 "claim_verifications": "[]",
                 "error": None,
             },
+        },
+        # Top-level key for state_delta detection
+        "external_signal_processed_output": {
+            "external_signals": "[]",
+            "claim_verifications": "[]",
+            "error": None,
         },
     }
 

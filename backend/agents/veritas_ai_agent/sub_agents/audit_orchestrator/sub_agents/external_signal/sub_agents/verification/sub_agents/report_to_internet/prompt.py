@@ -98,7 +98,8 @@ Excerpt
 In March 2025, the Group acquired SolarTech LLC for $50M.
 The national GDP growth for 2024 was 4.2%.
 The Central Bank refinancing rate is assumed at 9.75%.”
-### Output
+
+Output
 ```json
 [
   {
@@ -146,11 +147,11 @@ Provide the extracted claims to the verify_claims_tool. Deep Research will:
 
 If the user input is not a financial statement (e.g., "hi", "hello", or irrelevant text) AND you cannot extract verifiable claims:
 1. Do NOT chat back politely.
-2. Return a valid JSON with null `error` and empty `claims`:
+2. Return a valid JSON with null `error` and empty `verifications`:
    ```json
    {
        "error": null,
-       "claims": []
+       "verifications": []
    }
    ```
 3. Do NOT produce conversational text output.
@@ -260,8 +261,8 @@ Output **must** match the schema exactly. Do **not** output any additional comme
 
 ```json
 {{
-  "claim": "string (the original_text)",
-  "category": "string",
+  "claim_text": "string (the original_text)",
+  "claim_category": "string",
   "verification_status": "VERIFIED | CONTRADICTED | CANNOT_VERIFY",
   "evidence_summary": "string (Concise explanation of reasoning)",
   "source_urls": ["url1", "url2"],

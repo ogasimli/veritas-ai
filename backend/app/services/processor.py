@@ -121,6 +121,7 @@ class DocumentProcessor:
         agents_completed: set,
         specific_agent: str | None = None,
         is_final: bool = False,
+        agents_with_state_output: set | None = None,
     ):
         """Check agent states and send WebSocket notifications."""
         for adapter in ADAPTER_REGISTRY.values():
@@ -136,6 +137,10 @@ class DocumentProcessor:
                 is_agent_final = is_final and (
                     specific_agent is None or specific_agent == agent_id
                 )
+
+                # Also consider final if output key was detected in state_delta
+                if agents_with_state_output and agent_id in agents_with_state_output:
+                    is_agent_final = True
 
                 if is_agent_final:
                     findings = adapter.extract_findings(ns)
@@ -355,8 +360,24 @@ class DocumentProcessor:
                     for part in reversed(branch_parts):
                         normalized = _to_snake_case(part)
                         if normalized in adapter_agent_ids:
-                            specific_agent = normalized
+                            # Skip agents that use state_delta detection
+                            adapter = ADAPTER_REGISTRY[normalized]
+                            if not adapter.detect_via_state_delta:
+                                specific_agent = normalized
                             break
+
+                # Detect agents whose output key appeared in this event's state_delta
+                agents_with_state_output: set[str] = set()
+                if (
+                    hasattr(event, "actions")
+                    and event.actions
+                    and event.actions.state_delta
+                ):
+                    for adapter in ADAPTER_REGISTRY.values():
+                        if adapter.detect_via_state_delta:
+                            for key in adapter.output_keys:
+                                if key in event.actions.state_delta:
+                                    agents_with_state_output.add(adapter.agent_id)
 
                 await self._check_and_notify_agents(
                     job_id,
@@ -365,6 +386,7 @@ class DocumentProcessor:
                     agents_completed,
                     specific_agent=specific_agent,
                     is_final=is_final,
+                    agents_with_state_output=agents_with_state_output,
                 )
 
             print(f"\n{'=' * 80}", flush=True)
