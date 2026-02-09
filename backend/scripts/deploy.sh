@@ -145,7 +145,6 @@ if [ -z "$GEMINI_API_KEY" ]; then
 fi
 if [ -n "$GEMINI_API_KEY" ]; then
     create_secret "VERITAS_GEMINI_API_KEY" "$GEMINI_API_KEY"
-    echo "Secret VERITAS_GEMINI_API_KEY stored."
 else
     echo "WARNING: No GEMINI_API_KEY provided. Agent pipeline will not work without it."
 fi
