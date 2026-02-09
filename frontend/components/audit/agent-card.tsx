@@ -1,6 +1,58 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import type { AgentStatus, AgentResult } from '@/lib/types'
+
+const AGENT_LOADING_MESSAGES: Record<string, string[]> = {
+  numeric: [
+    'Recalculating totals and verifying arithmetic across tables...',
+    'Cross-checking reported figures against source data...',
+    'Hunting for rounding errors and mismatched sums...',
+    'Validating percentage calculations and ratio accuracy...',
+    'Tracing numbers through footnotes and appendices...',
+    'Comparing year-over-year figures for numerical consistency...',
+    'Auditing decimal precision across financial statements...',
+    'Reconciling line items to ensure the numbers add up...',
+    'Stress-testing calculations — every digit matters...',
+    'Scanning for transposition errors and data-entry anomalies...',
+  ],
+  logic: [
+    'Checking narrative claims against the underlying data...',
+    'Evaluating whether conclusions logically follow the evidence...',
+    'Spotting contradictions between sections of the report...',
+    'Analyzing if forward-looking statements align with historical trends...',
+    'Reviewing cause-and-effect reasoning for logical soundness...',
+    'Comparing qualitative assertions with quantitative results...',
+    'Detecting inconsistencies between the summary and detailed findings...',
+    'Assessing whether assumptions are internally consistent...',
+    'Tracing logical flow from premises to reported conclusions...',
+    'Evaluating coherence of the overall narrative structure...',
+  ],
+  disclosure: [
+    'Reviewing required disclosures against regulatory checklists...',
+    'Checking for missing risk factors and material omissions...',
+    'Verifying footnote completeness and accuracy...',
+    'Scanning for compliance with reporting standards...',
+    'Assessing whether related-party transactions are fully disclosed...',
+    'Validating that accounting policy changes are properly noted...',
+    'Checking segment reporting for adequate transparency...',
+    'Reviewing contingent liability disclosures for completeness...',
+    'Ensuring off-balance-sheet items are properly reported...',
+    'Auditing disclosure language against regulatory requirements...',
+  ],
+  external: [
+    'Cross-referencing claims against public market data...',
+    'Scanning news sources for corroborating information...',
+    'Comparing reported metrics with industry benchmarks...',
+    'Checking filings against publicly available records...',
+    'Validating external references and cited data sources...',
+    'Surveying analyst reports for conflicting viewpoints...',
+    'Matching reported figures against regulatory filings...',
+    'Searching for relevant press releases and announcements...',
+    'Benchmarking performance claims against peer companies...',
+    'Gathering external signals to verify key assertions...',
+  ],
+}
 
 const AGENT_CONFIG = {
   numeric: {
@@ -32,6 +84,7 @@ const COLOR_CLASSES = {
     text: 'text-blue-700 dark:text-blue-300',
     icon: 'text-blue-500',
     badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    dot: 'bg-blue-500 dark:bg-blue-400',
   },
   purple: {
     bg: 'bg-purple-50 dark:bg-purple-900/20',
@@ -39,6 +92,7 @@ const COLOR_CLASSES = {
     text: 'text-purple-700 dark:text-purple-300',
     icon: 'text-purple-500',
     badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    dot: 'bg-purple-500 dark:bg-purple-400',
   },
   orange: {
     bg: 'bg-orange-50 dark:bg-orange-900/20',
@@ -46,6 +100,7 @@ const COLOR_CLASSES = {
     text: 'text-orange-700 dark:text-orange-300',
     icon: 'text-orange-500',
     badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+    dot: 'bg-orange-500 dark:bg-orange-400',
   },
   teal: {
     bg: 'bg-teal-50 dark:bg-teal-900/20',
@@ -53,6 +108,7 @@ const COLOR_CLASSES = {
     text: 'text-teal-700 dark:text-teal-300',
     icon: 'text-teal-500',
     badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    dot: 'bg-teal-500 dark:bg-teal-400',
   },
 }
 
@@ -71,6 +127,27 @@ interface AgentCardProps {
 export function AgentCard({ agent, status, results }: AgentCardProps) {
   const config = AGENT_CONFIG[agent]
   const colors = COLOR_CLASSES[config.color]
+
+  // Shuffle messages once per mount for this agent
+  const [messages] = useState(() =>
+    [...AGENT_LOADING_MESSAGES[agent]].sort(() => Math.random() - 0.5)
+  )
+
+  // Message rotation for processing state
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    if (status !== 'processing') {
+      setTick(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setTick(prev => prev + 1)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [status])
+
+  const currentMessage = messages[tick % messages.length]
 
   // Find error result if any
   const errorResult = results.find(r => r.error)
@@ -97,10 +174,28 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {status === 'processing' && (
           <div className="flex items-center justify-center py-8">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500 dark:border-slate-700 dark:border-t-blue-400" />
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Processing...
+            <div className="flex w-full max-w-[260px] flex-col items-center gap-3">
+              {/* Thinking dots */}
+              <div className="flex items-center gap-2">
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={i}
+                    className={`h-2 w-2 rounded-full ${colors.dot}`}
+                    style={{
+                      animation: 'thinkingDot 1.4s ease-in-out infinite',
+                      animationDelay: `${i * 0.2}s`,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Loading message */}
+              <p
+                key={currentMessage}
+                className="text-center text-sm leading-relaxed text-slate-600 dark:text-slate-400"
+                style={{ animation: 'messageFadeIn 0.5s ease-out' }}
+              >
+                {currentMessage}
               </p>
             </div>
           </div>
