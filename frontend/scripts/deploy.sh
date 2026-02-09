@@ -62,5 +62,13 @@ gcloud run deploy "$SERVICE_NAME" \
     --allow-unauthenticated \
     --timeout=3600
 
+FRONTEND_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
 echo "✅ Frontend Deployment Complete!"
-echo "Service URL: $(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')"
+echo "Service URL: $FRONTEND_URL"
+
+# Update backend CORS to allow this frontend origin
+echo "Updating backend ALLOWED_ORIGINS to $FRONTEND_URL..."
+gcloud run services update "$BACKEND_SERVICE_NAME" \
+    --region "$REGION" \
+    --update-env-vars "ALLOWED_ORIGINS=$FRONTEND_URL"
+echo "✅ Backend ALLOWED_ORIGINS updated."

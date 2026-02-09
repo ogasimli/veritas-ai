@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Google Cloud Storage
     gcs_bucket: str = ""
 
+    # CORS
+    allowed_origins: str = "*"
+
     # Application
     debug: bool = False
     use_dummy_agents: bool = False

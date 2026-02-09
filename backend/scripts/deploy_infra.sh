@@ -175,7 +175,10 @@ gcloud builds submit --tag "$IMAGE_URL" .
 
 echo "Deploying Container..."
 # Build env vars dynamically — only include overrides if set in .env
-ENV_VARS="GCS_BUCKET=${BUCKET_NAME},DEBUG=false,ALLOWED_ORIGINS=*"
+# Auto-detect frontend URL for CORS if frontend is already deployed
+FRONTEND_URL=$(gcloud run services describe veritas-ai-frontend --region "$REGION" --format='value(status.url)' 2>/dev/null || true)
+ALLOWED_ORIGINS="${FRONTEND_URL:-*}"
+ENV_VARS="GCS_BUCKET=${BUCKET_NAME},DEBUG=false,ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
 [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ] && ENV_VARS="${ENV_VARS},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI}"
 [ -n "$GEMINI_PRO_MODEL" ] && ENV_VARS="${ENV_VARS},GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL}"
 [ -n "$GEMINI_FLASH_MODEL" ] && ENV_VARS="${ENV_VARS},GEMINI_FLASH_MODEL=${GEMINI_FLASH_MODEL}"
@@ -196,6 +199,8 @@ echo ""
 echo "✅ Deployment Complete!"
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
 echo "Service URL: $SERVICE_URL"
-echo ""
-echo "⚠️  TODO: Update ALLOWED_ORIGINS after frontend deployment."
-echo "  Run: gcloud run services update $SERVICE_NAME --region $REGION --update-env-vars ALLOWED_ORIGINS=<frontend-url>"
+if [ "$ALLOWED_ORIGINS" = "*" ]; then
+    echo ""
+    echo "⚠️  ALLOWED_ORIGINS is set to '*' (frontend not yet deployed)."
+    echo "  It will be set automatically when you deploy the frontend."
+fi
