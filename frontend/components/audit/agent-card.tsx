@@ -1,7 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import type { AgentStatus, AgentResult } from '@/lib/types'
+
+/**
+ * Render description text with bold labels.
+ * Detects "Label:" patterns at the start of lines and wraps them in <strong>.
+ */
+function formatDescription(text: string): ReactNode {
+  return text.split('\n').map((line, i, arr) => {
+    const match = line.match(/^([A-Z][A-Za-z\s]+:)(.*)$/)
+    const content = match ? (
+      <>
+        <strong className="text-slate-700 dark:text-slate-300">{match[1]}</strong>
+        {match[2]}
+      </>
+    ) : (
+      line
+    )
+    return (
+      <span key={i}>
+        {content}
+        {i < arr.length - 1 && '\n'}
+      </span>
+    )
+  })
+}
 
 const AGENT_LOADING_MESSAGES: Record<string, string[]> = {
   numeric: [
@@ -233,9 +257,11 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-white">
                   {finding.title || 'Untitled Finding'}
                 </h4>
-                <p className="mt-1 whitespace-pre-line text-xs text-slate-600 dark:text-slate-400">
-                  {finding.description}
-                </p>
+                {finding.description && (
+                  <p className="mt-1 whitespace-pre-line text-xs text-slate-600 dark:text-slate-400">
+                    {formatDescription(finding.description)}
+                  </p>
+                )}
               </div>
             ))}
           </div>
