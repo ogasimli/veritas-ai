@@ -36,7 +36,7 @@ Financial auditing faces a critical challenge that hasn't been solved by traditi
    - These require deep domain expertise AND tedious verification. An audit partner would spend days on a report.
 
 3. **Accounting Compliance is a Moving Target**
-   - IFRS/IAS 9 (as well as tax and other mandatory) standards require specific disclosures
+   - IFRS/IAS (as well as tax and other mandatory) standards require specific disclosures
    - Industry-specific accounting treatments misapplied
    - Missing a single disclosure requirement = audit failure
    - Checklists are static; business contexts are dynamic
