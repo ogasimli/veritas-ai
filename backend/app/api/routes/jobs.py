@@ -87,9 +87,9 @@ async def get_agent_results(
     return results
 
 
-@router.get("/{job_id}/debug")
-async def get_job_debug_log(job_id: UUID, db: AsyncSession = Depends(get_db)):
-    """Get ADK debug YAML file for a specific job."""
+@router.get("/{job_id}/agent-trace")
+async def get_job_agent_trace(job_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Download the agent execution trace (ADK debug YAML) for a specific job."""
     # First verify job exists
     stmt_job = select(Job).where(Job.id == job_id)
     result_job = await db.execute(stmt_job)
