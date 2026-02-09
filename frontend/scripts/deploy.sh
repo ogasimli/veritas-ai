@@ -4,11 +4,12 @@ set -e
 # Configuration
 REGION="us-central1"
 PROJECT_ID=$(gcloud config get-value project)
-SERVICE_NAME="veritas-ai-frontend"
+SUFFIX="${DEPLOY_ENV:+-$DEPLOY_ENV}"
+SERVICE_NAME="veritas-ai-frontend${SUFFIX}"
 REPO_NAME="veritas-ai-repo"
 
 # Get Backend URL (required for build)
-BACKEND_SERVICE_NAME="veritas-ai-backend"
+BACKEND_SERVICE_NAME="veritas-ai-backend${SUFFIX}"
 BACKEND_URL=$(gcloud run services describe "$BACKEND_SERVICE_NAME" --region="$REGION" --format='value(status.url)')
 
 if [ -z "$BACKEND_URL" ]; then

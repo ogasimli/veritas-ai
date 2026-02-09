@@ -4,7 +4,8 @@ set -e
 # Configuration
 REGION="us-central1"
 PROJECT_ID=$(gcloud config get-value project)
-SERVICE_NAME="veritas-ai-backend"
+SUFFIX="${DEPLOY_ENV:+-$DEPLOY_ENV}"
+SERVICE_NAME="veritas-ai-backend${SUFFIX}"
 DB_INSTANCE_NAME="veritas-ai-db-primary"
 DB_NAME="veritas"
 DB_USER="veritas_app"
@@ -176,7 +177,7 @@ gcloud builds submit --tag "$IMAGE_URL" .
 echo "Deploying Container..."
 # Build env vars dynamically — only include overrides if set in .env
 # Auto-detect frontend URL for CORS if frontend is already deployed
-FRONTEND_URL=$(gcloud run services describe veritas-ai-frontend --region "$REGION" --format='value(status.url)' 2>/dev/null || true)
+FRONTEND_URL=$(gcloud run services describe "veritas-ai-frontend${SUFFIX}" --region "$REGION" --format='value(status.url)' 2>/dev/null || true)
 ALLOWED_ORIGINS="${FRONTEND_URL:-*}"
 ENV_VARS="GCS_BUCKET=${BUCKET_NAME},DEBUG=false,ALLOWED_ORIGINS=${ALLOWED_ORIGINS}"
 [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ] && ENV_VARS="${ENV_VARS},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI}"

@@ -1,3 +1,5 @@
+.PHONY: install dev db-stop migrate extract-docx test lint deploy teardown playground
+
 # ==============================================================================
 # Installation & Setup
 # ==============================================================================
@@ -59,7 +61,11 @@ lint:
 
 # Deploy to Cloud Run (integration with agents/Makefile flow + Backend API)
 deploy:
-	./scripts/deploy_infra.sh
+	./scripts/deploy.sh
+
+# Tear down Cloud Run service
+teardown:
+	./scripts/teardown.sh
 
 # ==============================================================================
 # Run Google ADK Web Playground

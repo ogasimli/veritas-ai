@@ -2,7 +2,7 @@
 # Veritas AI - Project Makefile
 # ==============================================================================
 
-.PHONY: install dev test lint deploy
+.PHONY: playground install dev test lint deploy deploy-backend deploy-frontend teardown teardown-backend teardown-frontend extract-docx
 
 #  Run Google ADK Web Playground
 playground:
@@ -13,7 +13,7 @@ install:
 	@echo "Installing backend dependencies..."
 	$(MAKE) -C backend install
 	@echo "Installing frontend dependencies..."
-	cd frontend && npm install
+	$(MAKE) -C frontend install
 
 # Run both backend and frontend development servers
 dev:
@@ -22,21 +22,25 @@ dev:
 	@echo "Frontend will be at http://localhost:3000"
 	@npx -y concurrently --kill-others \
 		"$(MAKE) -C backend dev" \
-		"cd frontend && npm run dev"
+		"$(MAKE) -C frontend dev"
 
 # Run tests for both components
 test:
 	@echo "Running backend tests..."
 	$(MAKE) -C backend test
 	@echo "Running frontend tests..."
-	cd frontend && npm test --if-present
+	$(MAKE) -C frontend test
 
 # Run linting for both components
 lint:
 	@echo "Linting backend..."
 	$(MAKE) -C backend lint
 	@echo "Linting frontend..."
-	cd frontend && npm run lint --if-present
+	$(MAKE) -C frontend lint
+
+# Pass env= only to deploy/teardown targets
+# Example: make deploy env=staging
+deploy deploy-backend deploy-frontend teardown teardown-backend teardown-frontend: export DEPLOY_ENV = $(env)
 
 # Deploy the entire backend (including agents)
 deploy-backend:
@@ -46,14 +50,22 @@ deploy-backend:
 # Deploy frontend to Cloud Run
 deploy-frontend:
 	@echo "Deploying frontend..."
-	./frontend/scripts/deploy.sh
+	$(MAKE) -C frontend deploy
 
 # Deploy the entire project
+# Usage: make deploy [env=staging]
 deploy:
 	$(MAKE) deploy-backend
 	$(MAKE) deploy-frontend
 
-# Extract markdown from a .docx file
-# Usage: make extract-docx file="/absolute/path/to/document.docx"
-extract-docx:
-	$(MAKE) -C backend extract-docx file="$(file)"
+# Tear down Cloud Run services
+# Usage: make teardown [env=staging]
+teardown-backend:
+	$(MAKE) -C backend teardown
+
+teardown-frontend:
+	$(MAKE) -C frontend teardown
+
+teardown:
+	$(MAKE) teardown-frontend
+	$(MAKE) teardown-backend

@@ -1,3 +1,4 @@
+.PHONY: install playground deploy-all deploy-root-agent deploy-numeric-agent deploy-numeric-cross-table deploy-numeric-in-table deploy-numeric-all deploy-logic-agent deploy-disclosure-agent deploy-external-agent backend test lint
 
 # ==============================================================================
 # Installation & Setup
