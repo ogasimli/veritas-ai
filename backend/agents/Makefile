@@ -66,7 +66,7 @@ deploy-root-agent:
 	$(call deploy_agent,veritas-orchestrator-agent,orchestrator)
 
 # Deploy numeric validation sub-agents (3 versions)
-deploy-numeric-agent: deploy-numeric-legacy deploy-numeric-in-table deploy-numeric-all
+deploy-numeric-agent: deploy-numeric-cross-table deploy-numeric-in-table deploy-numeric-all
 
 deploy-numeric-cross-table:
 	$(call deploy_agent,veritas-numeric-validation-cross-table,numeric_validation,cross_table_pipeline)
