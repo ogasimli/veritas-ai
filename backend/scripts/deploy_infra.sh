@@ -198,4 +198,4 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --
 echo "Service URL: $SERVICE_URL"
 echo ""
 echo "⚠️  TODO: Update ALLOWED_ORIGINS after frontend deployment."
-echo "  Run: gcloud run services update $SERVICE_NAME --region $REGION --set-env-vars ALLOWED_ORIGINS=<frontend-url>"
+echo "  Run: gcloud run services update $SERVICE_NAME --region $REGION --update-env-vars ALLOWED_ORIGINS=<frontend-url>"
