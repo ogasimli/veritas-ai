@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import type { DatabaseFinding } from '../utils/finding-transformers'
+import type { DatabaseAgentResult } from '../utils/finding-transformers'
 
 /**
  * E2E tests to verify findings display accuracy against database
@@ -14,7 +14,7 @@ test.describe('Findings Accuracy', () => {
 
     // 2. Upload test document
     const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles('tests/fixtures/VERITAS TECH INC.docx')
+    await fileInput.setInputFiles('tests/fixtures/VERITAS_TECH_INC.docx')
 
     // 3. Wait for processing to start
     await page.waitForSelector('text=Processing', { timeout: 10000 })
@@ -80,7 +80,7 @@ test.describe('Findings Accuracy', () => {
     )
     expect(apiResponse.ok()).toBeTruthy()
 
-    const dbFindings = await apiResponse.json() as DatabaseFinding[]
+    const dbFindings = await apiResponse.json() as DatabaseAgentResult[]
     console.log('DB Findings count:', dbFindings.length)
 
     // 9. Compare counts
@@ -157,7 +157,7 @@ test.describe('Findings Accuracy', () => {
 
     // 2. Upload test document
     const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles('tests/fixtures/VERITAS TECH INC.docx')
+    await fileInput.setInputFiles('tests/fixtures/VERITAS_TECH_INC.docx')
 
     // 3. Wait for completion
     await page.waitForSelector('text=Completed', { timeout: 300000 })
