@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from app.db import get_db
 from app.main import app
-from app.services.storage import get_storage_service
 
 client = TestClient(app)
 
@@ -23,19 +22,11 @@ def test_upload_document_exceeds_size_limit():
     mock_count_result.scalar_one.return_value = 0
     mock_db.execute.return_value = mock_count_result
 
-    # Setup Mock Storage
-    mock_storage = MagicMock()
-    mock_storage.upload_file = AsyncMock(return_value="gs://bucket/path/file.docx")
-
     # Override dependencies
     async def override_get_db():
         yield mock_db
 
-    def override_get_storage():
-        return mock_storage
-
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_storage_service] = override_get_storage
 
     try:
         # Create a file larger than 20MB (21MB)
@@ -63,9 +54,6 @@ def test_upload_document_exceeds_size_limit():
         assert "exceeds the maximum allowed size" in response.json()["detail"]
         assert "21.00MB" in response.json()["detail"]
         assert "20MB" in response.json()["detail"]
-
-        # Verify that upload_file was NOT called (since we failed validation)
-        mock_storage.upload_file.assert_not_called()
 
     finally:
         # Cleanup
@@ -105,19 +93,11 @@ def test_upload_document_within_size_limit():
     # Set up the mock to return different results for different queries
     mock_db.execute.side_effect = [mock_count_result, mock_final_result]
 
-    # Setup Mock Storage
-    mock_storage = MagicMock()
-    mock_storage.upload_file = AsyncMock(return_value="gs://bucket/path/file.docx")
-
     # Override dependencies
     async def override_get_db():
         yield mock_db
 
-    def override_get_storage():
-        return mock_storage
-
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_storage_service] = override_get_storage
 
     try:
         # Create a small file (1MB)
@@ -145,9 +125,6 @@ def test_upload_document_within_size_limit():
             assert response.status_code == 200
             assert response.json()["name"] == "Report #1"
             assert response.json()["status"] == "processing"
-
-            # Verify that upload_file WAS called
-            mock_storage.upload_file.assert_called_once()
 
     finally:
         # Cleanup
@@ -187,19 +164,11 @@ def test_upload_document_edge_case_exactly_20mb():
     # Set up the mock to return different results for different queries
     mock_db.execute.side_effect = [mock_count_result, mock_final_result]
 
-    # Setup Mock Storage
-    mock_storage = MagicMock()
-    mock_storage.upload_file = AsyncMock(return_value="gs://bucket/path/file.docx")
-
     # Override dependencies
     async def override_get_db():
         yield mock_db
 
-    def override_get_storage():
-        return mock_storage
-
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_storage_service] = override_get_storage
 
     try:
         # Create a file exactly 20MB
@@ -227,9 +196,6 @@ def test_upload_document_edge_case_exactly_20mb():
             assert response.status_code == 200
             assert response.json()["name"] == "Report #1"
             assert response.json()["status"] == "processing"
-
-            # Verify that upload_file WAS called
-            mock_storage.upload_file.assert_called_once()
 
     finally:
         # Cleanup

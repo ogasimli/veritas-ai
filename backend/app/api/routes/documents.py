@@ -1,3 +1,5 @@
+import os
+import tempfile
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
@@ -5,14 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.config import get_settings
 from app.db import async_session, get_db
 from app.models.document import Document
 from app.models.job import Job
 from app.schemas.job import JobRead
 from app.services.extractor import ExtractorService
 from app.services.processor import DocumentProcessor
-from app.services.storage import StorageService, get_storage_service
 from app.services.websocket_manager import manager
 from app.utils.validators import validate_document_content
 
@@ -25,26 +25,29 @@ MAX_FILE_SIZE_MB = 20
 async def process_document_task(
     job_id: uuid.UUID,
     doc_id: uuid.UUID,
-    gcs_path: str,
+    temp_file_path: str,
 ):
-    """Background task to extract text from docx and update the database."""
+    """Background task to extract text from docx and run agent pipeline."""
     print(f"\n{'=' * 80}")
     print("🚀 BACKGROUND TASK STARTED")
     print(f"   Job ID: {job_id}")
     print(f"   Document ID: {doc_id}")
-    print(f"   Storage Path: {gcs_path}")
+    print(f"   Temp File: {temp_file_path}")
     print(f"{'=' * 80}\n")
 
     async with async_session() as db:
         try:
-            settings = get_settings()
-            storage = StorageService(bucket_name=settings.gcs_bucket)
             extractor = ExtractorService()
 
-            # 1. Download content
-            print("📥 Step 1: Downloading document from storage...")
-            content = await storage.download_file(gcs_path)
-            print(f"✅ Downloaded {len(content)} bytes")
+            # 1. Read content from temp file
+            print("📥 Step 1: Reading document from temp file...")
+            with open(temp_file_path, "rb") as f:
+                content = f.read()
+            os.unlink(temp_file_path)
+            print(f"✅ Read {len(content)} bytes, temp file cleaned up")
+
+            # TODO: Upload to GCS for archival if persistent storage is needed.
+            # When implementing, update doc.gcs_path with the full gs:// URI after upload.
 
             # 2. Extract markdown
             print("📝 Step 2: Extracting markdown from .docx...")
@@ -104,6 +107,10 @@ async def process_document_task(
             print(f"   Error Message: {e!s}")
             print(f"{'=' * 80}\n")
 
+            # Clean up temp file if it still exists
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+
             # Update Job status to failed
             job_stmt = select(Job).where(Job.id == job_id)
             job_result = await db.execute(job_stmt)
@@ -120,7 +127,6 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    storage: StorageService = Depends(get_storage_service),
 ):
     if not file.filename.endswith(".docx"):
         raise HTTPException(status_code=400, detail="Only .docx files are supported")
@@ -149,22 +155,25 @@ async def upload_document(
             detail=f"File size ({file_size_mb:.2f}MB) exceeds the maximum allowed size of {MAX_FILE_SIZE_MB}MB",
         )
 
-    # 4. Upload file to storage
-    destination_path = f"jobs/{job.id}/{file.filename}"
-    gcs_path = await storage.upload_file(
-        file_content=content,
-        destination_path=destination_path,
-        content_type=file.content_type
-        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    # 4. Save file to temp storage for background task to pick up
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+    tmp.write(content)
+    tmp.close()
+
+    content_type = (
+        file.content_type
+        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
     # 5. Create Document record
+    # gcs_path stores the intended destination path as a placeholder.
+    # If GCS archival is added later, the background task would update this
+    # to the full gs:// URI after upload.
     doc = Document(
         job_id=job.id,
         filename=file.filename,
-        gcs_path=gcs_path,
-        content_type=file.content_type
-        or "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        gcs_path=f"jobs/{job.id}/{file.filename}",
+        content_type=content_type,
     )
     db.add(doc)
     await db.flush()  # Get the doc ID
@@ -173,7 +182,7 @@ async def upload_document(
 
     # 6. Trigger background processing
     background_tasks.add_task(
-        process_document_task, job_id=job.id, doc_id=doc.id, gcs_path=gcs_path
+        process_document_task, job_id=job.id, doc_id=doc.id, temp_file_path=tmp.name
     )
 
     # 7. Fetch job with documents loaded for the response
