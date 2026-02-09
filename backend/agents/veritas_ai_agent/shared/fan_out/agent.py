@@ -24,7 +24,7 @@ from .config import FanOutConfig
 
 logger = logging.getLogger(__name__)
 
-_MAX_CONCURRENCY = int(os.environ.get("FANOUT_MAX_CONCURRENCY", "10"))
+_MAX_CONCURRENCY = int(os.environ.get("FANOUT_MAX_CONCURRENCY", "8"))
 _semaphore: asyncio.Semaphore | None = None
 
 
