@@ -175,9 +175,7 @@ class DisclosureComplianceAdapter(AgentAdapter):
                     description=f"{f.get('reference', '')}: {f.get('requirement', '')}",
                     severity=f.get("severity", "medium"),
                     reasoning=(
-                        f"Standard: {f.get('standard')}\n"
-                        f"ID: {f.get('disclosure_id')}\n"
-                        f"Requirement: {f.get('reference', '')}: {f.get('requirement', '')}"
+                        f"Standard: {f.get('standard')}\nID: {f.get('disclosure_id')}"
                     ),
                     source_refs=[],
                 )
