@@ -17,7 +17,7 @@ from collections.abc import AsyncGenerator
 
 from google.adk.agents import BaseAgent
 from google.adk.agents.invocation_context import InvocationContext
-from google.adk.events import Event
+from google.adk.events import Event, EventActions
 from google.genai import types
 
 from .config import FanOutConfig
@@ -79,15 +79,20 @@ class FanOutAgent(BaseAgent):
 
         # 2. Early exit
         if not items:
-            state[self.config.output_key] = {self.config.results_field: []}
-            if self.config.empty_message:
-                yield Event(
-                    author=self.name,
-                    content=types.Content(
-                        role="agent",
-                        parts=[types.Part(text=self.config.empty_message)],
-                    ),
-                )
+            empty_result = {self.config.results_field: []}
+            state[self.config.output_key] = empty_result
+            yield Event(
+                author=self.name,
+                content=types.Content(
+                    role="agent",
+                    parts=[
+                        types.Part(text=self.config.empty_message or "No work items.")
+                    ],
+                ),
+                actions=EventActions(
+                    state_delta={self.config.output_key: empty_result},
+                ),
+            )
             return
 
         # 3. Create agents with deterministic output keys
@@ -135,13 +140,33 @@ class FanOutAgent(BaseAgent):
 
         state[self.config.output_key] = result
 
-        logger.info(
-            "%s: processed %d work items, produced %d %s (max_concurrency=%d)",
-            self.name,
-            len(items),
+        # Yield an event carrying the state delta so the output is visible
+        # in the event stream (for processors, debug YAML, fixtures, etc.).
+        result_count = (
             len(result.get(self.config.results_field, []))
             if isinstance(result, dict)
-            else "N/A",
+            else "N/A"
+        )
+        yield Event(
+            author=self.name,
+            content=types.Content(
+                role="agent",
+                parts=[
+                    types.Part(
+                        text=f"Aggregated {result_count} {self.config.results_field}."
+                    )
+                ],
+            ),
+            actions=EventActions(
+                state_delta={self.config.output_key: result},
+            ),
+        )
+
+        logger.info(
+            "%s: processed %d work items, produced %s %s (max_concurrency=%d)",
+            self.name,
+            len(items),
+            result_count,
             self.config.results_field,
             _MAX_CONCURRENCY,
         )

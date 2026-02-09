@@ -111,8 +111,10 @@ async def test_early_exit_empty_items():
     async for event in agent._run_async_impl(ctx):
         events.append(event)
 
-    # No events emitted (no empty_message set)
-    assert events == []
+    # Exactly one event emitted carrying the state delta
+    assert len(events) == 1
+    assert events[0].author == "TestFanOut"
+    assert events[0].actions.state_delta["test_output"] == {"findings": []}
     # State gets empty result
     assert ctx.session.state["test_output"] == {"findings": []}
 
@@ -136,6 +138,7 @@ async def test_early_exit_with_empty_message():
     assert len(events) == 1
     assert events[0].author == "TestFanOut"
     assert "No work items found." in events[0].content.parts[0].text
+    assert events[0].actions.state_delta["test_output"] == {"findings": []}
     assert ctx.session.state["test_output"] == {"findings": []}
 
 
