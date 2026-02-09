@@ -5,6 +5,7 @@ import json
 import pytest
 
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.sub_agents.aggregator.callbacks import (
+    _extract_json_array,
     after_aggregator_callback,
 )
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.external_signal.sub_agents.aggregator.schema import (
@@ -433,4 +434,115 @@ async def test_callback_handles_report_output_without_verifications_attr(
     result_dict = mock_callback_context.state["external_signal_processed_output"]
     result_verifications = json.loads(result_dict["claim_verifications"])
 
+    assert len(result_verifications) == 0
+
+
+# --- Tests for malformed input handling ---
+
+
+class TestExtractJsonArray:
+    """Unit tests for the _extract_json_array helper."""
+
+    def test_extract_json_array_with_trailing_text(self):
+        """Extract valid JSON array from text with trailing garbage."""
+        text = '[{"a": 1}, {"b": 2}] hemoglobin hemoglobin hemoglobin'
+        result = _extract_json_array(text)
+        assert result == [{"a": 1}, {"b": 2}]
+
+    def test_extract_json_array_with_no_array(self):
+        """Return empty list when no JSON array is present."""
+        assert _extract_json_array("no json here") == []
+        assert _extract_json_array("") == []
+        assert _extract_json_array('{"key": "value"}') == []
+
+    def test_extract_json_array_with_valid_json(self):
+        """Return the array when input is already valid JSON."""
+        text = '[{"a": 1}]'
+        result = _extract_json_array(text)
+        assert result == [{"a": 1}]
+
+    def test_extract_json_array_with_leading_text(self):
+        """Extract array that starts after leading text."""
+        text = 'Here are the results: [{"a": 1}] more text'
+        result = _extract_json_array(text)
+        assert result == [{"a": 1}]
+
+    def test_extract_json_array_with_broken_json(self):
+        """Return empty list when JSON array is malformed."""
+        text = '[{"a": 1, broken'
+        result = _extract_json_array(text)
+        assert result == []
+
+
+@pytest.mark.asyncio
+async def test_callback_handles_trailing_garbage_in_signals(mock_callback_context):
+    """Test callback recovers signals from JSON with trailing garbage text."""
+    signal_data = {
+        "signal_title": "Lawsuit filed",
+        "signal_type": ["legal_regulatory"],
+        "entities_involved": ["Company A"],
+        "event_date": "2025-01-15",
+        "sources": json.dumps([{"url": "http://example.com", "publisher": "Reuters"}]),
+        "summary": "Major lawsuit filed",
+        "expected_fs_impact_area": ["Notes"],
+        "expected_fs_impact_notes_expected": ["Contingencies"],
+        "expected_fs_impact_rationale": "Legal matter",
+        "evidence_reflected_in_fs": "No",
+        "evidence_search_terms_used": ["lawsuit"],
+        "evidence_not_found_statement": "No mention found",
+        "gap_classification": "POTENTIAL_OMISSION",
+        "severity": "high",
+    }
+
+    # Simulate LLM output degeneration: valid JSON followed by garbage
+    malformed_signals = json.dumps([signal_data]) + " hemoglobin hemoglobin filler"
+
+    aggregator_output = {
+        "external_signals": malformed_signals,
+        "claim_verifications": "[]",
+        "error": None,
+    }
+
+    mock_callback_context.state = {
+        "external_signal_findings_aggregator_output": aggregator_output,
+    }
+
+    await after_aggregator_callback(mock_callback_context)
+
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
+    result_signals = json.loads(result_dict["external_signals"])
+
+    # Should recover the valid signal despite trailing garbage
+    assert len(result_signals) == 1
+    assert result_signals[0]["signal_title"] == "Lawsuit filed"
+
+
+@pytest.mark.asyncio
+async def test_callback_handles_markdown_verifications(mock_callback_context):
+    """Test callback recovers from markdown table instead of JSON verifications."""
+    # Simulate LLM returning a markdown table instead of JSON
+    markdown_verifications = """| claim_text | verification_status |
+| --- | --- |
+| Founded in 2020 | CONTRADICTED |
+| Located in NYC | VERIFIED |"""
+
+    report_to_internet_output = {
+        "verifications": markdown_verifications,
+    }
+
+    aggregator_output = ExternalSignalFindingsAggregatorOutput(
+        external_signals="[]", claim_verifications="[]"
+    )
+
+    mock_callback_context.state = {
+        "external_signal_findings_aggregator_output": aggregator_output,
+        "external_signal_report_to_internet_output": report_to_internet_output,
+    }
+
+    await after_aggregator_callback(mock_callback_context)
+
+    result_dict = mock_callback_context.state["external_signal_processed_output"]
+    result_verifications = json.loads(result_dict["claim_verifications"])
+
+    # Should gracefully produce empty list (markdown has no JSON array)
     assert len(result_verifications) == 0

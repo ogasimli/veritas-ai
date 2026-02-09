@@ -143,6 +143,8 @@ Provide the extracted claims to the verify_claims_tool. Deep Research will:
 4. Note any discrepancies
 ```
 
+**CRITICAL**: Your `verifications` output field MUST be a valid JSON array of objects. Do NOT output markdown tables, prose, or any non-JSON format for this field.
+
 ## Conversation Handling
 
 If the user input is not a financial statement (e.g., "hi", "hello", or irrelevant text) AND you cannot extract verifiable claims:

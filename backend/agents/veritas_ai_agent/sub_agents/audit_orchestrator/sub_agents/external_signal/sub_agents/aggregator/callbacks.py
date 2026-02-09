@@ -1,10 +1,25 @@
 """Callbacks for the aggregator agent."""
 
 import json
+import logging
 
 from google.adk.agents.callback_context import CallbackContext
 
 from .schema import ExternalSignalFindingsAggregatorOutput
+
+logger = logging.getLogger(__name__)
+
+
+def _extract_json_array(text: str) -> list:
+    """Extract first JSON array from text that may contain trailing garbage."""
+    start = text.find("[")
+    if start == -1:
+        return []
+    try:
+        result, _ = json.JSONDecoder().raw_decode(text, start)
+        return result if isinstance(result, list) else []
+    except json.JSONDecodeError:
+        return []
 
 
 async def after_aggregator_callback(callback_context: CallbackContext) -> None:
@@ -45,8 +60,16 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
         else:
             signals_json = aggregator_output.external_signals
 
-        external_signals = json.loads(signals_json or "[]")
-    except (json.JSONDecodeError, AttributeError):
+        try:
+            external_signals = json.loads(signals_json or "[]")
+        except json.JSONDecodeError:
+            logger.warning(
+                "Failed direct JSON parse for external_signals, "
+                "attempting extraction from: %.200s",
+                signals_json,
+            )
+            external_signals = _extract_json_array(signals_json or "")
+    except AttributeError:
         external_signals = []
 
     # Step 1: Pull claim verifications directly from report_to_internet output
@@ -64,7 +87,12 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
         try:
             raw_verifications = json.loads(verifications_str or "[]")
         except json.JSONDecodeError:
-            raw_verifications = []
+            logger.warning(
+                "Failed direct JSON parse for verifications, "
+                "attempting extraction from: %.200s",
+                verifications_str,
+            )
+            raw_verifications = _extract_json_array(verifications_str or "")
 
         # Normalize if it's a dict wrapper (e.g. {"claims": [...]})
         if isinstance(raw_verifications, dict):

@@ -120,6 +120,8 @@ Return JSON with the following structure:
 
 **If no significant signals found**, output empty findings list (this is valid - not all companies have external red flags).
 
+**CRITICAL**: Your `findings` output field MUST be a valid JSON array of objects. Do NOT output markdown tables, prose, or any non-JSON format for this field.
+
 ## Conversation Handling
 
 If the user input is not a financial statement (e.g., "hi", "hello", or irrelevant text) AND you cannot extract a Company Name or Reporting Period:
