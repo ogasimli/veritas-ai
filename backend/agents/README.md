@@ -141,10 +141,43 @@ A **FanOut** reviewer (1 reviewer per 3 claim max) then independently verifies t
 
 ```mermaid
 graph TD
-    Input[Orchestrator] --> Detector["Detector (MultiPassRefinement)<br/>3 chains × 3 passes"]
-    Detector --> DetAgg[Detector Aggregator — Deduplicate]
-    DetAgg --> Reviewer["Reviewer (FanOut)"]
-    Reviewer --> Output[Verified Findings with Severity]
+    %% Node Definitions
+    Orchestrator[Orchestrator]
+    
+    Aggregator[Detector Aggregator - Deduplicate]
+    
+    Reviewer["Reviewer (FanOut)<br/>(1 reviewer per max 3 claim)"]
+    
+    Findings[Verified Findings with Severity]
+    %% Connections from Orchestrator
+    Orchestrator --> AccountingLens
+    Orchestrator --> BusinessLens
+    Orchestrator --> LogicLens
+    %% Accounting Lens Subgraph
+    subgraph AccountingLens [Accounting Lens]
+        direction TB
+        A1[Accounting Agent 1] --> A2[Accounting Agent 2]
+        A2 --> A3[Accounting Agent 3]
+    end
+    %% Business Lens Subgraph
+    subgraph BusinessLens [Business Lens]
+        direction TB
+        B1[Business Agent 1] --> B2[Business Agent 2]
+        B2 --> B3[Business Agent 3]
+    end
+    %% Logic Lens Subgraph
+    subgraph LogicLens [Logic/Common Sense Lens]
+        direction TB
+        L1[Logic Agent 1] --> L2[Logic Agent 2]
+        L2 --> L3[Logic Agent 3]
+    end
+    %% Aggregation Connections
+    A3 --> Aggregator
+    B3 --> Aggregator
+    L3 --> Aggregator
+    %% Final Flow
+    Aggregator --> Reviewer
+    Reviewer --> Findings
 ```
 
 ---
