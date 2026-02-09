@@ -98,37 +98,46 @@ async def test_processor_extraction_contract():
         },
         "external_signal": {
             "external_signal_findings_aggregator_output": {
-                "external_signals": json.dumps([
-                    {
-                        "signal_title": "S&P downgraded company to Selective Default",
-                        "signal_type": ["financing_distress"],
-                        "entities_involved": ["Veritas Technologies"],
-                        "event_date": "2024-11-15",
-                        "sources": json.dumps([
-                            {"url": "https://spglobal.com/ratings", "publisher": "S&P Global"}
-                        ]),
-                        "summary": "S&P downgraded Veritas to SD after distressed debt exchange.",
-                        "expected_fs_impact_area": ["Notes"],
-                        "expected_fs_impact_notes_expected": ["Subsequent events"],
-                        "expected_fs_impact_rationale": "Material credit event requires disclosure.",
-                        "evidence_reflected_in_fs": "No",
-                        "evidence_search_terms_used": ["downgrade", "S&P"],
-                        "evidence_not_found_statement": "No mention of credit downgrade.",
-                        "gap_classification": "POTENTIAL_OMISSION",
-                        "severity": "high",
-                    }
-                ]),
-                "claim_verifications": json.dumps([
-                    {
-                        "claim_text": "Company closed Seattle facility",
-                        "claim_category": "operational",
-                        "verification_status": "CONTRADICTED",
-                        "evidence_summary": "No public records confirm this facility exists.",
-                        "source_urls": ["https://example.com/records"],
-                        "discrepancy": "Facility cannot be verified",
-                        "severity": "high",
-                    }
-                ]),
+                "external_signals": json.dumps(
+                    [
+                        {
+                            "signal_title": "S&P downgraded company to Selective Default",
+                            "signal_type": ["financing_distress"],
+                            "entities_involved": ["Veritas Technologies"],
+                            "event_date": "2024-11-15",
+                            "sources": json.dumps(
+                                [
+                                    {
+                                        "url": "https://spglobal.com/ratings",
+                                        "publisher": "S&P Global",
+                                    }
+                                ]
+                            ),
+                            "summary": "S&P downgraded Veritas to SD after distressed debt exchange.",
+                            "expected_fs_impact_area": ["Notes"],
+                            "expected_fs_impact_notes_expected": ["Subsequent events"],
+                            "expected_fs_impact_rationale": "Material credit event requires disclosure.",
+                            "evidence_reflected_in_fs": "No",
+                            "evidence_search_terms_used": ["downgrade", "S&P"],
+                            "evidence_not_found_statement": "No mention of credit downgrade.",
+                            "gap_classification": "POTENTIAL_OMISSION",
+                            "severity": "high",
+                        }
+                    ]
+                ),
+                "claim_verifications": json.dumps(
+                    [
+                        {
+                            "claim_text": "Company closed Seattle facility",
+                            "claim_category": "operational",
+                            "verification_status": "CONTRADICTED",
+                            "evidence_summary": "No public records confirm this facility exists.",
+                            "source_urls": ["https://example.com/records"],
+                            "discrepancy": "Facility cannot be verified",
+                            "severity": "high",
+                        }
+                    ]
+                ),
                 "error": None,
             }
         },
@@ -182,7 +191,10 @@ async def test_processor_extraction_contract():
         assert r.description is not None
         assert r.severity is not None
         assert r.reasoning is not None
-        assert "check_type" in (r.reasoning or "").lower() or "formula" in (r.reasoning or "").lower()
+        assert (
+            "check_type" in (r.reasoning or "").lower()
+            or "formula" in (r.reasoning or "").lower()
+        )
 
     # Verify external signal findings parsed from JSON strings
     external_results = [r for r in added_results if r.category == "external"]
@@ -190,7 +202,9 @@ async def test_processor_extraction_contract():
     # One should be signal, one claim verification
     descriptions = [r.description for r in external_results]
     assert any("S&P" in d for d in descriptions), "External signal not parsed"
-    assert any("CONTRADICTED" in d for d in descriptions), "Claim verification not parsed"
+    assert any("CONTRADICTED" in d for d in descriptions), (
+        "Claim verification not parsed"
+    )
 
     print("\n✅ Processor Contract Test Passed!")
 

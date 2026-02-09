@@ -1,8 +1,8 @@
 """Document processing service with agent pipeline integration."""
 
+import re
 from datetime import datetime
 from typing import Any
-import re
 from uuid import UUID
 
 from google.adk.runners import InMemoryRunner
@@ -21,7 +21,7 @@ from app.services.websocket_manager import manager
 
 def _to_snake_case(name: str) -> str:
     """Convert PascalCase or camelCase to snake_case."""
-    return re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', name).lower()
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name).lower()
 
 
 class DocumentProcessor:
@@ -31,9 +31,7 @@ class DocumentProcessor:
         self.db = db
 
     @staticmethod
-    def _get_agent_namespace(
-        state: dict[str, Any], agent_id: str
-    ) -> dict[str, Any]:
+    def _get_agent_namespace(state: dict[str, Any], agent_id: str) -> dict[str, Any]:
         """Get the state namespace for an agent, or return the state itself if not namespaced."""
         if agent_id in state and isinstance(state[agent_id], dict):
             return state[agent_id]
@@ -158,7 +156,9 @@ class DocumentProcessor:
                         job_id, "agent_completed", agent_id
                     )
 
-    def _extract_all_findings(self, state: dict[str, Any]) -> dict[str, list[NormalizedFinding]]:
+    def _extract_all_findings(
+        self, state: dict[str, Any]
+    ) -> dict[str, list[NormalizedFinding]]:
         """Extract findings for all agents from final state."""
         findings_by_agent: dict[str, list[NormalizedFinding]] = {}
 

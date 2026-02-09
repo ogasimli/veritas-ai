@@ -98,9 +98,7 @@ class DeepResearchClient:
                 },
             )
 
-            logger.info(
-                "Deep Research interaction created: %s", interaction.id
-            )
+            logger.info("Deep Research interaction created: %s", interaction.id)
 
             # Poll every 10 seconds for completion
             poll_interval = 10
@@ -177,9 +175,7 @@ class DeepResearchClient:
 
         except Exception as e:
             elapsed = time.time() - start_time
-            logger.error(
-                "Deep Research exception after %.1fs: %s", elapsed, str(e)
-            )
+            logger.error("Deep Research exception after %.1fs: %s", elapsed, str(e))
             return DeepResearchResult(
                 result=None,
                 duration_seconds=elapsed,
@@ -228,7 +224,11 @@ class DeepResearchClient:
             # Acquire semaphore to respect RPM limits; released after each
             # attempt so backoff sleep doesn't block other callers.
             async with semaphore:
-                logger.info("Deep Research semaphore acquired for attempt %d/%d", attempt, max_retries)
+                logger.info(
+                    "Deep Research semaphore acquired for attempt %d/%d",
+                    attempt,
+                    max_retries,
+                )
                 result = await self._run_single_attempt(
                     query=query,
                     timeout_minutes=timeout_minutes,

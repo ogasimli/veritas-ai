@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     debug: bool = False
     use_dummy_agents: bool = False
 
+
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""

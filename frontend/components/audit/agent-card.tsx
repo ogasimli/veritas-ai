@@ -137,10 +137,7 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
-    if (status !== 'processing') {
-      setTick(0)
-      return
-    }
+    if (status !== 'processing') return
     const interval = setInterval(() => {
       setTick(prev => prev + 1)
     }, 5000)

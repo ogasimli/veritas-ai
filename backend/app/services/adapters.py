@@ -23,7 +23,9 @@ class AgentAdapter(ABC):
     error_keys: ClassVar[list[str]]  # State keys to check for errors
 
     @abstractmethod
-    def extract_findings(self, agent_state: dict[str, Any]) -> list[NormalizedFinding] | None:
+    def extract_findings(
+        self, agent_state: dict[str, Any]
+    ) -> list[NormalizedFinding] | None:
         """Extract normalized findings from agent state.
 
         Returns:
@@ -37,7 +39,9 @@ class AgentAdapter(ABC):
         """Extract error info from agent state, or None if no error."""
         ...
 
-    def _check_standard_error(self, state: dict[str, Any], keys: list[str]) -> dict | None:
+    def _check_standard_error(
+        self, state: dict[str, Any], keys: list[str]
+    ) -> dict | None:
         """Check for AgentError in standard output keys."""
         for key in keys:
             data = state.get(key)
@@ -60,7 +64,9 @@ class NumericValidationAdapter(AgentAdapter):
     output_keys: ClassVar[list[str]] = ["numeric_validation_output"]
     error_keys: ClassVar[list[str]] = ["numeric_validation_output"]
 
-    def extract_findings(self, agent_state: dict[str, Any]) -> list[NormalizedFinding] | None:
+    def extract_findings(
+        self, agent_state: dict[str, Any]
+    ) -> list[NormalizedFinding] | None:
         output = agent_state.get("numeric_validation_output")
         if not isinstance(output, dict):
             return None
@@ -102,9 +108,14 @@ class LogicConsistencyAdapter(AgentAdapter):
     agent_id: ClassVar[str] = "logic_consistency"
     category: ClassVar[str] = "logic"
     output_keys: ClassVar[list[str]] = ["logic_consistency_reviewer_output"]
-    error_keys: ClassVar[list[str]] = ["logic_consistency_detector_output", "logic_consistency_reviewer_output"]
+    error_keys: ClassVar[list[str]] = [
+        "logic_consistency_detector_output",
+        "logic_consistency_reviewer_output",
+    ]
 
-    def extract_findings(self, agent_state: dict[str, Any]) -> list[NormalizedFinding] | None:
+    def extract_findings(
+        self, agent_state: dict[str, Any]
+    ) -> list[NormalizedFinding] | None:
         output = agent_state.get("logic_consistency_reviewer_output")
         if not isinstance(output, dict):
             return None
@@ -138,9 +149,14 @@ class DisclosureComplianceAdapter(AgentAdapter):
     agent_id: ClassVar[str] = "disclosure_compliance"
     category: ClassVar[str] = "disclosure"
     output_keys: ClassVar[list[str]] = ["disclosure_reviewer_output"]
-    error_keys: ClassVar[list[str]] = ["disclosure_scanner_output", "disclosure_reviewer_output"]
+    error_keys: ClassVar[list[str]] = [
+        "disclosure_scanner_output",
+        "disclosure_reviewer_output",
+    ]
 
-    def extract_findings(self, agent_state: dict[str, Any]) -> list[NormalizedFinding] | None:
+    def extract_findings(
+        self, agent_state: dict[str, Any]
+    ) -> list[NormalizedFinding] | None:
         output = agent_state.get("disclosure_reviewer_output")
         if not isinstance(output, dict):
             return None
@@ -186,7 +202,9 @@ class ExternalSignalAdapter(AgentAdapter):
         "external_signal_findings_aggregator_output",
     ]
 
-    def extract_findings(self, agent_state: dict[str, Any]) -> list[NormalizedFinding] | None:
+    def extract_findings(
+        self, agent_state: dict[str, Any]
+    ) -> list[NormalizedFinding] | None:
         output = agent_state.get("external_signal_findings_aggregator_output")
         if not isinstance(output, dict):
             return None
@@ -196,7 +214,9 @@ class ExternalSignalAdapter(AgentAdapter):
         # Parse external signals (JSON string)
         signals_raw = output.get("external_signals", "[]")
         try:
-            signals = json.loads(signals_raw) if isinstance(signals_raw, str) else signals_raw
+            signals = (
+                json.loads(signals_raw) if isinstance(signals_raw, str) else signals_raw
+            )
         except (json.JSONDecodeError, TypeError):
             signals = []
 
@@ -206,7 +226,11 @@ class ExternalSignalAdapter(AgentAdapter):
                 source_refs: list[str] = []
                 sources_raw = signal.get("sources", "[]")
                 try:
-                    sources = json.loads(sources_raw) if isinstance(sources_raw, str) else sources_raw
+                    sources = (
+                        json.loads(sources_raw)
+                        if isinstance(sources_raw, str)
+                        else sources_raw
+                    )
                 except (json.JSONDecodeError, TypeError):
                     sources = []
                 if isinstance(sources, list):
@@ -232,7 +256,9 @@ class ExternalSignalAdapter(AgentAdapter):
         # Parse claim verifications (JSON string)
         claims_raw = output.get("claim_verifications", "[]")
         try:
-            claims = json.loads(claims_raw) if isinstance(claims_raw, str) else claims_raw
+            claims = (
+                json.loads(claims_raw) if isinstance(claims_raw, str) else claims_raw
+            )
         except (json.JSONDecodeError, TypeError):
             claims = []
 

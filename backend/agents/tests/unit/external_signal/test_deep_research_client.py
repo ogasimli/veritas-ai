@@ -27,7 +27,9 @@ def _get_module():
 # ---------------------------------------------------------------------------
 
 
-def _make_interaction(status="completed", interaction_id="test-id", text="result text", error=None):
+def _make_interaction(
+    status="completed", interaction_id="test-id", text="result text", error=None
+):
     """Build a fake Interaction object returned by the Gemini API."""
     outputs = [SimpleNamespace(text=text)] if text else []
     ns = SimpleNamespace(
@@ -127,7 +129,9 @@ async def test_single_attempt_completes_immediately(client):
 async def test_single_attempt_completes_after_multiple_polls(client):
     """Interaction is in-progress for several polls then completes."""
     pending = _make_interaction(status="pending", interaction_id="test-id", text=None)
-    in_progress = _make_interaction(status="in_progress", interaction_id="test-id", text=None)
+    in_progress = _make_interaction(
+        status="in_progress", interaction_id="test-id", text=None
+    )
     completed = _make_interaction(status="completed", text="done")
 
     client._create_interaction = AsyncMock(return_value=pending)
@@ -147,7 +151,9 @@ async def test_single_attempt_completes_after_multiple_polls(client):
 async def test_single_attempt_timeout(client):
     """Returns timeout when elapsed exceeds timeout_minutes."""
     pending = _make_interaction(status="pending", interaction_id="test-id", text=None)
-    in_progress = _make_interaction(status="in_progress", interaction_id="test-id", text=None)
+    in_progress = _make_interaction(
+        status="in_progress", interaction_id="test-id", text=None
+    )
 
     client._create_interaction = AsyncMock(return_value=pending)
     client._get_interaction = AsyncMock(return_value=in_progress)
@@ -246,9 +252,7 @@ async def test_run_research_retries_on_timeout(client):
         "error": None,
     }
 
-    client._run_single_attempt = AsyncMock(
-        side_effect=[timeout_result, success_result]
-    )
+    client._run_single_attempt = AsyncMock(side_effect=[timeout_result, success_result])
 
     with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         result = await client.run_research(
@@ -455,7 +459,9 @@ async def test_semaphore_released_during_backoff(client):
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         results = await asyncio.gather(
-            client.run_research(query="slow", max_retries=2, initial_backoff_seconds=0.01),
+            client.run_research(
+                query="slow", max_retries=2, initial_backoff_seconds=0.01
+            ),
             client.run_research(query="fast", max_retries=1),
         )
 

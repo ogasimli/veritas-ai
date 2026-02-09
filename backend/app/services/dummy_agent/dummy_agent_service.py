@@ -199,8 +199,7 @@ class DummyAgentService:
                 all_events[i]["delay_ms"] = max(0, int((curr_ts - prev_ts) * 1000))
 
         print(
-            f"   📊 Merged: {len(all_events)} events from "
-            f"{loaded_validators}",
+            f"   📊 Merged: {len(all_events)} events from {loaded_validators}",
             flush=True,
         )
 
@@ -216,9 +215,7 @@ class DummyAgentService:
         }
 
     @staticmethod
-    def _parse_adk_debug_yaml(
-        path: Path, validator_name: str
-    ) -> dict[str, Any]:
+    def _parse_adk_debug_yaml(path: Path, validator_name: str) -> dict[str, Any]:
         """Parse an ``adk_debug.yaml`` file into events and final state.
 
         Extracts ``entry_type == "event"`` entries and the
@@ -256,7 +253,9 @@ class DummyAgentService:
                 else:
                     ts = prev_timestamp
 
-                delay_ms = max(0, int((ts - prev_timestamp) * 1000)) if prev_timestamp else 0
+                delay_ms = (
+                    max(0, int((ts - prev_timestamp) * 1000)) if prev_timestamp else 0
+                )
                 prev_timestamp = ts
 
                 # Extract event fields

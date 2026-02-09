@@ -47,9 +47,7 @@ def _prepare_work_items(state: dict[str, Any]) -> list[list[dict]]:
     return batches
 
 
-def _create_reviewer_agent(
-    index: int, batch: list[dict], output_key: str
-) -> LlmAgent:
+def _create_reviewer_agent(index: int, batch: list[dict], output_key: str) -> LlmAgent:
     """Create a reviewer LlmAgent for one batch of findings."""
     return LlmAgent(
         name=f"CrossTableReviewerBatch_{index}",
@@ -67,9 +65,7 @@ def _create_reviewer_agent(
             )
         ),
         generate_content_config=types.GenerateContentConfig(
-            http_options=types.HttpOptions(
-                retry_options=get_default_retry_config()
-            )
+            http_options=types.HttpOptions(retry_options=get_default_retry_config())
         ),
     )
 

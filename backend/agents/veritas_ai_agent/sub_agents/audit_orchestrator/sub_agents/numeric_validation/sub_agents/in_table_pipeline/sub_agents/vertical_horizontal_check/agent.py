@@ -107,9 +107,7 @@ def _create_check_fan_out_agent(
                 )
             ),
             generate_content_config=types.GenerateContentConfig(
-                http_options=types.HttpOptions(
-                    retry_options=get_default_retry_config()
-                )
+                http_options=types.HttpOptions(retry_options=get_default_retry_config())
             ),
         )
 
