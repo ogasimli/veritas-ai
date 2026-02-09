@@ -114,7 +114,8 @@ async def after_aggregator_callback(callback_context: CallbackContext) -> None:
                     "verification_status": verification.get(
                         "verification_status", "CANNOT_VERIFY"
                     ),
-                    "evidence_summary": verification.get("evidence_summary", ""),
+                    "evidence_summary": verification.get("evidence_summary", "")
+                    or verification.get("verification_evidence", ""),
                     "source_urls": verification.get("source_urls", []),
                     "discrepancy": verification.get("discrepancy", ""),
                     "severity": "medium",  # Will be set below

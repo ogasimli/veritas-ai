@@ -496,9 +496,9 @@ def test_default_max_retries_is_3(client):
 
 
 def test_default_backoff_config(client):
-    """Default backoff is 15s initial with 2x multiplier."""
+    """Default backoff is 60s fixed to respect 1 RPM limit."""
     import inspect
 
     sig = inspect.signature(client.run_research)
-    assert sig.parameters["initial_backoff_seconds"].default == 15
-    assert sig.parameters["backoff_multiplier"].default == 2
+    assert sig.parameters["initial_backoff_seconds"].default == 60
+    assert sig.parameters["backoff_multiplier"].default == 1

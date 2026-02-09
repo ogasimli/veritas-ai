@@ -4,6 +4,11 @@ Concurrency is controlled by a process-wide ``asyncio.Semaphore`` whose limit
 is set via the ``DEEP_RESEARCH_MAX_CONCURRENCY`` environment variable
 (default: 1, matching Deep Research's 1 RPM limit). This allows callers to
 run in parallel while the semaphore serializes actual Deep Research operations.
+
+Rate-limit safety: ``run_research`` uses a 60 s minimum backoff between
+retries so that sequential attempts never exceed 1 RPM.  There is
+intentionally **no** tenacity retry on ``_create_interaction`` /
+``_get_interaction`` — rapid inner retries would defeat the RPM guard.
 """
 
 import asyncio
@@ -13,7 +18,6 @@ import time
 from typing import TypedDict
 
 from google import genai
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -60,18 +64,12 @@ class DeepResearchClient:
             # Fallback to Vertex AI (Default)
             self.client = genai.Client()
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-    )
     async def _create_interaction(self, **kwargs):
-        """Create interaction with retry logic."""
+        """Create a Deep Research interaction (no retry — handled by run_research)."""
         return await self.client.aio.interactions.create(**kwargs)
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-    )
     async def _get_interaction(self, interaction_id):
-        """Get interaction status with retry logic."""
+        """Get interaction status (no retry — handled by run_research)."""
         return await self.client.aio.interactions.get(interaction_id)
 
     async def _run_single_attempt(
@@ -188,22 +186,22 @@ class DeepResearchClient:
         query: str,
         timeout_minutes: int = 10,
         max_retries: int = 3,
-        initial_backoff_seconds: float = 15,
-        backoff_multiplier: float = 2,
+        initial_backoff_seconds: float = 60,
+        backoff_multiplier: float = 1,
         enable_thinking_summaries: bool = True,
     ) -> DeepResearchResult:
         """
         Execute Deep Research with retry and exponential backoff.
 
-        On timeout or failure, retries with exponentially increasing wait times
-        between attempts (15s, 30s, 60s by default).
+        On timeout or failure, retries with a fixed 60 s backoff between
+        attempts to respect the Deep Research 1 RPM rate limit.
 
         Args:
             query: Research question
             timeout_minutes: Max time per attempt (default 10min, API max is 60min)
             max_retries: Total number of attempts (default 3)
-            initial_backoff_seconds: Wait before first retry (default 15s)
-            backoff_multiplier: Multiplier applied each retry (default 2x)
+            initial_backoff_seconds: Wait before first retry (default 60s for 1 RPM)
+            backoff_multiplier: Multiplier applied each retry (default 1x = fixed)
             enable_thinking_summaries: Stream intermediate thoughts
 
         Returns:
