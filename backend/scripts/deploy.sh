@@ -62,21 +62,23 @@ fi
 echo "Creating database '$DB_NAME'..."
 gcloud sql databases create "$DB_NAME" --instance="$DB_INSTANCE_NAME" || true
 
-echo "Creating user '$DB_USER'..."
-# Only generate a new password if the user is being newly created.
-# If the user already exists, read the existing password from Secret Manager
-# to avoid breaking active connections with a password change.
-DB_PASSWORD=$(openssl rand -base64 24)
-if gcloud sql users create "$DB_USER" --instance="$DB_INSTANCE_NAME" --password="$DB_PASSWORD" 2>/dev/null; then
-    echo "User $DB_USER created with new password."
-    NEW_DB_USER=true
-else
+echo "Checking user '$DB_USER'..."
+# Check if the user exists BEFORE attempting to create it.
+# gcloud sql users create on PostgreSQL succeeds even when the user exists
+# (it resets the password), which silently invalidates other services'
+# Cloud Run revisions that resolved the DB secret at deploy time.
+if gcloud sql users list --instance="$DB_INSTANCE_NAME" --format='value(name)' | grep -qx "$DB_USER"; then
     echo "User $DB_USER already exists. Reading existing password from Secret Manager..."
     DB_PASSWORD=$(gcloud secrets versions access latest --secret="VERITAS_DB_PASSWORD" 2>/dev/null) || {
         echo "WARNING: Could not read existing password from Secret Manager."
         echo "The user exists but no stored password was found. You may need to reset it manually."
     }
     NEW_DB_USER=false
+else
+    DB_PASSWORD=$(openssl rand -base64 24)
+    gcloud sql users create "$DB_USER" --instance="$DB_INSTANCE_NAME" --password="$DB_PASSWORD"
+    echo "User $DB_USER created with new password."
+    NEW_DB_USER=true
 fi
 
 # ==============================================================================
