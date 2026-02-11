@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { AgentResult, AgentStatus } from '@/lib/types'
 import type { WebSocketMessage, ConnectionStatus } from '@/types/websocket'
 import { mapAgentId } from '@/utils/agent-mapping'
@@ -14,6 +15,7 @@ import { fetchAgentResults } from '@/lib/api'
 export function useAuditWebSocket(auditId: string | null) {
   const ws = useRef<WebSocket | null>(null)
   const reconnectAttempted = useRef(false)
+  const queryClient = useQueryClient()
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
 
   // Load initial audit data
@@ -95,6 +97,7 @@ export function useAuditWebSocket(auditId: string | null) {
 
         case 'audit_complete': {
           console.log('Audit processing complete')
+          queryClient.invalidateQueries({ queryKey: ['audits'] })
           if (auditId) {
             const allBackendAgentIds = [
               'numeric_validation',
@@ -128,7 +131,7 @@ export function useAuditWebSocket(auditId: string | null) {
     } catch (error) {
       console.error('Error parsing WebSocket message:', error)
     }
-  }, [auditId, loadAgentResults])
+  }, [auditId, loadAgentResults, queryClient])
 
   /**
    * Establishes WebSocket connection
