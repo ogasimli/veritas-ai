@@ -1,11 +1,6 @@
 import io
-import re
 
 from markitdown import MarkItDown, StreamInfo
-
-# Matches two pipe-delimited table rows separated by a blank line.
-# Collapses them into contiguous rows so markdown table parsers work.
-_TABLE_ROW_GAP = re.compile(r"(\|[^\n]*\|)\n\n(\|)")
 
 
 class ExtractorService:
@@ -25,10 +20,7 @@ class ExtractorService:
             io.BytesIO(doc_bytes),
             stream_info=self._DOCX_STREAM_INFO,
         )
-        # Some DOCX files store tables as plain-text pipe-delimited paragraphs
-        # rather than proper Word tables. This causes blank lines between rows
-        # which breaks downstream markdown table parsers. Collapse them.
-        return _TABLE_ROW_GAP.sub(r"\1\n\2", result.text_content)
+        return result.text_content
 
 
 def get_extractor_service() -> ExtractorService:
