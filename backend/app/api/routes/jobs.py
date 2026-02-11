@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -12,6 +13,15 @@ from app.models.finding import AgentResult
 from app.models.job import Job
 from app.schemas.finding import AgentResultRead
 from app.schemas.job import JobRead, JobUpdate
+
+
+def _writable_dir() -> Path:
+    """Return cwd if writable, otherwise /tmp (Cloud Run has read-only /app)."""
+    cwd = Path.cwd()
+    if os.access(cwd, os.W_OK):
+        return cwd
+    return Path("/tmp")
+
 
 router = APIRouter()
 
@@ -99,7 +109,7 @@ async def get_job_debug_log(job_id: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Job not found")
 
     # Look for debug file
-    debug_file = Path.cwd() / f"adk_debug_{job_id}.yaml"
+    debug_file = _writable_dir() / f"adk_debug_{job_id}.yaml"
     if not debug_file.exists():
         raise HTTPException(
             status_code=404,
@@ -133,7 +143,7 @@ async def get_job_trace_log(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    log_file = Path.cwd() / f"agent_trace_{job_id}.log"
+    log_file = _writable_dir() / f"agent_trace_{job_id}.log"
     if not log_file.exists():
         raise HTTPException(
             status_code=404,

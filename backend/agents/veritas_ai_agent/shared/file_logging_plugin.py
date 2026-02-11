@@ -8,6 +8,7 @@ concurrent jobs safe — each writes to its own ``agent_trace_{user_id}.log``.
 from __future__ import annotations
 
 import contextvars
+import os
 from io import TextIOWrapper
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -17,6 +18,15 @@ from google.genai import types
 
 if TYPE_CHECKING:
     from google.adk.agents.invocation_context import InvocationContext
+
+
+def _writable_dir() -> Path:
+    """Return cwd if writable, otherwise /tmp (Cloud Run has read-only /app)."""
+    cwd = Path.cwd()
+    if os.access(cwd, os.W_OK):
+        return cwd
+    return Path("/tmp")
+
 
 # Async-safe: each coroutine chain gets its own value.
 _current_user_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
@@ -51,7 +61,7 @@ class FileLoggingPlugin(LoggingPlugin):
         _current_user_id.set(user_id)
 
         if user_id and user_id not in self._files:
-            path = Path.cwd() / f"agent_trace_{user_id}.log"
+            path = _writable_dir() / f"agent_trace_{user_id}.log"
             self._files[user_id] = open(path, "w", encoding="utf-8")
 
         return await super().before_run_callback(invocation_context=invocation_context)

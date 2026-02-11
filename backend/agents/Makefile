@@ -32,9 +32,12 @@ playground:
 PROJECT_ID = $(shell gcloud config get-value project)
 REGION = us-central1
 # Get env vars from .env, commenting out and excluding the ones we set explicitly
-ENV_VARS = $(shell grep -vE '^(VERITAS_AGENT_MODE|NUMERIC_VALIDATION_AGENT_MODE)=' .env | grep -v '^\#' | xargs | sed 's/ /,/g')
+ENV_VARS = $(shell grep -vE '^(VERITAS_AGENT_MODE|VERITAS_DOCUMENT_VALIDATOR_ENABLED|NUMERIC_VALIDATION_AGENT_MODE)=' .env | grep -v '^\#' | xargs | sed 's/ /,/g')
 
 # Helper macro for deploying agents to Cloud Run
+# $(1) = service name
+# $(2) = VERITAS_AGENT_MODE  (orchestrator | NumericValidation | LogicConsistency | DisclosureCompliance | ExternalSignal)
+# $(3) = NUMERIC_VALIDATION_AGENT_MODE  (optional, default: all)
 define _deploy_agent_internal
 	@echo "📦 Generating requirements.txt for ADK deployment..."
 	uv pip compile pyproject.toml --output-file veritas_ai_agent/requirements.txt
@@ -46,7 +49,7 @@ define _deploy_agent_internal
 		"./veritas_ai_agent" \
 		-- --allow-unauthenticated \
 		--timeout=3600 \
-		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2),NUMERIC_VALIDATION_AGENT_MODE=$(if $(3),$(3),all)
+		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2),NUMERIC_VALIDATION_AGENT_MODE=$(if $(3),$(3),all),VERITAS_DOCUMENT_VALIDATOR_ENABLED=false
 endef
 
 # Deploy agents
@@ -69,20 +72,20 @@ ifndef variant
 	$(error variant is required for numeric agent. Usage: make deploy-agent agent=numeric variant=cross_table|in_table|all)
 endif
 ifeq ($(variant),cross_table)
-	$(call _deploy_agent_internal,veritas-numeric-validation-cross-table,numeric_validation,cross_table_pipeline)
+	$(call _deploy_agent_internal,veritas-numeric-validation-cross-table,NumericValidation,cross_table_pipeline)
 else ifeq ($(variant),in_table)
-	$(call _deploy_agent_internal,veritas-numeric-validation-table,numeric_validation,in_table_pipeline)
+	$(call _deploy_agent_internal,veritas-numeric-validation-table,NumericValidation,in_table_pipeline)
 else ifeq ($(variant),all)
-	$(call _deploy_agent_internal,veritas-numeric-validation,numeric_validation,all)
+	$(call _deploy_agent_internal,veritas-numeric-validation,NumericValidation,all)
 else
 	$(error Invalid variant for numeric agent. Use: cross_table, in_table, or all)
 endif
 else ifeq ($(agent),logic)
-	$(call _deploy_agent_internal,veritas-logic-consistency,logic_consistency)
+	$(call _deploy_agent_internal,veritas-logic-consistency,LogicConsistency)
 else ifeq ($(agent),disclosure)
-	$(call _deploy_agent_internal,veritas-disclosure-compliance,disclosure_compliance)
+	$(call _deploy_agent_internal,veritas-disclosure-compliance,DisclosureCompliance)
 else ifeq ($(agent),external)
-	$(call _deploy_agent_internal,veritas-external-signal,external_signal)
+	$(call _deploy_agent_internal,veritas-external-signal,ExternalSignal)
 else
 	$(error Invalid agent. Use: orchestrator, numeric, logic, disclosure, or external)
 endif

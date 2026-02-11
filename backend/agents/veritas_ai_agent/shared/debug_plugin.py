@@ -15,6 +15,7 @@ Use ``yaml.safe_load_all(path.read_text())`` to iterate over all documents.
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,6 +27,14 @@ if TYPE_CHECKING:
     from google.adk.agents.invocation_context import InvocationContext
 
 logger = logging.getLogger(__name__)
+
+
+def _writable_dir() -> Path:
+    """Return cwd if writable, otherwise /tmp (Cloud Run has read-only /app)."""
+    cwd = Path.cwd()
+    if os.access(cwd, os.W_OK):
+        return cwd
+    return Path("/tmp")
 
 
 class JobAwareDebugPlugin(DebugLoggingPlugin):
@@ -59,7 +68,7 @@ class JobAwareDebugPlugin(DebugLoggingPlugin):
         """Set the per-job output path and write the YAML invocation header."""
         user_id = invocation_context.user_id
         if user_id:
-            self._output_path = Path.cwd() / f"adk_debug_{user_id}.yaml"
+            self._output_path = _writable_dir() / f"adk_debug_{user_id}.yaml"
 
         # Let the parent initialise _invocation_states etc.
         # Note: parent calls _add_entry("invocation_start") here — our

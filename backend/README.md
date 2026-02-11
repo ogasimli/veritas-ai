@@ -325,7 +325,7 @@ These are automatically configured by `deploy_infra.sh`:
 | `GCS_BUCKET` | Env var | GCS bucket for document storage |
 | `DEBUG` | Env var | Set to `false` in production |
 | `GOOGLE_GENAI_USE_VERTEXAI` | Env var | Vertex AI routing toggle |
-| `VERITAS_AGENT_MODE` | Env var | Agent mode (orchestrator, numeric_validation, etc.) |
+| `VERITAS_AGENT_MODE` | Env var | Agent mode (orchestrator, NumericValidation, LogicConsistency, DisclosureCompliance, ExternalSignal) |
 | `NUMERIC_VALIDATION_AGENT_MODE` | Env var | Numeric pipeline mode (all, in_table_pipeline, cross_table_pipeline) |
 | `GEMINI_PRO_MODEL` | Env var | Gemini Pro model override (if set in .env) |
 | `GEMINI_FLASH_MODEL` | Env var | Gemini Flash model override (if set in .env) |

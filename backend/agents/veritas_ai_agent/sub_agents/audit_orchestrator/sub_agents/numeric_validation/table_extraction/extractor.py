@@ -12,7 +12,7 @@ import logging
 import pandas as pd
 from markdown_table_extractor import TableMergeStrategy, extract_markdown_tables
 
-from .number_parser import process_dataframe
+from .number_parser import detect_locale, process_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +52,6 @@ def extract_tables_from_markdown(markdown_content: str) -> list[dict]:
     # 2. Detect global locale once
     global_locale = "en_US"
     if all_samples:
-        from .number_parser import detect_locale
-
         global_locale = detect_locale(all_samples)
         logger.info("Detected document-wide locale: %s", global_locale)
 

@@ -9,6 +9,7 @@ Covers:
 """
 
 import json
+import os
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -451,6 +452,278 @@ class TestAgentSelectionPlugin:
         ctx = self._make_callback_context({"enabled_agents": ["NumericValidation"]})
         result = await plugin.before_agent_callback(agent=agent, callback_context=ctx)
         assert result is None
+
+
+class TestAgentSelectionPluginEnvVar:
+    """Tests for VERITAS_AGENT_MODE env var fallback (PascalCase agent names)."""
+
+    @staticmethod
+    def _make_agent(name: str):
+        agent = MagicMock()
+        agent.name = name
+        return agent
+
+    @staticmethod
+    def _make_callback_context(state: dict):
+        ctx = MagicMock()
+        ctx.state = state
+        return ctx
+
+    @pytest.mark.asyncio
+    async def test_env_var_enables_only_target_agent(self):
+        """VERITAS_AGENT_MODE=NumericValidation -> only NumericValidation runs."""
+        from google.genai import types
+
+        with patch.dict(
+            os.environ, {"VERITAS_AGENT_MODE": "NumericValidation"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        ctx = self._make_callback_context({})
+
+        # NumericValidation allowed
+        agent_num = self._make_agent("NumericValidation")
+        assert (
+            await plugin.before_agent_callback(agent=agent_num, callback_context=ctx)
+            is None
+        )
+
+        # LogicConsistency skipped
+        agent_logic = self._make_agent("LogicConsistency")
+        result = await plugin.before_agent_callback(
+            agent=agent_logic, callback_context=ctx
+        )
+        assert isinstance(result, types.Content)
+        assert "skipped" in result.parts[0].text.lower()
+
+    @pytest.mark.asyncio
+    async def test_env_var_each_standalone_mode(self):
+        """Each PascalCase agent name enables exactly that one agent."""
+        adk_names = [
+            "NumericValidation",
+            "LogicConsistency",
+            "DisclosureCompliance",
+            "ExternalSignal",
+        ]
+        for adk_name in adk_names:
+            with patch.dict(os.environ, {"VERITAS_AGENT_MODE": adk_name}, clear=False):
+                from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                    AgentSelectionPlugin,
+                )
+
+                plugin = AgentSelectionPlugin()
+
+            ctx = self._make_callback_context({})
+            agent_ok = self._make_agent(adk_name)
+            assert (
+                await plugin.before_agent_callback(agent=agent_ok, callback_context=ctx)
+                is None
+            ), f"VERITAS_AGENT_MODE={adk_name} should enable {adk_name}"
+
+    @pytest.mark.asyncio
+    async def test_env_var_orchestrator_enables_all(self):
+        """VERITAS_AGENT_MODE=orchestrator -> all agents run."""
+        with patch.dict(
+            os.environ, {"VERITAS_AGENT_MODE": "orchestrator"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        ctx = self._make_callback_context({})
+        for name in [
+            "NumericValidation",
+            "LogicConsistency",
+            "DisclosureCompliance",
+            "ExternalSignal",
+        ]:
+            agent = self._make_agent(name)
+            assert (
+                await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+                is None
+            ), f"{name} should run in orchestrator mode"
+
+    @pytest.mark.asyncio
+    async def test_session_state_overrides_env_var(self):
+        """Session state enabled_agents takes priority over VERITAS_AGENT_MODE."""
+        from google.genai import types
+
+        with patch.dict(
+            os.environ, {"VERITAS_AGENT_MODE": "NumericValidation"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        # Env var says numeric only, but session state says logic only
+        ctx = self._make_callback_context({"enabled_agents": ["LogicConsistency"]})
+
+        # LogicConsistency should be allowed (per session state)
+        agent_logic = self._make_agent("LogicConsistency")
+        assert (
+            await plugin.before_agent_callback(agent=agent_logic, callback_context=ctx)
+            is None
+        )
+
+        # NumericValidation should be skipped (session state overrides env var)
+        agent_num = self._make_agent("NumericValidation")
+        result = await plugin.before_agent_callback(
+            agent=agent_num, callback_context=ctx
+        )
+        assert isinstance(result, types.Content)
+
+    @pytest.mark.asyncio
+    async def test_env_var_unset_defaults_to_all(self):
+        """No VERITAS_AGENT_MODE env var -> all agents run."""
+        env = os.environ.copy()
+        env.pop("VERITAS_AGENT_MODE", None)
+        with patch.dict(os.environ, env, clear=True):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        ctx = self._make_callback_context({})
+        agent = self._make_agent("NumericValidation")
+        assert (
+            await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+            is None
+        )
+
+    @pytest.mark.asyncio
+    async def test_env_var_sub_agents_always_pass_through(self):
+        """Sub-agents pass through even with standalone env var mode."""
+        with patch.dict(
+            os.environ, {"VERITAS_AGENT_MODE": "NumericValidation"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        ctx = self._make_callback_context({})
+        agent = self._make_agent("TableNamer")
+        assert (
+            await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+            is None
+        )
+
+
+class TestDocumentValidatorEnvVar:
+    """Tests for VERITAS_DOCUMENT_VALIDATOR_ENABLED env var."""
+
+    @staticmethod
+    def _make_agent(name: str):
+        agent = MagicMock()
+        agent.name = name
+        return agent
+
+    @staticmethod
+    def _make_callback_context(state: dict):
+        ctx = MagicMock()
+        ctx.state = state
+        return ctx
+
+    @pytest.mark.asyncio
+    async def test_document_validator_enabled_by_default(self):
+        """DocumentValidator runs when env var is absent."""
+        env = os.environ.copy()
+        env.pop("VERITAS_DOCUMENT_VALIDATOR_ENABLED", None)
+        with patch.dict(os.environ, env, clear=True):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        agent = self._make_agent("DocumentValidator")
+        ctx = self._make_callback_context({})
+        assert (
+            await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+            is None
+        )
+
+    @pytest.mark.asyncio
+    async def test_document_validator_explicitly_enabled(self):
+        """VERITAS_DOCUMENT_VALIDATOR_ENABLED=true -> DocumentValidator runs."""
+        with patch.dict(
+            os.environ, {"VERITAS_DOCUMENT_VALIDATOR_ENABLED": "true"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        agent = self._make_agent("DocumentValidator")
+        ctx = self._make_callback_context({})
+        assert (
+            await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+            is None
+        )
+
+    @pytest.mark.asyncio
+    async def test_document_validator_disabled(self):
+        """VERITAS_DOCUMENT_VALIDATOR_ENABLED=false -> DocumentValidator skipped."""
+        from google.genai import types
+
+        with patch.dict(
+            os.environ, {"VERITAS_DOCUMENT_VALIDATOR_ENABLED": "false"}, clear=False
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        agent = self._make_agent("DocumentValidator")
+        ctx = self._make_callback_context({})
+        result = await plugin.before_agent_callback(agent=agent, callback_context=ctx)
+        assert isinstance(result, types.Content)
+        assert "skipped" in result.parts[0].text.lower()
+
+    @pytest.mark.asyncio
+    async def test_document_validator_independent_of_agent_mode(self):
+        """DocumentValidator toggle is independent of VERITAS_AGENT_MODE."""
+        from google.genai import types
+
+        # Standalone mode + document validator disabled
+        with patch.dict(
+            os.environ,
+            {
+                "VERITAS_AGENT_MODE": "NumericValidation",
+                "VERITAS_DOCUMENT_VALIDATOR_ENABLED": "false",
+            },
+            clear=False,
+        ):
+            from agents.veritas_ai_agent.shared.agent_selection_plugin import (
+                AgentSelectionPlugin,
+            )
+
+            plugin = AgentSelectionPlugin()
+
+        ctx = self._make_callback_context({})
+
+        # DocumentValidator should be skipped
+        dv = self._make_agent("DocumentValidator")
+        result = await plugin.before_agent_callback(agent=dv, callback_context=ctx)
+        assert isinstance(result, types.Content)
+
+        # NumericValidation should still run
+        nv = self._make_agent("NumericValidation")
+        assert (
+            await plugin.before_agent_callback(agent=nv, callback_context=ctx) is None
+        )
 
 
 # ---------------------------------------------------------------------------
