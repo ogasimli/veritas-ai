@@ -5,7 +5,6 @@ import os
 from google.adk.agents import SequentialAgent
 from google.adk.apps.app import App, ContextCacheConfig
 
-from .shared.coordination_plugin import create_coordination_plugin
 from .shared.debug_plugin import JobAwareDebugPlugin
 from .shared.document_markdown_plugin import DocumentMarkdownPlugin
 from .shared.file_logging_plugin import FileLoggingPlugin
@@ -46,7 +45,6 @@ app = App(
     root_agent=root_agent,
     plugins=[
         DocumentMarkdownPlugin(),
-        create_coordination_plugin(),
         JobAwareDebugPlugin(),
         FileLoggingPlugin(),
     ],
