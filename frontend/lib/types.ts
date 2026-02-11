@@ -30,10 +30,27 @@ export type Document = {
   created_at: string
 }
 
+export type AgentId = 'numeric_validation' | 'logic_consistency' | 'disclosure_compliance' | 'external_signal'
+
+export const ALL_AGENT_IDS: AgentId[] = [
+  'numeric_validation',
+  'logic_consistency',
+  'disclosure_compliance',
+  'external_signal',
+]
+
+export const AGENT_LABELS: Record<AgentId, string> = {
+  numeric_validation: 'Numeric Validation',
+  logic_consistency: 'Logic Consistency',
+  disclosure_compliance: 'Disclosure Compliance',
+  external_signal: 'External Signals',
+}
+
 export type Audit = {
   id: string
   name: string
   status: string
+  enabled_agents: AgentId[]
   created_at: string
   updated_at?: string
   documents: Document[]

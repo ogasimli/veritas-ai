@@ -1,16 +1,26 @@
+import json
 import os
 import tempfile
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db import async_session, get_db
 from app.models.document import Document
-from app.models.job import Job
-from app.schemas.job import JobRead
+from app.models.job import ALL_AGENT_IDS, Job
+from app.schemas.job import JobRead, UploadParams
 from app.services.extractor import ExtractorService
 from app.services.processor import DocumentProcessor
 from app.services.websocket_manager import manager
@@ -26,6 +36,7 @@ async def process_document_task(
     job_id: uuid.UUID,
     doc_id: uuid.UUID,
     temp_file_path: str,
+    enabled_agents: list[str] | None = None,
 ):
     """Background task to extract text from docx and run agent pipeline."""
     print(f"\n{'=' * 80}")
@@ -96,7 +107,11 @@ async def process_document_task(
             print("🤖 Step 4: INVOKING AGENT PIPELINE")
             print(f"{'=' * 80}\n")
             processor = DocumentProcessor(db)
-            await processor.process_document(job_id=job_id, extracted_text=markdown)
+            await processor.process_document(
+                job_id=job_id,
+                extracted_text=markdown,
+                enabled_agents=enabled_agents,
+            )
             print("\n✅ Agent pipeline completed successfully")
 
         except Exception as e:
@@ -128,10 +143,28 @@ async def process_document_task(
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    enabled_agents: str = Form(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename.endswith(".docx"):
         raise HTTPException(status_code=400, detail="Only .docx files are supported")
+
+    # Parse enabled_agents from form field (JSON array string)
+    if enabled_agents:
+        try:
+            agents_list = json.loads(enabled_agents)
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=400, detail="Invalid enabled_agents format"
+            ) from e
+    else:
+        agents_list = list(ALL_AGENT_IDS)
+
+    # Validate
+    try:
+        params = UploadParams(enabled_agents=agents_list)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     # 1. Generate default name
     # Count existing jobs to determine the number
@@ -144,7 +177,9 @@ async def upload_document(
     default_name = f"Report #{count + 1}"
 
     # 2. Create a new Job
-    job = Job(status="processing", name=default_name)
+    job = Job(
+        status="processing", name=default_name, enabled_agents=params.enabled_agents
+    )
     db.add(job)
     await db.flush()  # Get the job ID
 
@@ -184,7 +219,11 @@ async def upload_document(
 
     # 6. Trigger background processing
     background_tasks.add_task(
-        process_document_task, job_id=job.id, doc_id=doc.id, temp_file_path=tmp.name
+        process_document_task,
+        job_id=job.id,
+        doc_id=doc.id,
+        temp_file_path=tmp.name,
+        enabled_agents=params.enabled_agents,
     )
 
     # 7. Fetch job with documents loaded for the response

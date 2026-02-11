@@ -68,17 +68,31 @@ export function useInitialAuditData(auditId: string | null): UseInitialAuditData
                     }
                 })
 
-                // 2. If the whole audit is "completed", remaining idle agents are also "complete" (no findings)
+                // 2. Determine enabled agents for this audit
+                const enabledAgentKeys = new Set(
+                    (audit?.enabled_agents ?? ['numeric_validation', 'logic_consistency', 'disclosure_compliance', 'external_signal'])
+                        .map((id: string) => {
+                            const mapping: Record<string, string> = {
+                                numeric_validation: 'numeric',
+                                logic_consistency: 'logic',
+                                disclosure_compliance: 'disclosure',
+                                external_signal: 'external',
+                            }
+                            return mapping[id] || id
+                        })
+                )
+
+                // If the whole audit is "completed", remaining idle (enabled) agents are "complete"
                 if (audit?.status === 'completed') {
                     Object.keys(newStatuses).forEach(key => {
-                        if (newStatuses[key as string] === 'idle') {
+                        if (newStatuses[key as string] === 'idle' && enabledAgentKeys.has(key)) {
                             newStatuses[key as string] = 'complete'
                         }
                     })
                 } else if (audit?.status === 'processing') {
-                    // If still processing, non-completed agents should be "processing"
+                    // If still processing, non-completed enabled agents should be "processing"
                     Object.keys(newStatuses).forEach(key => {
-                        if (newStatuses[key as string] === 'idle') {
+                        if (newStatuses[key as string] === 'idle' && enabledAgentKeys.has(key)) {
                             newStatuses[key as string] = 'processing'
                         }
                     })

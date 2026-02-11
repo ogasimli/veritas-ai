@@ -146,9 +146,10 @@ interface AgentCardProps {
   agent: keyof typeof AGENT_CONFIG
   status: AgentStatus['status']
   results: AgentResult[]
+  skipped?: boolean
 }
 
-export function AgentCard({ agent, status, results }: AgentCardProps) {
+export function AgentCard({ agent, status, results, skipped = false }: AgentCardProps) {
   const config = AGENT_CONFIG[agent]
   const colors = COLOR_CLASSES[config.color]
 
@@ -173,6 +174,31 @@ export function AgentCard({ agent, status, results }: AgentCardProps) {
   // Find error result if any
   const errorResult = results.find(r => r.error)
   const findings = results.filter(r => !r.error && (r.title || r.description))
+
+  if (skipped) {
+    return (
+      <div
+        className="flex max-h-[600px] flex-col rounded-lg border border-slate-200 bg-slate-100 opacity-60 overflow-hidden dark:border-slate-700 dark:bg-slate-800/50"
+      >
+        {/* Header */}
+        <div className="shrink-0 border-b border-slate-200 p-4 dark:border-slate-700">
+          <div className="flex items-center gap-2">
+            <span className="material-icons text-slate-400 dark:text-slate-500">{config.icon}</span>
+            <h3 className="font-semibold text-slate-400 dark:text-slate-500">{config.label}</h3>
+            <span className="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+              Skipped
+            </span>
+          </div>
+        </div>
+        {/* Content */}
+        <div className="flex items-center justify-center p-6">
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            This agent was not selected for this audit
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

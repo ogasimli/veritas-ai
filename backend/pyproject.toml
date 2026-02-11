@@ -60,7 +60,7 @@ ignore = ["E501", "C901", "B006", "B008", "E402"]
 
 [tool.codespell]
 ignore-words-list = "rouge"
-skip = "./.venv,./venv,./agents_backup,./alembic,./frontend,**/*.ipynb,**/ifrs_disclosure_checklist.yaml,./app/services/dummy_agent/fixtures"
+skip = "./.venv,./venv,./agents_backup,./alembic,./frontend,**/*.ipynb,**/ifrs_disclosure_checklist.yaml,./app/services/dummy_agent/fixtures,./adk_debug_*.yaml,./agent_trace_*.log"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

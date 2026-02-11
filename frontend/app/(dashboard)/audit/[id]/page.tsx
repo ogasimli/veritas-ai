@@ -8,7 +8,8 @@ import { ExportButton } from '@/components/audit/export-button'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { useAuditWebSocket } from '@/hooks/use-audit-websocket'
 import { fetchAudit, deleteAudit } from '@/lib/api'
-import { type Audit } from '@/lib/types'
+import { type Audit, ALL_AGENT_IDS } from '@/lib/types'
+import { mapAgentId } from '@/utils/agent-mapping'
 import { Trash2 } from 'lucide-react'
 
 export default function AuditDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -157,26 +158,21 @@ export default function AuditDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
-                            <AgentCard
-                                agent="numeric"
-                                status={agentStatuses.numeric}
-                                results={results.filter((r) => r.agent === 'numeric')}
-                            />
-                            <AgentCard
-                                agent="logic"
-                                status={agentStatuses.logic}
-                                results={results.filter((r) => r.agent === 'logic')}
-                            />
-                            <AgentCard
-                                agent="disclosure"
-                                status={agentStatuses.disclosure}
-                                results={results.filter((r) => r.agent === 'disclosure')}
-                            />
-                            <AgentCard
-                                agent="external"
-                                status={agentStatuses.external}
-                                results={results.filter((r) => r.agent === 'external')}
-                            />
+                            {(['numeric', 'logic', 'disclosure', 'external'] as const).map((agentKey) => {
+                                const enabledSet = new Set(
+                                    (audit.enabled_agents ?? ALL_AGENT_IDS).map(id => mapAgentId(id))
+                                )
+                                const isSkipped = !enabledSet.has(agentKey)
+                                return (
+                                    <AgentCard
+                                        key={agentKey}
+                                        agent={agentKey}
+                                        status={agentStatuses[agentKey]}
+                                        results={results.filter((r) => r.agent === agentKey)}
+                                        skipped={isSkipped}
+                                    />
+                                )
+                            })}
                         </div>
                     </div>
                 </div>

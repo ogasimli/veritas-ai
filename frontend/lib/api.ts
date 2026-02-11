@@ -37,13 +37,17 @@ export async function updateAudit(id: string, updates: Partial<Audit>): Promise<
 /**
  * Upload a document file to the backend for processing
  * @param file The .docx file to upload
+ * @param enabledAgents Optional list of agent IDs to run (defaults to all)
  * @returns The job ID (UUID as string) for tracking processing status
  */
-export async function uploadFile(file: File): Promise<string> {
+export async function uploadFile(file: File, enabledAgents?: string[]): Promise<string> {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   const formData = new FormData()
   formData.append('file', file)
+  if (enabledAgents) {
+    formData.append('enabled_agents', JSON.stringify(enabledAgents))
+  }
 
   try {
     const response = await fetch(`${API_URL}/api/v1/documents/upload`, {

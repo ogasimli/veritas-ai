@@ -5,6 +5,21 @@ import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { FileUploadZone } from '@/components/audit/file-upload-zone'
 import { uploadFile } from '@/lib/api'
+import { ALL_AGENT_IDS, AGENT_LABELS, type AgentId } from '@/lib/types'
+
+const AGENT_ICONS: Record<AgentId, string> = {
+  numeric_validation: 'calculate',
+  logic_consistency: 'account_tree',
+  disclosure_compliance: 'policy',
+  external_signal: 'public',
+}
+
+const AGENT_DESCRIPTIONS: Record<AgentId, string> = {
+  numeric_validation: 'Verify arithmetic, totals, and cross-references',
+  logic_consistency: 'Detect contradictions and reasoning gaps',
+  disclosure_compliance: 'Check regulatory disclosure requirements',
+  external_signal: 'Cross-reference claims with external data',
+}
 
 export default function NewAuditPage() {
   const router = useRouter()
@@ -13,6 +28,21 @@ export default function NewAuditPage() {
   const [priorYearFile, setPriorYearFile] = useState<File | null>(null)
   const [memosFile, setMemosFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [enabledAgents, setEnabledAgents] = useState<Set<AgentId>>(new Set(ALL_AGENT_IDS))
+
+  const toggleAgent = (agentId: AgentId) => {
+    setEnabledAgents(prev => {
+      const next = new Set(prev)
+      if (next.has(agentId)) {
+        // Don't allow deselecting the last agent
+        if (next.size <= 1) return prev
+        next.delete(agentId)
+      } else {
+        next.add(agentId)
+      }
+      return next
+    })
+  }
 
   const handleStartReview = async () => {
     if (!currentYearFile) {
@@ -24,11 +54,12 @@ export default function NewAuditPage() {
 
     try {
       // Upload file to backend - this creates the job and starts processing automatically
-      const jobId = await uploadFile(currentYearFile)
+      const jobId = await uploadFile(currentYearFile, Array.from(enabledAgents))
 
       console.log('File uploaded, job created:', {
         jobId,
         fileName: currentYearFile.name,
+        enabledAgents: Array.from(enabledAgents),
       })
 
       // Invalidate audits query to refresh the sidebar with the new audit
@@ -135,6 +166,64 @@ export default function NewAuditPage() {
               </div>
             </div>
           </div>
+
+          {/* Agent Selection — shown after file is selected */}
+          {currentYearFile && <div className="mt-8">
+            <h2 className="mb-1 text-lg font-semibold text-slate-900 dark:text-white">
+              Validation Agents
+            </h2>
+            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+              Select which agents to run. At least one must be enabled.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {ALL_AGENT_IDS.map((agentId) => {
+                const isEnabled = enabledAgents.has(agentId)
+                const isLastEnabled = isEnabled && enabledAgents.size === 1
+                return (
+                  <button
+                    key={agentId}
+                    type="button"
+                    onClick={() => toggleAgent(agentId)}
+                    disabled={isLastEnabled}
+                    className={`relative flex flex-col gap-2 rounded-lg border-2 p-4 text-left transition-all duration-200
+                      ${isEnabled
+                        ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+                        : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600'
+                      }
+                      ${isLastEnabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    {/* Checkbox — absolute top-right */}
+                    <div className={`absolute right-3 top-3 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors
+                      ${isEnabled
+                        ? 'border-blue-500 bg-blue-500 dark:border-blue-400 dark:bg-blue-400'
+                        : 'border-slate-300 dark:border-slate-600'
+                      }
+                    `}>
+                      {isEnabled && (
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      )}
+                    </div>
+                    {/* Icon + Title */}
+                    <div className="flex items-center gap-2">
+                      <span className={`material-icons text-lg ${isEnabled ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
+                        {AGENT_ICONS[agentId]}
+                      </span>
+                      <span className={`text-sm font-medium ${isEnabled ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {AGENT_LABELS[agentId]}
+                      </span>
+                    </div>
+                    {/* Description */}
+                    <p className={`text-xs leading-relaxed ${isEnabled ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                      {AGENT_DESCRIPTIONS[agentId]}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>}
 
           {/* Start Review Button */}
           {hasAnyFile && (

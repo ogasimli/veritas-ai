@@ -5,6 +5,7 @@ import os
 from google.adk.agents import SequentialAgent
 from google.adk.apps.app import App, ContextCacheConfig
 
+from .shared.agent_selection_plugin import AgentSelectionPlugin
 from .shared.debug_plugin import JobAwareDebugPlugin
 from .shared.document_markdown_plugin import DocumentMarkdownPlugin
 from .shared.file_logging_plugin import FileLoggingPlugin
@@ -44,6 +45,7 @@ app = App(
     name="veritas_ai_agent",
     root_agent=root_agent,
     plugins=[
+        AgentSelectionPlugin(),
         DocumentMarkdownPlugin(),
         JobAwareDebugPlugin(),
         FileLoggingPlugin(),

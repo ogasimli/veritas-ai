@@ -12,7 +12,7 @@ from veritas_ai_agent import app
 
 from app.config import get_settings
 from app.models.finding import AgentResult as AgentResultModel
-from app.models.job import Job
+from app.models.job import ALL_AGENT_IDS, AgentId, Job
 from app.schemas.finding import NormalizedFinding
 from app.services.adapters import ADAPTER_REGISTRY, AgentAdapter
 from app.services.dummy_agent.dummy_agent_service import DummyAgentService
@@ -122,9 +122,15 @@ class DocumentProcessor:
         specific_agent: str | None = None,
         is_final: bool = False,
         agents_with_state_output: set | None = None,
+        enabled_agents: list[str] | None = None,
     ):
         """Check agent states and send WebSocket notifications."""
-        for adapter in ADAPTER_REGISTRY.values():
+        adapters = (
+            [ADAPTER_REGISTRY[aid] for aid in enabled_agents if aid in ADAPTER_REGISTRY]
+            if enabled_agents
+            else ADAPTER_REGISTRY.values()
+        )
+        for adapter in adapters:
             agent_id = adapter.agent_id
             if agent_id in agents_started and agent_id not in agents_completed:
                 ns = self._get_agent_namespace(state, agent_id)
@@ -162,12 +168,19 @@ class DocumentProcessor:
                     )
 
     def _extract_all_findings(
-        self, state: dict[str, Any]
+        self,
+        state: dict[str, Any],
+        enabled_agents: list[str] | None = None,
     ) -> dict[str, list[NormalizedFinding]]:
-        """Extract findings for all agents from final state."""
+        """Extract findings for all enabled agents from final state."""
         findings_by_agent: dict[str, list[NormalizedFinding]] = {}
 
-        for adapter in ADAPTER_REGISTRY.values():
+        adapters = (
+            [ADAPTER_REGISTRY[aid] for aid in enabled_agents if aid in ADAPTER_REGISTRY]
+            if enabled_agents
+            else ADAPTER_REGISTRY.values()
+        )
+        for adapter in adapters:
             ns = self._get_agent_namespace(state, adapter.agent_id)
             findings = adapter.extract_findings(ns)
             if findings and isinstance(findings, list):
@@ -243,12 +256,21 @@ class DocumentProcessor:
             print(f"   💾 Saved {saved_count} new result rows", flush=True)
         print("✅ All agents verified in database", flush=True)
 
-    async def process_document(self, job_id: UUID, extracted_text: str) -> None:
+    async def process_document(
+        self,
+        job_id: UUID,
+        extracted_text: str,
+        enabled_agents: list[str] | None = None,
+    ) -> None:
         """Run orchestrator with validation agents and save findings."""
+        if enabled_agents is None:
+            enabled_agents = list(ALL_AGENT_IDS)
+
         print(f"\n{'-' * 80}", flush=True)
         print("📊 PROCESSOR: Starting document processing", flush=True)
         print(f"   Job ID: {job_id}", flush=True)
         print(f"   Text Length: {len(extracted_text)} characters", flush=True)
+        print(f"   Enabled Agents: {enabled_agents}", flush=True)
         print(f"{'-' * 80}\n", flush=True)
 
         # Update job status to processing
@@ -281,7 +303,7 @@ class DocumentProcessor:
                 print(f"{'🎭' * 40}\n", flush=True)
 
                 print("\n🚀 Initializing dummy agent service...", flush=True)
-                runner = DummyAgentService(app=app)
+                runner = DummyAgentService(app=app, enabled_agents=enabled_agents)
                 print("✅ Dummy runner initialized successfully", flush=True)
 
             else:
@@ -302,8 +324,13 @@ class DocumentProcessor:
 
             # Unified runner interface for both dummy and real agents
             print(f"📦 Creating session for job {job_id}...", flush=True)
+            # Pass enabled_agents via create_session state param so it's
+            # persisted in the session store (the returned session is a
+            # deep copy, so post-creation mutations don't propagate).
             session = await runner.session_service.create_session(
-                app_name=runner.app_name, user_id=str(job_id)
+                app_name=runner.app_name,
+                user_id=str(job_id),
+                state={"enabled_agents": [AgentId(a).adk_name for a in enabled_agents]},
             )
             print(f"✅ Session created: {session.id}", flush=True)
 
@@ -318,7 +345,7 @@ class DocumentProcessor:
             print(f"{'=' * 80}\n", flush=True)
 
             event_count = 0
-            adapter_agent_ids = set(ADAPTER_REGISTRY.keys())
+            adapter_agent_ids = set(enabled_agents)
 
             async for event in runner.run_async(
                 user_id=session.user_id,
@@ -387,6 +414,7 @@ class DocumentProcessor:
                     specific_agent=specific_agent,
                     is_final=is_final,
                     agents_with_state_output=agents_with_state_output,
+                    enabled_agents=enabled_agents,
                 )
 
             print(f"\n{'=' * 80}", flush=True)
@@ -427,7 +455,7 @@ class DocumentProcessor:
 
             # Extract and save findings
             print("\n📦 Extracting findings from session state...", flush=True)
-            findings_by_agent = self._extract_all_findings(final_state)
+            findings_by_agent = self._extract_all_findings(final_state, enabled_agents)
             await self._save_findings_to_database(job_id, findings_by_agent)
 
             # Update job status to completed

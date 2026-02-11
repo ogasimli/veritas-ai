@@ -17,21 +17,13 @@ from uuid import uuid4
 
 import yaml  # type: ignore[import-untyped]
 
+from app.models.job import AgentId
+
 # Branch prefix → processor agent_id mapping
-_BRANCH_PREFIX_TO_AGENT = {
-    "AuditOrchestrator.NumericValidation": "numeric_validation",
-    "AuditOrchestrator.LogicConsistency": "logic_consistency",
-    "AuditOrchestrator.DisclosureCompliance": "disclosure_compliance",
-    "AuditOrchestrator.ExternalSignal": "external_signal",
-}
+_BRANCH_PREFIX_TO_AGENT = {f"AuditOrchestrator.{a.adk_name}": a.value for a in AgentId}
 
 # Validator filenames → expected processor agent_ids
-_VALID_FIXTURES = {
-    "numeric_validation",
-    "logic_consistency",
-    "disclosure_compliance",
-    "external_signal",
-}
+_VALID_FIXTURES = set(AgentId)
 
 
 class MockActions:
@@ -101,12 +93,13 @@ class MockSessionService:
 class DummyAgentService:
     """Simulates agent responses with InMemoryRunner-compatible interface."""
 
-    def __init__(self, app: Any = None):
+    def __init__(self, app: Any = None, enabled_agents: list[str] | None = None):
         self.app = app
         self.app_name = "dummy_veritas_ai"
         self._session_service = MockSessionService(self)
         self._accumulated_state: dict[str, Any] = {}
         self._final_state: dict[str, Any] = {}
+        self._enabled_agents = set(enabled_agents) if enabled_agents else None
 
         # Load event sequence
         self.events_data = self._load_events()
@@ -172,6 +165,14 @@ class DummyAgentService:
             if validator_name not in _VALID_FIXTURES:
                 print(
                     f"   ⚠️  Skipping unknown fixture: {yaml_path.name}",
+                    flush=True,
+                )
+                continue
+
+            # Skip disabled agents
+            if self._enabled_agents and validator_name not in self._enabled_agents:
+                print(
+                    f"   ⏭️  Skipping disabled agent: {validator_name}",
                     flush=True,
                 )
                 continue
