@@ -83,7 +83,7 @@ export default function NewAuditPage() {
   return (
     <div className="flex h-full flex-col bg-slate-50 dark:bg-slate-950">
       {/* Header */}
-      <div className="border-b border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+      <div className="border-b border-slate-200 bg-white px-6 py-[18px] dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">
