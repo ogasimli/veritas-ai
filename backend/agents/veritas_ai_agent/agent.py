@@ -4,10 +4,11 @@ import os
 
 from google.adk.agents import SequentialAgent
 from google.adk.apps.app import App, ContextCacheConfig
-from google.adk.plugins import DebugLoggingPlugin, LoggingPlugin
 
 from .shared.coordination_plugin import create_coordination_plugin
-from .shared.document_markdown_plugin import create_document_markdown_plugin
+from .shared.debug_plugin import JobAwareDebugPlugin
+from .shared.document_markdown_plugin import DocumentMarkdownPlugin
+from .shared.file_logging_plugin import FileLoggingPlugin
 from .sub_agents import (
     audit_orchestrator,
     disclosure_compliance_agent,
@@ -44,10 +45,10 @@ app = App(
     name="veritas_ai_agent",
     root_agent=root_agent,
     plugins=[
-        create_document_markdown_plugin(),
+        DocumentMarkdownPlugin(),
         create_coordination_plugin(),
-        DebugLoggingPlugin(),
-        LoggingPlugin(),
+        JobAwareDebugPlugin(),
+        FileLoggingPlugin(),
     ],
     context_cache_config=ContextCacheConfig(
         min_tokens=2048,

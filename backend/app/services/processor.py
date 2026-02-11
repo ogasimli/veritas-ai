@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -396,13 +395,6 @@ class DocumentProcessor:
             print(f"   Agents started: {agents_started}", flush=True)
             print(f"   Agents completed: {agents_completed}", flush=True)
             print(f"{'=' * 80}\n", flush=True)
-
-            # Rename debug file so the /agent-trace endpoint can find it by job_id
-            default_debug_file = Path.cwd() / "adk_debug.yaml"
-            if default_debug_file.exists():
-                target_debug_file = Path.cwd() / f"adk_debug_{job_id}.yaml"
-                default_debug_file.rename(target_debug_file)
-                print(f"📝 Renamed debug file to {target_debug_file.name}", flush=True)
 
             # Fetch final session state
             print("📦 Fetching final session state from runner...", flush=True)

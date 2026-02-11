@@ -2,7 +2,7 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -87,8 +87,8 @@ async def get_agent_results(
     return results
 
 
-@router.get("/{job_id}/agent-trace")
-async def get_job_agent_trace(job_id: UUID, db: AsyncSession = Depends(get_db)):
+@router.get("/{job_id}/agent-traces/adk-debug-yaml")
+async def get_job_adk_debug_yaml(job_id: UUID, db: AsyncSession = Depends(get_db)):
     """Download the agent execution trace (ADK debug YAML) for a specific job."""
     # First verify job exists
     stmt_job = select(Job).where(Job.id == job_id)
@@ -110,6 +110,53 @@ async def get_job_agent_trace(job_id: UUID, db: AsyncSession = Depends(get_db)):
         path=str(debug_file),
         filename=f"adk_debug_{job_id}.yaml",
         media_type="application/x-yaml",
+    )
+
+
+@router.get("/{job_id}/agent-traces/real-time-trace")
+async def get_job_real_time_trace(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    offset: int = 0,
+):
+    """Get the real-time logging plugin trace for a job.
+
+    Returns log lines produced by the ADK LoggingPlugin during agent execution.
+    The log file is written to continuously while the job is processing, so
+    clients can poll this endpoint to follow progress in real time.
+
+    Query params:
+        offset: Byte offset to start reading from (default 0). The response
+                includes an X-Log-Offset header with the end offset so the
+                next request can pick up where it left off.
+    """
+    stmt_job = select(Job).where(Job.id == job_id)
+    result_job = await db.execute(stmt_job)
+    job = result_job.scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    log_file = Path.cwd() / f"agent_trace_{job_id}.log"
+    if not log_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Trace log not found for job {job_id}. The job may not have started yet.",
+        )
+
+    content = log_file.read_text(encoding="utf-8")
+    content_bytes = content.encode("utf-8")
+
+    # Slice from the requested byte offset
+    chunk = content_bytes[offset:]
+    new_offset = offset + len(chunk)
+
+    return PlainTextResponse(
+        content=chunk.decode("utf-8"),
+        headers={
+            "X-Log-Offset": str(new_offset),
+            "X-Job-Status": job.status,
+        },
     )
 
 
