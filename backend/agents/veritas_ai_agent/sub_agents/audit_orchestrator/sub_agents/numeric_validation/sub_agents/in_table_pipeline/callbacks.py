@@ -50,6 +50,28 @@ _DYNAMIC_DIRECTION_KEYS: list[str] = [
 ]
 
 
+def _dedup_formulas(
+    formulas: list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula],
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
+    """Remove duplicate formulas by (table_index, row_index, col_index, formula_string).
+
+    Duplicate entries arise when vertical check and logic reconciliation both
+    produce the same formula for the same target cell.
+    """
+    seen: set[tuple[int, int, int, str]] = set()
+    result: list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula] = []
+    for item in formulas:
+        target = item.target_cell
+        f_str = (
+            item.formulas[0] if isinstance(item, LogicInferredFormula) else item.formula
+        )
+        key = (target.table_index, target.row_index, target.col_index, f_str)
+        if key not in seen:
+            seen.add(key)
+            result.append(item)
+    return result
+
+
 def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
     """Collect sub-agent outputs, replicate formulas, populate actual_value."""
     state = callback_context.state
@@ -139,7 +161,8 @@ def after_in_table_parallel_callback(callback_context: CallbackContext) -> None:
                         )
                     )
 
-    replicated = all_replicated
+    replicated = _dedup_formulas(all_replicated)
+
     # 3. Look up actual values and write to shared state
     state.setdefault("reconstructed_formulas", [])
 

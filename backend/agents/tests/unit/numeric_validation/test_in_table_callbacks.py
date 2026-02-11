@@ -7,6 +7,7 @@ Tests cover:
 - State management
 """
 
+from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks import (
@@ -518,3 +519,132 @@ class TestDynamicReplication:
             assert mock_logger.warning.called
             args = mock_logger.warning.call_args
             assert "Skipping formula with mixed/unknown dimension" in args[0][0]
+
+
+class TestDedup:
+    """Test that duplicate formulas from vertical check + logic reconciliation
+    are deduplicated in the final reconstructed_formulas output."""
+
+    GRID: ClassVar[list[list]] = [
+        ["Item", "C1", "C2"],
+        ["R1", 10, 20],
+        ["R2", 30, 40],
+        ["Total", 40, 60],
+    ]
+
+    def _make_state(self, *, vertical=None, logic=None):
+        state = {
+            "extracted_tables": {"tables": [{"table_index": 0, "grid": self.GRID}]},
+        }
+        if vertical is not None:
+            state["vertical_check_output"] = vertical
+        if logic is not None:
+            state["logic_reconciliation_formula_inferer_output"] = logic
+        return state
+
+    def test_duplicate_across_vertical_and_logic(self):
+        """Same (cell, formula) from vertical_check and logic_reconciliation
+        should produce only one entry in reconstructed_formulas."""
+        formula = "sum_col(0, 1, 1, 2)"
+        target = {"table_index": 0, "row_index": 3, "col_index": 1}
+
+        ctx = MagicMock()
+        ctx.state = self._make_state(
+            vertical={"formulas": [{"target_cell": target, "formula": formula}]},
+            logic={"formulas": [{"target_cell": target, "formula": formula}]},
+        )
+
+        with patch(
+            "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction",
+            return_value="vertical",
+        ):
+            after_in_table_parallel_callback(ctx)
+
+        results = ctx.state["reconstructed_formulas"]
+        # Vertical replication produces entries for col 1 and col 2.
+        # Without dedup we'd get 2x that. Verify each cell appears once.
+        keys = [
+            (
+                r["target_cells"][0]["table_index"],
+                r["target_cells"][0]["row_index"],
+                r["target_cells"][0]["col_index"],
+                r["inferred_formulas"][0]["formula"],
+            )
+            for r in results
+        ]
+        assert len(keys) == len(set(keys))
+
+    def test_different_formulas_same_cell_kept(self):
+        """Two different formulas targeting the same cell should both survive."""
+        target = {"table_index": 0, "row_index": 3, "col_index": 1}
+
+        ctx = MagicMock()
+        ctx.state = self._make_state(
+            vertical={
+                "formulas": [
+                    {"target_cell": target, "formula": "sum_col(0, 1, 1, 2)"},
+                    {"target_cell": target, "formula": "sum_col(0, 1, 0, 2)"},
+                ]
+            },
+        )
+
+        after_in_table_parallel_callback(ctx)
+
+        col1_entries = [
+            r
+            for r in ctx.state["reconstructed_formulas"]
+            if r["target_cells"][0]["col_index"] == 1
+        ]
+        formulas = {r["inferred_formulas"][0]["formula"] for r in col1_entries}
+        assert "sum_col(0, 1, 1, 2)" in formulas
+        assert "sum_col(0, 1, 0, 2)" in formulas
+
+    def test_duplicate_within_single_source(self):
+        """Identical entries within vertical_check_output itself get deduped."""
+        target = {"table_index": 0, "row_index": 3, "col_index": 1}
+        formula = "sum_col(0, 1, 1, 2)"
+        entry = {"target_cell": target, "formula": formula}
+
+        ctx = MagicMock()
+        ctx.state = self._make_state(
+            vertical={"formulas": [entry, entry, entry]},
+        )
+
+        after_in_table_parallel_callback(ctx)
+
+        keys = [
+            (
+                r["target_cells"][0]["row_index"],
+                r["target_cells"][0]["col_index"],
+                r["inferred_formulas"][0]["formula"],
+            )
+            for r in ctx.state["reconstructed_formulas"]
+        ]
+        assert len(keys) == len(set(keys))
+
+    def test_logic_duplicates_deduped(self):
+        """Duplicate logic reconciliation formulas (multi-candidate) get deduped."""
+        target = {"table_index": 0, "row_index": 3, "col_index": 1}
+        formula_str = "sum_cells((0,1,1),(0,2,1))"
+        entry = {"target_cell": target, "formulas": [formula_str]}
+
+        ctx = MagicMock()
+        ctx.state = self._make_state(
+            logic={"formulas": [entry, entry]},
+        )
+
+        with patch(
+            "veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.callbacks.detect_replication_direction",
+            return_value="vertical",
+        ):
+            after_in_table_parallel_callback(ctx)
+
+        keys = [
+            (
+                r["target_cells"][0]["row_index"],
+                r["target_cells"][0]["col_index"],
+                r["inferred_formulas"][0]["formula"],
+            )
+            for r in ctx.state["reconstructed_formulas"]
+        ]
+        assert len(keys) == len(set(keys))
