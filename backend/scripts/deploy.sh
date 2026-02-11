@@ -209,6 +209,8 @@ gcloud run deploy "$SERVICE_NAME" \
     --add-cloudsql-instances="$INSTANCE_CONNECTION_NAME" \
     --set-secrets="DATABASE_URL=VERITAS_DB_URL:latest,GEMINI_API_KEY=VERITAS_GEMINI_API_KEY:latest" \
     --set-env-vars="$ENV_VARS" \
+    --memory 1Gi \
+    --min-instances 1 \
     --max-instances 5
 
 echo ""
