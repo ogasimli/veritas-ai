@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import yaml
-from veritas_ai_agent.shared.debug_plugin import JobAwareDebugPlugin
+from veritas_ai_agent.shared.debug_logging_plugin import JobAwareDebugPlugin
 from veritas_ai_agent.shared.file_logging_plugin import FileLoggingPlugin
 
 
