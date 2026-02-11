@@ -5,6 +5,7 @@ set -e
 REGION="us-central1"
 PROJECT_ID=$(gcloud config get-value project)
 SUFFIX="${DEPLOY_ENV:+-$DEPLOY_ENV}"
+SECRET_SUFFIX="${DEPLOY_ENV:+_$(echo "$DEPLOY_ENV" | tr '[:lower:]' '[:upper:]')}"
 SERVICE_NAME="veritas-ai-backend${SUFFIX}"
 DB_INSTANCE_NAME="veritas-ai-db-primary"
 DB_NAME="veritas"
@@ -140,13 +141,19 @@ if [ -f "$ENV_FILE" ]; then
     VERITAS_AGENT_MODE=$(read_env VERITAS_AGENT_MODE)
     NUMERIC_VALIDATION_AGENT_MODE=$(read_env NUMERIC_VALIDATION_AGENT_MODE)
 fi
-if [ -z "$GEMINI_API_KEY" ]; then
-    read -rp "Enter GEMINI_API_KEY (not found in .env): " GEMINI_API_KEY
-fi
+GEMINI_SECRET_NAME="VERITAS_GEMINI_API_KEY${SECRET_SUFFIX}"
 if [ -n "$GEMINI_API_KEY" ]; then
-    create_secret "VERITAS_GEMINI_API_KEY" "$GEMINI_API_KEY"
+    # Key found in .env — create/update the secret
+    create_secret "$GEMINI_SECRET_NAME" "$GEMINI_API_KEY"
+elif gcloud secrets versions access latest --secret="$GEMINI_SECRET_NAME" >/dev/null 2>&1; then
+    echo "Secret $GEMINI_SECRET_NAME already exists in Secret Manager, skipping."
 else
-    echo "WARNING: No GEMINI_API_KEY provided. Agent pipeline will not work without it."
+    read -rp "Enter GEMINI_API_KEY (not in .env or Secret Manager): " GEMINI_API_KEY
+    if [ -n "$GEMINI_API_KEY" ]; then
+        create_secret "$GEMINI_SECRET_NAME" "$GEMINI_API_KEY"
+    else
+        echo "WARNING: No GEMINI_API_KEY provided. Agent pipeline will not work without it."
+    fi
 fi
 
 # 5. Grant Cloud Run service account access to secrets
@@ -207,7 +214,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --allow-unauthenticated \
     --timeout=3600 \
     --add-cloudsql-instances="$INSTANCE_CONNECTION_NAME" \
-    --set-secrets="DATABASE_URL=VERITAS_DB_URL:latest,GEMINI_API_KEY=VERITAS_GEMINI_API_KEY:latest" \
+    --set-secrets="DATABASE_URL=VERITAS_DB_URL:latest,GEMINI_API_KEY=VERITAS_GEMINI_API_KEY${SECRET_SUFFIX}:latest" \
     --set-env-vars="$ENV_VARS" \
     --memory 1Gi \
     --min-instances 1 \
