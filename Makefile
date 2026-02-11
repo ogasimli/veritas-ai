@@ -2,7 +2,7 @@
 # Veritas AI - Project Makefile
 # ==============================================================================
 
-.PHONY: playground install dev test lint deploy deploy-backend deploy-frontend promote promote-backend promote-frontend teardown teardown-backend teardown-frontend extract-docx
+.PHONY: playground install dev test lint deploy promote teardown extract-docx
 
 #  Run Google ADK Web Playground
 playground:
@@ -40,43 +40,52 @@ lint:
 
 # Pass env= only to deploy/teardown targets
 # Example: make deploy env=staging
-deploy deploy-backend deploy-frontend teardown teardown-backend teardown-frontend: export DEPLOY_ENV = $(env)
+deploy teardown: export DEPLOY_ENV = $(env)
 
-# Deploy the entire backend (including agents)
-deploy-backend:
+# Deploy services
+# Usage: make deploy [service=backend|frontend] [env=staging]
+#   make deploy              - Deploy both backend and frontend
+#   make deploy service=backend
+#   make deploy service=frontend
+deploy:
+ifeq ($(service),backend)
 	@echo "Deploying backend..."
 	$(MAKE) -C backend deploy
-
-# Deploy frontend to Cloud Run
-deploy-frontend:
+else ifeq ($(service),frontend)
 	@echo "Deploying frontend..."
 	$(MAKE) -C frontend deploy
-
-# Deploy the entire project
-# Usage: make deploy [env=staging]
-deploy:
-	$(MAKE) deploy-backend
-	$(MAKE) deploy-frontend
+else
+	@echo "Deploying backend..."
+	$(MAKE) -C backend deploy
+	@echo "Deploying frontend..."
+	$(MAKE) -C frontend deploy
+endif
 
 # Promote staging images to production (no rebuild)
-# Usage: make promote | make promote-backend | make promote-frontend
+# Usage: make promote [service=backend|frontend]
+#   make promote              - Promote both backend and frontend
+#   make promote service=backend
+#   make promote service=frontend
 promote:
-	./scripts/promote.sh
-
-promote-backend:
+ifeq ($(service),backend)
 	./scripts/promote.sh --backend-only
-
-promote-frontend:
+else ifeq ($(service),frontend)
 	./scripts/promote.sh --frontend-only
+else
+	./scripts/promote.sh
+endif
 
 # Tear down Cloud Run services
-# Usage: make teardown [env=staging]
-teardown-backend:
-	$(MAKE) -C backend teardown
-
-teardown-frontend:
-	$(MAKE) -C frontend teardown
-
+# Usage: make teardown [service=backend|frontend] [env=staging]
+#   make teardown              - Tear down both backend and frontend
+#   make teardown service=backend
+#   make teardown service=frontend
 teardown:
-	$(MAKE) teardown-frontend
-	$(MAKE) teardown-backend
+ifeq ($(service),backend)
+	$(MAKE) -C backend teardown
+else ifeq ($(service),frontend)
+	$(MAKE) -C frontend teardown
+else
+	$(MAKE) -C frontend teardown
+	$(MAKE) -C backend teardown
+endif

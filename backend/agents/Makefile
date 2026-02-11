@@ -1,4 +1,4 @@
-.PHONY: install playground deploy-all deploy-root-agent deploy-numeric-agent deploy-numeric-cross-table deploy-numeric-in-table deploy-numeric-all deploy-logic-agent deploy-disclosure-agent deploy-external-agent backend test lint
+.PHONY: install playground deploy-agent deploy-all backend test lint
 
 # ==============================================================================
 # Installation & Setup
@@ -28,19 +28,6 @@ playground:
 # Backend Deployment Targets
 # ==============================================================================
 
-# Deploy all agents (root + sub-agents) to Cloud Run
-deploy-all: deploy-root-agent deploy-numeric-agent deploy-logic-agent deploy-disclosure-agent deploy-external-agent
-	@echo "✅ All agents deployed successfully!"
-	@echo ""
-	@echo "Deployed services:"
-	@echo "  - veritas-ai-agent (root orchestrator)"
-	@echo "  - veritas-numeric-validation (In-Table & Legacy Cross-Check)"
-	@echo "  - veritas-numeric-validation-legacy (Legacy Only)"
-	@echo "  - veritas-numeric-validation-table (In-Table Only)"
-	@echo "  - veritas-logic-consistency"
-	@echo "  - veritas-disclosure-compliance"
-	@echo "  - veritas-external-signal"
-
 # Common deployment variables
 PROJECT_ID = $(shell gcloud config get-value project)
 REGION = us-central1
@@ -48,7 +35,7 @@ REGION = us-central1
 ENV_VARS = $(shell grep -vE '^(VERITAS_AGENT_MODE|NUMERIC_VALIDATION_AGENT_MODE)=' .env | grep -v '^\#' | xargs | sed 's/ /,/g')
 
 # Helper macro for deploying agents to Cloud Run
-define deploy_agent
+define _deploy_agent_internal
 	@echo "📦 Generating requirements.txt for ADK deployment..."
 	uv pip compile pyproject.toml --output-file veritas_ai_agent/requirements.txt
 	uv run adk deploy cloud_run \
@@ -62,36 +49,63 @@ define deploy_agent
 		--set-env-vars $(ENV_VARS),VERITAS_AGENT_MODE=$(2),NUMERIC_VALIDATION_AGENT_MODE=$(if $(3),$(3),all)
 endef
 
-# Deploy root orchestrator agent
-deploy-root-agent:
-	$(call deploy_agent,veritas-orchestrator-agent,orchestrator)
+# Deploy agents
+# Usage: make deploy-agent agent=<agent_name> [variant=<variant>]
+#   make deploy-agent agent=orchestrator
+#   make deploy-agent agent=numeric variant=cross_table
+#   make deploy-agent agent=numeric variant=in_table
+#   make deploy-agent agent=numeric variant=all
+#   make deploy-agent agent=logic
+#   make deploy-agent agent=disclosure
+#   make deploy-agent agent=external
+deploy-agent:
+ifndef agent
+	$(error agent is required. Usage: make deploy-agent agent=orchestrator|numeric|logic|disclosure|external [variant=cross_table|in_table|all])
+endif
+ifeq ($(agent),orchestrator)
+	$(call _deploy_agent_internal,veritas-orchestrator-agent,orchestrator)
+else ifeq ($(agent),numeric)
+ifndef variant
+	$(error variant is required for numeric agent. Usage: make deploy-agent agent=numeric variant=cross_table|in_table|all)
+endif
+ifeq ($(variant),cross_table)
+	$(call _deploy_agent_internal,veritas-numeric-validation-cross-table,numeric_validation,cross_table_pipeline)
+else ifeq ($(variant),in_table)
+	$(call _deploy_agent_internal,veritas-numeric-validation-table,numeric_validation,in_table_pipeline)
+else ifeq ($(variant),all)
+	$(call _deploy_agent_internal,veritas-numeric-validation,numeric_validation,all)
+else
+	$(error Invalid variant for numeric agent. Use: cross_table, in_table, or all)
+endif
+else ifeq ($(agent),logic)
+	$(call _deploy_agent_internal,veritas-logic-consistency,logic_consistency)
+else ifeq ($(agent),disclosure)
+	$(call _deploy_agent_internal,veritas-disclosure-compliance,disclosure_compliance)
+else ifeq ($(agent),external)
+	$(call _deploy_agent_internal,veritas-external-signal,external_signal)
+else
+	$(error Invalid agent. Use: orchestrator, numeric, logic, disclosure, or external)
+endif
 
-# Deploy numeric validation sub-agents (3 versions)
-deploy-numeric-agent: deploy-numeric-cross-table deploy-numeric-in-table deploy-numeric-all
-
-deploy-numeric-cross-table:
-	$(call deploy_agent,veritas-numeric-validation-cross-table,numeric_validation,cross_table_pipeline)
-
-deploy-numeric-in-table:
-	$(call deploy_agent,veritas-numeric-validation-table,numeric_validation,in_table_pipeline)
-
-deploy-numeric-all:
-	$(call deploy_agent,veritas-numeric-validation,numeric_validation,all)
-
-# Deploy logic consistency sub-agent
-deploy-logic-agent:
-	$(call deploy_agent,veritas-logic-consistency,logic_consistency)
-
-# Deploy disclosure compliance sub-agent
-deploy-disclosure-agent:
-	$(call deploy_agent,veritas-disclosure-compliance,disclosure_compliance)
-
-# Deploy external signal sub-agent
-deploy-external-agent:
-	$(call deploy_agent,veritas-external-signal,external_signal)
-
-# Alias for 'make deploy' for backward compatibility
-backend: deploy
+# Deploy all agents (root + sub-agents) to Cloud Run
+deploy-all:
+	$(MAKE) deploy-agent agent=orchestrator
+	$(MAKE) deploy-agent agent=numeric variant=cross_table
+	$(MAKE) deploy-agent agent=numeric variant=in_table
+	$(MAKE) deploy-agent agent=numeric variant=all
+	$(MAKE) deploy-agent agent=logic
+	$(MAKE) deploy-agent agent=disclosure
+	$(MAKE) deploy-agent agent=external
+	@echo "✅ All agents deployed successfully!"
+	@echo ""
+	@echo "Deployed services:"
+	@echo "  - veritas-orchestrator-agent (root orchestrator)"
+	@echo "  - veritas-numeric-validation (In-Table & Legacy Cross-Check)"
+	@echo "  - veritas-numeric-validation-cross-table (Legacy Only)"
+	@echo "  - veritas-numeric-validation-table (In-Table Only)"
+	@echo "  - veritas-logic-consistency"
+	@echo "  - veritas-disclosure-compliance"
+	@echo "  - veritas-external-signal"
 
 # ==============================================================================
 # Testing & Code Quality
