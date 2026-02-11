@@ -182,3 +182,50 @@ class TestJobAwareDebugPlugin:
         )
         assert doc_x["invocation_id"] == "inv-job-xxx"
         assert doc_y["invocation_id"] == "inv-job-yyy"
+
+    @pytest.mark.asyncio
+    async def test_entries_written_incrementally(self, tmp_path, monkeypatch):
+        """Entries should appear on disk before after_run_callback."""
+        monkeypatch.chdir(tmp_path)
+        plugin = JobAwareDebugPlugin()
+
+        ctx = _make_invocation_context("job-inc")
+        per_job_file = tmp_path / "adk_debug_job-inc.yaml"
+
+        await plugin.before_run_callback(invocation_context=ctx)
+
+        # File should already exist with header + invocation_start entry
+        assert per_job_file.exists(), "File should be created at before_run"
+        docs_before = list(yaml.safe_load_all(per_job_file.read_text()))
+        assert docs_before[0]["invocation_id"] == "inv-job-inc"
+        entry_types_before = {d["entry_type"] for d in docs_before[1:]}
+        assert "invocation_start" in entry_types_before
+
+        # Simulate an event callback — this triggers _add_entry internally
+        event = MagicMock()
+        event.id = "evt-1"
+        event.author = "TestAgent"
+        event.content = None
+        event.partial = False
+        event.turn_complete = False
+        event.branch = None
+        event.actions = None
+        event.grounding_metadata = None
+        event.usage_metadata = None
+        event.error_code = None
+        event.long_running_tool_ids = None
+        event.is_final_response = MagicMock(return_value=False)
+
+        await plugin.on_event_callback(invocation_context=ctx, event=event)
+
+        # The event entry should be on disk already (before after_run)
+        docs_mid = list(yaml.safe_load_all(per_job_file.read_text()))
+        entry_types_mid = {d["entry_type"] for d in docs_mid[1:]}
+        assert "event" in entry_types_mid
+
+        # Finalize
+        await plugin.after_run_callback(invocation_context=ctx)
+
+        docs_final = list(yaml.safe_load_all(per_job_file.read_text()))
+        entry_types_final = {d["entry_type"] for d in docs_final[1:]}
+        assert "invocation_end" in entry_types_final

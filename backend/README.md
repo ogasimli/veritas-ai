@@ -213,7 +213,8 @@ make db-stop
 - `GET /api/v1/jobs/{job_id}` — Get job status and metadata
 - `GET /api/v1/jobs/{job_id}/results` — Get all agent results for a job
 - `GET /api/v1/jobs/{job_id}/results/agent/{agent_id}` — Get results for specific agent
-- `GET /api/v1/jobs/{job_id}/agent-trace` — Download agent execution trace YAML (for troubleshooting)
+- `GET /api/v1/jobs/{job_id}/agent-traces/debug-log` — Structured ADK debug YAML (written incrementally during agent execution)
+- `GET /api/v1/jobs/{job_id}/agent-traces/trace-log` — Real-time console trace log (supports `?offset=<bytes>` for incremental reads)
 - `PATCH /api/v1/jobs/{job_id}` — Update job metadata
 - `DELETE /api/v1/jobs/{job_id}` — Delete a job
 
