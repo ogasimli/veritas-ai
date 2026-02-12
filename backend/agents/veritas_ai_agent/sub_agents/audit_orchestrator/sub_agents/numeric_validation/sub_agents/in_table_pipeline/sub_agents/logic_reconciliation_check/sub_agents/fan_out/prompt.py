@@ -10,6 +10,7 @@ Given a single table, infer formulas for cells derived through **logical interde
 You do NOT calculate. You only infer relationships and propose formulas that SHOULD apply based on labels and structure.
 
 ### Input Data
+
 {table_data}
 
 ### What Counts as "Logic Reconciliation" (IN SCOPE)
@@ -28,22 +29,26 @@ EXCLUDE:
 3) NON-ADJACENT: opening, movements, closing may be separated by blank rows or sections.
 4) PROPOSE ALL PLAUSIBLE FORMULAS (sign conventions, missing movement lines).
 5) EVERY CELL REFERENCE MUST USE: cell(table_index,row,col)
-6) VECTORIZATION: Financial tables use consistent logic across columns. Define the formula for the **LEFT-MOST NUMERIC COLUMN** (typically column 1) once. Assume it applies to all numeric columns in that table. Do NOT output formulas for column 2, 3, etc.
+6) VECTORIZATION: Financial tables use consistent logic across columns. Define the formula for the **LEFT-MOST NUMERIC COLUMN** (typically column 2) once. Assume it applies to all numeric columns in that table. Do NOT output formulas for column 3, 4, etc.
 
 ### Syntax Protocol
 Output formulas using strictly these Python-compatible numeric validator functions:
 * `sum_cells((t, r1, c1), (t, r2, c2), ...)` -> Sums specific non-contiguous cells.
-  - **Example**: `sum_cells((0, 5, 1), (0, 9, 1))` sums cells at (table=0, row=5, col=1) and (table=0, row=9, col=1).
+  - **Example**: `sum_cells((0, 5, 2), (0, 9, 2))` sums cells at (table=0, row=5, col=2) and (table=0, row=9, col=2).
 * `cell(t, r, c)` -> References a single cell for direct references or simple arithmetic.
   - **Example**: `cell(0, 5, 2)` references table 0, row 5, column 2.
 
-*Note: All indices are 0-based. `t` = table_index, `r` = row_index, `c` = column_index.*
+IMPORTANT: Row 0 contains column position indices. Column 0 contains row position indices.
+Use these index values directly as coordinates in formulas and target_cell — do NOT count rows/columns manually.
+Data headers are in row 1. Row labels are in column 1.
+
+*Note: `t` = table_index, `r` = row_index, `c` = column_index.*
 
 ### Key Enhancement 1 - Multi-Period / Multi-Year Handling (MANDATORY)
 Tables may contain multiple years in either of these patterns:
 
 Pattern P1: Years as columns (e.g., "2025", "2024" columns)
-- Define the formula for the **LEFT-MOST NUMERIC COLUMN** (typically column 1) once. Assume it applies to all numeric columns in that table. Do NOT output formulas for column 2, 3, etc.
+- Define the formula for the **LEFT-MOST NUMERIC COLUMN** (typically column 2) once. Assume it applies to all numeric columns in that table. Do NOT output formulas for column 3, 4, etc.
 Pattern P2: Years embedded in row labels (e.g., "Cost at 1 January 2024", "Cost at 31 December 2024")
 - You must segment the table into period blocks by year/date tokens in row labels.
 - For each period block:
@@ -85,8 +90,8 @@ Sign convention variants are REQUIRED:
 
 ### Detection Strategy (DO THIS FOR EACH TABLE)
 Step 1 - Identify structure:
-- Column headers: usually row 0
-- Row labels: usually col 0
+- Column headers: usually row 1
+- Row labels: usually col 1
 - Ignore empty rows but do not treat them as separators of logic blocks.
 
 Step 2 - Identify reconciliation "groups" within the table:

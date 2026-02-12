@@ -16,6 +16,10 @@ from typing import Any
 
 from google.adk.agents.callback_context import CallbackContext
 
+from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.sub_agents.in_table_pipeline.grid_utils import (
+    add_index_headers,
+    strip_empty_rows_and_cols,
+)
 from veritas_ai_agent.sub_agents.audit_orchestrator.sub_agents.numeric_validation.table_extraction import (
     extract_tables_from_markdown,
     tables_to_json,
@@ -47,6 +51,8 @@ async def before_agent_callback(callback_context: CallbackContext) -> None:
         return
 
     raw_tables = extract_tables_from_markdown(markdown)
+    for table in raw_tables:
+        table["grid"] = add_index_headers(strip_empty_rows_and_cols(table["grid"]))
     callback_context.state["extracted_tables_raw"] = tables_to_json(raw_tables)
     logger.info("Extracted %d tables; raw data stored.", len(raw_tables))
 
