@@ -122,6 +122,10 @@ Veritas AI uses a **multi-agent orchestration architecture** where autonomous sp
 - **Cross-Table Reconciliation**: Ensure one step and multi-step reconciliations across related tables (very expertise intensive)
 - **Anchor Formula Pattern**: LLM generates one formula template, Python replicates across all rows/columns
 
+> **⚠️ Status Update (Feb 11, 2026)**
+>
+> * **Cross-table Pipeline**: This pipeline is currently disabled. We are finalizing our strategy to improve accuracy and performance. The technical direction is set, pending resources for implementation, testing, and optimization.
+
 ### Logic Consistency Detection
 - **Narrative-to-Data Mismatches**: "Revenue increased" vs. actual decrease in tables
 - **Business Logic Violations**: Impossible scenarios (negative depreciation, etc.)
