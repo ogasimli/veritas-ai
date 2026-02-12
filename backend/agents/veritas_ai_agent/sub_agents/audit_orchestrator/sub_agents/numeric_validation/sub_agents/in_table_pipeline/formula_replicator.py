@@ -17,15 +17,20 @@ Horizontal (row-based):
 
 Supported formulas
 ------------------
-* sum_col(t, col, r1, r2)           - contiguous vertical sum
-* sum_row(t, row, c1, c2)           - contiguous horizontal sum
-* sum_cells((t,r1,c1), (t,r2,c2)...) - non-contiguous sum (vertical or horizontal)
+* sum_col(t, col, r1, r2)                          - contiguous vertical sum
+* sum_row(t, row, c1, c2)                          - contiguous horizontal sum
+* sum_cells((t,r1,c1), (t,r2,c2)...)               - non-contiguous sum
+* cell(t, r, c)                                    - single cell reference
+* cell(t,r,c) + cell(t,r,c) - cell(t,r,c) ...      - compound arithmetic
 
 Design notes
 ------------
 * Uses regex to parse formula patterns
 * Validates numeric columns/rows before replication
 * Maintains deduplication via (target_cell, formula) keys
+* Compound arithmetic formulas (cell() OP cell()) are replicated by
+  shifting column/row indices in each cell() reference via re.sub,
+  preserving operators and formula structure.
 """
 
 import logging
@@ -52,6 +57,15 @@ SUM_ROW_PATTERN = re.compile(
 SUM_CELLS_PATTERN = re.compile(r"sum_cells\s*\((.*)\)")
 CELL_REF_PATTERN = re.compile(r"\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
 CELL_FUNC_PATTERN = re.compile(r"cell\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)")
+
+
+def _make_formula_item(
+    target: TargetCell, formula: str, as_multi: bool
+) -> HorizontalVerticalCheckInferredFormula | LogicInferredFormula:
+    """Create the appropriate formula item type based on as_multi flag."""
+    if as_multi:
+        return LogicInferredFormula(target_cell=target, formulas=[formula])
+    return HorizontalVerticalCheckInferredFormula(target_cell=target, formula=formula)
 
 
 def replicate_formulas(
@@ -86,16 +100,7 @@ def replicate_formulas(
         for f_str in f_list:
             key = ((target.table_index, target.row_index, target.col_index), f_str)
             if key not in seen_keys:
-                if is_multi:
-                    replicated_results.append(
-                        LogicInferredFormula(target_cell=target, formulas=[f_str])
-                    )
-                else:
-                    replicated_results.append(
-                        HorizontalVerticalCheckInferredFormula(
-                            target_cell=target, formula=f_str
-                        )
-                    )
+                replicated_results.append(_make_formula_item(target, f_str, is_multi))
                 seen_keys.add(key)
 
             # Replicate
@@ -132,8 +137,15 @@ def replicate_formulas(
     return replicated_results
 
 
-def _is_vertical_sum_cells(formula: str) -> bool:
-    """Check if sum_cells formula has all cells in same column."""
+def _all_refs_same_column(formula: str) -> bool:
+    """Check if all (t, r, c) references in formula share the same column.
+
+    Works for both sum_cells() and compound cell() arithmetic formulas,
+    since CELL_REF_PATTERN matches the (t, r, c) triplet inside either
+    ``sum_cells((0, 1, 2), ...)`` or ``cell(0, 1, 2) + cell(...)``.
+
+    Requires 2+ refs to be meaningful for direction detection.
+    """
     cells = CELL_REF_PATTERN.findall(formula)
     if not cells or len(cells) < 2:
         return False
@@ -141,8 +153,15 @@ def _is_vertical_sum_cells(formula: str) -> bool:
     return len(cols) == 1
 
 
-def _is_horizontal_sum_cells(formula: str) -> bool:
-    """Check if sum_cells formula has all cells in same row."""
+def _all_refs_same_row(formula: str) -> bool:
+    """Check if all (t, r, c) references in formula share the same row.
+
+    Works for both sum_cells() and compound cell() arithmetic formulas,
+    since CELL_REF_PATTERN matches the (t, r, c) triplet inside either
+    ``sum_cells((0, 1, 2), ...)`` or ``cell(0, 1, 2) + cell(...)``.
+
+    Requires 2+ refs to be meaningful for direction detection.
+    """
     cells = CELL_REF_PATTERN.findall(formula)
     if not cells or len(cells) < 2:
         return False
@@ -163,14 +182,14 @@ def detect_replication_direction(
         formula = item.formula
     target = item.target_cell
 
-    if _is_vertical_sum_cells(formula):
+    if _all_refs_same_column(formula):
         return "vertical"
-    if _is_horizontal_sum_cells(formula):
+    if _all_refs_same_row(formula):
         return "horizontal"
 
     # Default single cell reference logic checks to vertical replication
     # (checking if the same cell logic applies to other columns)
-    match = CELL_FUNC_PATTERN.match(formula)
+    match = CELL_FUNC_PATTERN.fullmatch(formula)
     if match:
         # Check alignment relative to target
         _, r_src, c_src = map(int, match.groups())
@@ -211,22 +230,11 @@ def _replicate_vertical_str(
                     row_index=target.row_index,
                     col_index=c,
                 )
-                if as_multi:
-                    results.append(
-                        LogicInferredFormula(
-                            target_cell=new_target, formulas=[new_formula]
-                        )
-                    )
-                else:
-                    results.append(
-                        HorizontalVerticalCheckInferredFormula(
-                            target_cell=new_target, formula=new_formula
-                        )
-                    )
+                results.append(_make_formula_item(new_target, new_formula, as_multi))
         return results
 
     # Handle cell(t, r, c) - single cell logic replication
-    match = CELL_FUNC_PATTERN.match(formula)
+    match = CELL_FUNC_PATTERN.fullmatch(formula)
     if match:
         t_src, r_src, c_src = map(int, match.groups())
         grid = table_grids.get(t_src)
@@ -248,22 +256,15 @@ def _replicate_vertical_str(
                     row_index=target.row_index,
                     col_index=c,
                 )
-                if as_multi:
-                    results.append(
-                        LogicInferredFormula(
-                            target_cell=new_target, formulas=[new_formula]
-                        )
-                    )
-                else:
-                    results.append(
-                        HorizontalVerticalCheckInferredFormula(
-                            target_cell=new_target, formula=new_formula
-                        )
-                    )
+                results.append(_make_formula_item(new_target, new_formula, as_multi))
         return results
 
-    # Handle sum_cells for vertical patterns (same column across cells)
-    return _replicate_vertical_sum_cells_str(formula, target, table_grids, as_multi)
+    # Handle sum_cells((t,r,c), ...) for vertical patterns
+    if SUM_CELLS_PATTERN.match(formula):
+        return _replicate_vertical_sum_cells_str(formula, target, table_grids, as_multi)
+
+    # Handle compound arithmetic: cell(...) + cell(...) - cell(...) etc.
+    return _replicate_arithmetic_vertical(formula, target, table_grids, as_multi)
 
 
 def _replicate_horizontal_str(
@@ -289,22 +290,11 @@ def _replicate_horizontal_str(
                     row_index=r,
                     col_index=target.col_index,
                 )
-                if as_multi:
-                    results.append(
-                        LogicInferredFormula(
-                            target_cell=new_target, formulas=[new_formula]
-                        )
-                    )
-                else:
-                    results.append(
-                        HorizontalVerticalCheckInferredFormula(
-                            target_cell=new_target, formula=new_formula
-                        )
-                    )
+                results.append(_make_formula_item(new_target, new_formula, as_multi))
         return results
 
     # Handle cell(t, r, c) - single cell logic replication
-    match = CELL_FUNC_PATTERN.match(formula)
+    match = CELL_FUNC_PATTERN.fullmatch(formula)
     if match:
         t_src, r_src, c_src = map(int, match.groups())
         grid = table_grids.get(t_src)
@@ -326,21 +316,167 @@ def _replicate_horizontal_str(
                     row_index=r,
                     col_index=target.col_index,
                 )
-                if as_multi:
-                    results.append(
-                        LogicInferredFormula(
-                            target_cell=new_target, formulas=[new_formula]
-                        )
-                    )
-                else:
-                    results.append(
-                        HorizontalVerticalCheckInferredFormula(
-                            target_cell=new_target, formula=new_formula
-                        )
-                    )
+                results.append(_make_formula_item(new_target, new_formula, as_multi))
         return results
 
-    return _replicate_horizontal_sum_cells_str(formula, target, table_grids, as_multi)
+    # Handle sum_cells((t,r,c), ...) for horizontal patterns
+    if SUM_CELLS_PATTERN.match(formula):
+        return _replicate_horizontal_sum_cells_str(
+            formula, target, table_grids, as_multi
+        )
+
+    # Handle compound arithmetic: cell(...) + cell(...) - cell(...) etc.
+    return _replicate_arithmetic_horizontal(formula, target, table_grids, as_multi)
+
+
+# --- Compound arithmetic replication ---
+
+
+def _replicate_arithmetic_vertical(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
+    """Replicate compound arithmetic formulas across columns.
+
+    Uses re.sub to shift column indices in all cell() references while
+    preserving operators (+, -, *, /) and formula structure (parentheses).
+
+    Requirements for replication:
+    - Formula must contain 2+ cell() references
+    - All cell() refs must share the same column (vertical pattern)
+    - At least one shifted cell must land on a numeric value
+    """
+    refs = list(CELL_FUNC_PATTERN.finditer(formula))
+    if len(refs) < 2:
+        return []
+
+    # All cell() refs must share the same column
+    cols = {int(m.group(3)) for m in refs}
+    if len(cols) != 1:
+        return []
+
+    anchor_col = target.col_index
+
+    # Determine max columns from referenced table grids
+    max_cols = 0
+    for m in refs:
+        t_idx = int(m.group(1))
+        grid = table_grids.get(t_idx)
+        if grid and grid[0]:
+            max_cols = max(max_cols, len(grid[0]))
+    if max_cols == 0:
+        return []
+
+    results = []
+    for c in range(anchor_col + 1, max_cols):
+        offset = c - anchor_col
+
+        # Validate: all shifted refs in bounds, at least one numeric
+        valid = True
+        any_numeric = False
+        for m in refs:
+            t_idx = int(m.group(1))
+            r = int(m.group(2))
+            new_c = int(m.group(3)) + offset
+            grid = table_grids.get(t_idx)
+            if not grid or new_c >= len(grid[0]):
+                valid = False
+                break
+            if r < len(grid) and _is_numeric(grid[r][new_c]):
+                any_numeric = True
+
+        if not valid or not any_numeric:
+            continue
+
+        # Shift column index in every cell() reference, preserving everything else
+        new_formula = CELL_FUNC_PATTERN.sub(
+            lambda m,
+            _o=offset: f"cell({m.group(1)}, {m.group(2)}, {int(m.group(3)) + _o})",
+            formula,
+        )
+
+        new_target = TargetCell(
+            table_index=target.table_index,
+            row_index=target.row_index,
+            col_index=c,
+        )
+        results.append(_make_formula_item(new_target, new_formula, as_multi))
+
+    return results
+
+
+def _replicate_arithmetic_horizontal(
+    formula: str, target: TargetCell, table_grids: dict, as_multi: bool
+) -> list[HorizontalVerticalCheckInferredFormula | LogicInferredFormula]:
+    """Replicate compound arithmetic formulas across rows.
+
+    Uses re.sub to shift row indices in all cell() references while
+    preserving operators (+, -, *, /) and formula structure (parentheses).
+
+    Requirements for replication:
+    - Formula must contain 2+ cell() references
+    - All cell() refs must share the same row (horizontal pattern)
+    - At least one shifted cell must land on a numeric value
+    """
+    refs = list(CELL_FUNC_PATTERN.finditer(formula))
+    if len(refs) < 2:
+        return []
+
+    # All cell() refs must share the same row
+    rows = {int(m.group(2)) for m in refs}
+    if len(rows) != 1:
+        return []
+
+    anchor_row = target.row_index
+
+    # Determine max rows from referenced table grids
+    max_rows = 0
+    for m in refs:
+        t_idx = int(m.group(1))
+        grid = table_grids.get(t_idx)
+        if grid:
+            max_rows = max(max_rows, len(grid))
+    if max_rows == 0:
+        return []
+
+    results = []
+    for r in range(anchor_row + 1, max_rows):
+        offset = r - anchor_row
+
+        # Validate: all shifted refs in bounds, at least one numeric
+        valid = True
+        any_numeric = False
+        for m in refs:
+            t_idx = int(m.group(1))
+            new_r = int(m.group(2)) + offset
+            c = int(m.group(3))
+            grid = table_grids.get(t_idx)
+            if not grid or new_r >= len(grid):
+                valid = False
+                break
+            if c < len(grid[new_r]) and _is_numeric(grid[new_r][c]):
+                any_numeric = True
+
+        if not valid or not any_numeric:
+            continue
+
+        # Shift row index in every cell() reference, preserving everything else
+        new_formula = CELL_FUNC_PATTERN.sub(
+            lambda m,
+            _o=offset: f"cell({m.group(1)}, {int(m.group(2)) + _o}, {m.group(3)})",
+            formula,
+        )
+
+        new_target = TargetCell(
+            table_index=target.table_index,
+            row_index=r,
+            col_index=target.col_index,
+        )
+        results.append(_make_formula_item(new_target, new_formula, as_multi))
+
+    return results
+
+
+# --- sum_cells replication ---
 
 
 def _replicate_vertical_sum_cells_str(
@@ -377,16 +513,7 @@ def _replicate_vertical_sum_cells_str(
                 row_index=target.row_index,
                 col_index=c,
             )
-            if as_multi:
-                results.append(
-                    LogicInferredFormula(target_cell=new_target, formulas=[new_formula])
-                )
-            else:
-                results.append(
-                    HorizontalVerticalCheckInferredFormula(
-                        target_cell=new_target, formula=new_formula
-                    )
-                )
+            results.append(_make_formula_item(new_target, new_formula, as_multi))
 
     return results
 
@@ -425,16 +552,7 @@ def _replicate_horizontal_sum_cells_str(
                 row_index=r,
                 col_index=target.col_index,
             )
-            if as_multi:
-                results.append(
-                    LogicInferredFormula(target_cell=new_target, formulas=[new_formula])
-                )
-            else:
-                results.append(
-                    HorizontalVerticalCheckInferredFormula(
-                        target_cell=new_target, formula=new_formula
-                    )
-                )
+            results.append(_make_formula_item(new_target, new_formula, as_multi))
 
     return results
 

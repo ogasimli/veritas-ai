@@ -206,3 +206,129 @@ class TestNewFormulaEngine:
         }
         # Sum rows 1-3 col 1  →  0 + 100 + 200 = 300
         assert evaluate_formula_with_tables("sum_col(0, 1, 1, 3)", grids) == 300.0
+
+    # --- compound arithmetic (agent-produced formulas) --------------------
+    def test_multi_cell_addition(self):
+        """cell() + cell() + cell() — rollforward style."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["Opening", 1000.0],
+                ["Additions", 200.0],
+                ["Transfers", 50.0],
+                ["Closing", 1250.0],
+            ]
+        }
+        result = evaluate_formula_with_tables(
+            "cell(0, 1, 1) + cell(0, 2, 1) + cell(0, 3, 1)", grids
+        )
+        assert result == 1250.0
+
+    def test_multi_cell_subtraction(self):
+        """cell() + cell() - cell() — signed movement variant."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["Opening", 1000.0],
+                ["Additions", 200.0],
+                ["Disposals", 50.0],
+                ["Closing", 1150.0],
+            ]
+        }
+        # closing = opening + additions - disposals = 1000 + 200 - 50
+        result = evaluate_formula_with_tables(
+            "cell(0, 1, 1) + cell(0, 2, 1) - cell(0, 3, 1)", grids
+        )
+        assert result == 1150.0
+
+    def test_parenthesized_arithmetic(self):
+        """(cell() + cell()) - cell() with grouping."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["Cost", 500.0],
+                ["AccDepr", 200.0],
+                ["AccImpair", 50.0],
+                ["NBV", 250.0],
+            ]
+        }
+        # NBV = Cost - AccDepr - AccImpair = 500 - 200 - 50
+        result = evaluate_formula_with_tables(
+            "(cell(0, 1, 1) - cell(0, 2, 1)) - cell(0, 3, 1)", grids
+        )
+        assert result == 250.0
+
+    def test_sum_cells_plus_sum_cells(self):
+        """sum_cells() + sum_cells() combination."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["A", 100.0],
+                ["B", 200.0],
+                ["C", 300.0],
+                ["D", 400.0],
+            ]
+        }
+        # (A + B) + (C + D) = 300 + 700 = 1000
+        result = evaluate_formula_with_tables(
+            "sum_cells((0, 1, 1), (0, 2, 1)) + sum_cells((0, 3, 1), (0, 4, 1))", grids
+        )
+        assert result == 1000.0
+
+    def test_cell_minus_sum_cells(self):
+        """cell() - sum_cells() — validation-style formula."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["Total", 500.0],
+                ["Part A", 300.0],
+                ["Part B", 200.0],
+            ]
+        }
+        # Total - (Part A + Part B) = 500 - 500 = 0
+        result = evaluate_formula_with_tables(
+            "cell(0, 1, 1) - sum_cells((0, 2, 1), (0, 3, 1))", grids
+        )
+        assert result == 0.0
+
+    def test_abs_of_difference(self):
+        """abs(cell() - cell()) — used for magnitude checks."""
+        grids = {0: [["Item", "2024"], ["A", 100.0], ["B", 250.0]]}
+        result = evaluate_formula_with_tables(
+            "abs(cell(0, 1, 1) - cell(0, 2, 1))", grids
+        )
+        assert result == 150.0
+
+    def test_multiplication_and_division(self):
+        """cell() * cell() and cell() / cell()."""
+        grids = {0: [[10.0, 5.0, 2.0]]}
+        assert (
+            evaluate_formula_with_tables("cell(0, 0, 0) * cell(0, 0, 1)", grids) == 50.0
+        )
+        assert (
+            evaluate_formula_with_tables("cell(0, 0, 0) / cell(0, 0, 2)", grids) == 5.0
+        )
+
+    def test_negative_cell_values_in_arithmetic(self):
+        """Arithmetic with negative values (common in depreciation schedules)."""
+        grids = {
+            0: [
+                ["Item", "2024"],
+                ["AD Opening", -300.0],
+                ["Depr Charge", -100.0],
+                ["AD Disposals", 20.0],
+                ["AD Closing", -380.0],
+            ]
+        }
+        # AD Closing = AD Opening + Depr Charge + AD Disposals
+        result = evaluate_formula_with_tables(
+            "cell(0, 1, 1) + cell(0, 2, 1) + cell(0, 3, 1)", grids
+        )
+        assert result == -380.0
+
+    def test_division_by_zero_returns_zero(self):
+        """Division by zero should be caught and return 0.0."""
+        grids = {0: [[100.0, 0.0]]}
+        assert (
+            evaluate_formula_with_tables("cell(0, 0, 0) / cell(0, 0, 1)", grids) == 0.0
+        )
